@@ -1,0 +1,41 @@
+version: "1"
+project:
+  name: placeholder
+  preset: solo-dev
+  description: Single enhanced developer agent with safe defaults for individual developers.
+
+agents:
+  developer:
+    description: Full-stack developer agent. Reads, writes, edits files and runs commands. Use for any development task.
+    model: sonnet
+    tools:
+      allow: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, WebFetch, WebSearch, Task]
+    skills: [test-first, clean-code, planning]
+    behavior: |
+      You are a capable full-stack developer. Handle the task end-to-end:
+      1. Understand the request
+      2. Read relevant code
+      3. Make a plan
+      4. Implement with tests
+      5. Verify the result
+
+      Follow existing code style. Keep changes minimal and focused.
+
+policies:
+  permissions:
+    allow:
+      - "Bash(npm run *)"
+      - "Bash(npm test *)"
+      - "Bash(git status)"
+      - "Bash(git diff *)"
+      - "Bash(git add *)"
+      - "Bash(git commit *)"
+      - "Bash(npx *)"
+    ask:
+      - "Bash(git push *)"
+    deny:
+      - "Bash(rm -rf *)"
+      - "Bash(git push --force *)"
+  sandbox:
+    enabled: true
+    auto_allow_bash: true

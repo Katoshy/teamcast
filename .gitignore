@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tgz
+.env
+.env.*
+dev-docs/
+SPRINTS.md
+.claude/settings.local.json

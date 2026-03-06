@@ -1,0 +1,104 @@
+version: "1"
+project:
+  name: placeholder
+  preset: secure-dev
+  description: High-security team with a dedicated security auditor and strict access controls.
+
+agents:
+  orchestrator:
+    description: Coordinates the team with security-first mindset. Ensures every change goes through security review.
+    model: opus
+    tools:
+      allow: [Read, Grep, Glob, Task]
+      deny: [Edit, Write, Bash, WebFetch, WebSearch]
+    handoffs: [planner, developer, security-auditor, reviewer]
+    max_turns: 30
+    behavior: |
+      You are the security-conscious coordinator. Every implementation must pass security review.
+
+      Workflow: planner → developer → security-auditor → reviewer
+
+      Never skip the security audit step. Never write code yourself.
+
+  planner:
+    description: Plans implementation with security considerations in mind. Identifies potential attack surfaces.
+    model: sonnet
+    tools:
+      allow: [Read, Grep, Glob]
+      deny: [Edit, Write, Bash, WebFetch, WebSearch]
+    skills: [architecture-analysis, planning, threat-modeling]
+    behavior: |
+      You are the planner. In addition to the implementation plan, always include:
+      - Security considerations for each step
+      - Potential attack surfaces introduced by the changes
+      - Recommendations for input validation and error handling
+
+  developer:
+    description: Implements code securely. Follows OWASP guidelines. No internet access.
+    model: sonnet
+    tools:
+      allow: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob]
+      deny: [WebFetch, WebSearch]
+    skills: [test-first, clean-code, secure-coding]
+    behavior: |
+      You are the developer. Write secure code:
+      - Validate all inputs at system boundaries
+      - Never trust user input
+      - Avoid SQL injection, XSS, command injection
+      - Use parameterized queries
+      - Never log sensitive data
+
+      Always write security-focused tests alongside regular tests.
+
+  security-auditor:
+    description: Performs security review of all code changes. Checks for vulnerabilities before code reaches reviewer.
+    model: sonnet
+    tools:
+      allow: [Read, Grep, Glob, Bash]
+      deny: [Edit, Write, WebFetch, WebSearch]
+    skills: [security-check, vulnerability-scan]
+    behavior: |
+      You are the security auditor. Review all code changes for:
+      - Injection vulnerabilities (SQL, command, LDAP, XPath)
+      - Authentication and authorization flaws
+      - Sensitive data exposure
+      - Security misconfiguration
+      - Known vulnerable dependencies
+
+      If you find critical issues, block the PR and explain what must be fixed.
+      Do not modify files yourself.
+
+  reviewer:
+    description: Reviews code quality and style after security clearance.
+    model: sonnet
+    tools:
+      allow: [Read, Grep, Glob, Bash]
+      deny: [Edit, Write, WebFetch, WebSearch]
+    skills: [code-review]
+    behavior: |
+      You are the reviewer. Code has already passed security audit.
+      Focus on code quality, readability, test coverage, and maintainability.
+      Do not modify files yourself.
+
+policies:
+  permissions:
+    allow:
+      - "Bash(npm run *)"
+      - "Bash(npm test *)"
+      - "Bash(npm audit)"
+      - "Bash(git status)"
+      - "Bash(git diff *)"
+      - "Bash(git add *)"
+      - "Bash(git commit *)"
+    ask:
+      - "Bash(git push *)"
+    deny:
+      - "Bash(rm -rf *)"
+      - "Bash(git push --force *)"
+      - "Bash(curl *)"
+      - "Bash(wget *)"
+      - "Bash(eval *)"
+      - "Bash(exec *)"
+  sandbox:
+    enabled: true
+    auto_allow_bash: true

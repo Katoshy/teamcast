@@ -1,0 +1,75 @@
+version: "1"
+project:
+  name: placeholder
+  preset: research-and-build
+  description: Research-first team. Researcher has full internet access; developer does not.
+
+agents:
+  orchestrator:
+    description: Coordinates research and implementation. Delegates research tasks to the researcher and coding tasks to the developer.
+    model: opus
+    tools:
+      allow: [Read, Grep, Glob, Task]
+      deny: [Edit, Write, Bash, WebFetch, WebSearch]
+    handoffs: [researcher, planner, developer]
+    max_turns: 30
+    behavior: |
+      You are the coordinator. For tasks requiring external research, delegate to the researcher first.
+      Once research is done and a plan is ready, delegate implementation to the developer.
+      Never write code yourself.
+
+  researcher:
+    description: Finds information in documentation and on the web. Produces research reports and source summaries.
+    model: haiku
+    tools:
+      allow: [Read, Grep, Glob, WebFetch, WebSearch]
+      deny: [Edit, Write, Bash]
+    skills: [research-report, source-validation]
+    behavior: |
+      You are the researcher. Your job is to find accurate information from documentation and trusted sources.
+
+      Always cite your sources. Summarize findings clearly.
+      Do not modify any files.
+
+  planner:
+    description: Analyzes the codebase and research findings to produce an implementation plan.
+    model: sonnet
+    tools:
+      allow: [Read, Grep, Glob]
+      deny: [Edit, Write, Bash, WebFetch, WebSearch]
+    skills: [architecture-analysis, planning]
+    behavior: |
+      You are the planner. Use the research findings and codebase knowledge to produce a clear plan.
+      Do not write code. Do not access the internet.
+
+  developer:
+    description: Implements code according to the plan. No internet access — all needed information must come from the planner or researcher.
+    model: sonnet
+    tools:
+      allow: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob]
+      deny: [WebFetch, WebSearch]
+    skills: [test-first, clean-code]
+    behavior: |
+      You are the developer. Implement the plan provided to you.
+      You do not have internet access — ask the orchestrator to delegate research if you need information.
+      Always write tests alongside code.
+
+policies:
+  permissions:
+    allow:
+      - "Bash(npm run *)"
+      - "Bash(npm test *)"
+      - "Bash(git status)"
+      - "Bash(git diff *)"
+      - "Bash(git add *)"
+      - "Bash(git commit *)"
+    ask:
+      - "Bash(git push *)"
+    deny:
+      - "Bash(rm -rf *)"
+      - "Bash(git push --force *)"
+      - "Bash(curl *)"
+      - "Bash(wget *)"
+  sandbox:
+    enabled: true
+    auto_allow_bash: true

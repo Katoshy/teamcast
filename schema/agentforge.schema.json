@@ -1,0 +1,321 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentforge.dev/schema/v1.json",
+  "title": "AgentForge Manifest",
+  "description": "Schema for agentforge.yaml — the canonical manifest for Claude Code agent team configuration",
+  "type": "object",
+  "required": ["version", "project", "agents"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1",
+      "description": "Manifest format version"
+    },
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "Project name. Lowercase, hyphens allowed."
+        },
+        "preset": {
+          "type": "string",
+          "description": "Preset this configuration was based on"
+        },
+        "description": {
+          "type": "string",
+          "description": "Project description for generated AGENTS.md"
+        }
+      }
+    },
+    "agents": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Agent definitions. Keys are agent IDs.",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*$": {
+          "$ref": "#/definitions/AgentConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "policies": {
+      "$ref": "#/definitions/PoliciesConfig"
+    },
+    "settings": {
+      "$ref": "#/definitions/GenerationSettings"
+    }
+  },
+  "definitions": {
+    "ModelAlias": {
+      "type": "string",
+      "enum": ["opus", "sonnet", "haiku", "inherit"],
+      "description": "Model alias. Maps to Claude Code model field."
+    },
+    "Tool": {
+      "type": "string",
+      "enum": [
+        "Read", "Write", "Edit", "MultiEdit",
+        "Grep", "Glob",
+        "Bash",
+        "WebFetch", "WebSearch",
+        "Task"
+      ],
+      "description": "Claude Code built-in tool name"
+    },
+    "PermissionMode": {
+      "type": "string",
+      "enum": ["default", "acceptEdits", "bypassPermissions", "plan"],
+      "description": "Permission mode for the agent"
+    },
+    "ToolsConfig": {
+      "type": "object",
+      "description": "Tool access configuration for an agent",
+      "anyOf": [
+        {
+          "required": ["allow"],
+          "properties": {
+            "allow": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Tool" },
+              "minItems": 1,
+              "description": "Tools explicitly allowed for this agent"
+            },
+            "deny": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Tool" },
+              "description": "Tools explicitly denied for this agent"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "required": ["deny"],
+          "properties": {
+            "deny": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Tool" },
+              "minItems": 1,
+              "description": "Tools explicitly denied (rest inherited)"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "McpServerConfig": {
+      "type": "object",
+      "required": ["name", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "MCP server name"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "MCP server URL"
+        }
+      }
+    },
+    "AgentConfig": {
+      "type": "object",
+      "required": ["description"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "When Claude Code should delegate to this agent. Must be clear and specific."
+        },
+        "model": {
+          "$ref": "#/definitions/ModelAlias",
+          "default": "sonnet"
+        },
+        "tools": {
+          "$ref": "#/definitions/ToolsConfig"
+        },
+        "skills": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "description": "Skill names to auto-load"
+        },
+        "handoffs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "description": "Agent IDs this agent can delegate to"
+        },
+        "max_turns": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum conversation turns for this agent"
+        },
+        "mcp_servers": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/McpServerConfig" },
+          "description": "MCP servers available to this agent"
+        },
+        "permission_mode": {
+          "$ref": "#/definitions/PermissionMode",
+          "default": "default"
+        },
+        "behavior": {
+          "type": "string",
+          "description": "System prompt / behavior instructions for the agent"
+        }
+      }
+    },
+    "PermissionsConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Permission rules to auto-allow. Uses Claude Code permission rule syntax."
+        },
+        "ask": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Permission rules requiring confirmation"
+        },
+        "deny": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Permission rules to deny"
+        },
+        "default_mode": {
+          "type": "string",
+          "enum": ["default", "acceptEdits"],
+          "default": "default",
+          "description": "Default permission mode for the project"
+        }
+      }
+    },
+    "SandboxConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable OS-level bash sandboxing"
+        },
+        "auto_allow_bash": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-approve bash commands when sandboxed"
+        },
+        "excluded_commands": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands that run outside sandbox"
+        },
+        "network": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allow_unix_sockets": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Unix socket paths accessible in sandbox"
+            },
+            "allow_local_binding": {
+              "type": "boolean",
+              "default": false,
+              "description": "Allow binding to localhost ports (macOS only)"
+            }
+          }
+        }
+      }
+    },
+    "HookEntry": {
+      "type": "object",
+      "required": ["matcher", "command"],
+      "additionalProperties": false,
+      "properties": {
+        "matcher": {
+          "type": "string",
+          "description": "Tool name pattern to match (e.g. 'Bash', 'Write|Edit')"
+        },
+        "command": {
+          "type": "string",
+          "description": "Shell command to execute"
+        },
+        "async": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run non-blocking (PostToolUse/Notification only)"
+        }
+      }
+    },
+    "HooksConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pre_tool_use": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/HookEntry" },
+          "description": "Hooks that run before tool execution"
+        },
+        "post_tool_use": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/HookEntry" },
+          "description": "Hooks that run after tool execution"
+        },
+        "notification": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/HookEntry" },
+          "description": "Hooks for notifications"
+        }
+      }
+    },
+    "NetworkConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowed_domains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Domains accessible via WebFetch. Converted to WebFetch permission rules."
+        }
+      }
+    },
+    "PoliciesConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": { "$ref": "#/definitions/PermissionsConfig" },
+        "sandbox": { "$ref": "#/definitions/SandboxConfig" },
+        "hooks": { "$ref": "#/definitions/HooksConfig" },
+        "network": { "$ref": "#/definitions/NetworkConfig" }
+      }
+    },
+    "GenerationSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default_model": {
+          "$ref": "#/definitions/ModelAlias",
+          "default": "sonnet",
+          "description": "Default model for agents that don't specify one"
+        },
+        "generate_docs": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate AGENTS.md documentation"
+        },
+        "generate_local_settings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate settings.local.json"
+        }
+      }
+    }
+  }
+}
