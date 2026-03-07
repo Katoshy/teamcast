@@ -1,5 +1,6 @@
 import type { AgentForgeManifest } from '../types/manifest.js';
 import type { GeneratedFile, GeneratorOptions } from './types.js';
+import { isUserEditableGeneratedFile } from './file-policies.js';
 import { renderAllAgentMd } from './renderers/agent-md.js';
 import { renderSettingsJson, renderSettingsLocalJson } from './renderers/settings-json.js';
 import { renderSkillMd } from './renderers/skill-md.js';
@@ -32,7 +33,12 @@ export function generate(
   }
 
   if (!dryRun) {
-    writeFiles(files, cwd, { skipExisting: true });
+    // Skill stubs should not be overwritten (users edit them manually).
+    // Everything else should always be overwritten to stay in sync.
+    const skillFiles = files.filter((f) => isUserEditableGeneratedFile(f.path));
+    const otherFiles = files.filter((f) => !isUserEditableGeneratedFile(f.path));
+    writeFiles(otherFiles, cwd);
+    writeFiles(skillFiles, cwd, { skipExisting: true });
   }
 
   return files;

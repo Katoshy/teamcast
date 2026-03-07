@@ -43,12 +43,15 @@ After `generate`, your project will have:
 | Command | Description |
 |---------|-------------|
 | `init` | Initialize agent team configuration (interactive wizard) |
-| `generate` | Generate Claude Code config files from `agentforge.yaml` |
+| `generate` | Generate config files and auto-validate |
 | `validate` | Check for conflicts, bad handoffs, and security issues |
 | `explain` | Show a human-readable view of the agent team architecture |
 | `diff` | Preview what would change if you ran `generate` |
 | `add agent <name>` | Add a new agent to the team |
+| `edit agent <name>` | Edit an existing agent (description, model, tools) |
 | `remove agent <name>` | Remove an agent from the team |
+| `reset` | Delete generated files, keep `agentforge.yaml` |
+| `clean` | Delete all generated files and `agentforge.yaml` |
 
 ### Options
 
@@ -67,6 +70,18 @@ agentforge validate --strict      # exit with error on warnings too
 | `solo-dev` | Single developer agent with full tool access |
 | `research-and-build` | Researcher (web access) → planner → developer |
 | `secure-dev` | Adds a dedicated security-auditor to the feature team |
+
+## Wizard
+
+`agentforge init` launches an interactive wizard:
+
+1. **Project name** — auto-detected from the directory name
+2. **Team setup** — three paths:
+   - **Use a preset** — pick from proven team architectures
+   - **Custom team** — select roles (orchestrator, planner, researcher, developer, tester, reviewer, security-auditor) and auto-wire handoffs
+   - **Single agent** — minimal developer setup
+3. **Customize agents** — optionally change the model per agent before generating
+4. **Preview and confirm** — see the file list, then generate
 
 ## Configuration
 
@@ -181,7 +196,3 @@ policies:
 - **Tool conflicts** — no tool in both allow and deny for the same agent
 - **Role warnings** — orchestrators without write access, developers without internet, etc.
 - **Security baseline** — `.env` protection, sandbox enabled, no dangerous permission bypasses
-
-## License
-
-MIT

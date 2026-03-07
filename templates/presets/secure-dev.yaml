@@ -99,6 +99,8 @@ policies:
       - "Bash(wget *)"
       - "Bash(eval *)"
       - "Bash(exec *)"
+      - "Write(.env*)"
+      - "Edit(.env*)"
   sandbox:
     enabled: true
     auto_allow_bash: true

@@ -9,7 +9,6 @@ interface CategoryGroup {
 export function printValidationReport(results: ValidationResult[]): void {
   const errors = results.filter((r) => r.severity === 'error');
   const warnings = results.filter((r) => r.severity === 'warning');
-  const infos = results.filter((r) => r.severity === 'info');
 
   // Group by category
   const categories = new Map<string, ValidationResult[]>();
@@ -25,41 +24,38 @@ export function printValidationReport(results: ValidationResult[]): void {
     const categoryWarnings = categoryResults.filter((r) => r.severity === 'warning');
 
     if (categoryErrors.length === 0 && categoryWarnings.length === 0) {
-      // All passed
-      const icon = chalk.green('✓');
+      const icon = chalk.green('[ok]');
       const label = chalk.bold(category.padEnd(28));
       const detail = chalk.dim(`${categoryResults.length} check${categoryResults.length !== 1 ? 's' : ''} passed`);
       console.log(`  ${icon} ${label} ${detail}`);
-    } else {
-      // Print errors
-      for (const r of categoryErrors) {
-        const icon = chalk.red('✗');
-        const label = chalk.bold(category.padEnd(28));
-        console.log(`  ${icon} ${label} ${r.message}`);
-      }
-      // Print warnings
-      for (const r of categoryWarnings) {
-        const icon = chalk.yellow('⚠');
-        const label = chalk.bold(category.padEnd(28));
-        console.log(`  ${icon} ${label} ${r.message}`);
-      }
+      continue;
+    }
+
+    for (const r of categoryErrors) {
+      const icon = chalk.red('[x]');
+      const label = chalk.bold(category.padEnd(28));
+      console.log(`  ${icon} ${label} ${r.message}`);
+    }
+
+    for (const r of categoryWarnings) {
+      const icon = chalk.yellow('[!]');
+      const label = chalk.bold(category.padEnd(28));
+      console.log(`  ${icon} ${label} ${r.message}`);
     }
   }
 
-  // Summary line
   console.log('');
-  const passed = categories.size - (errors.length > 0 ? 1 : 0) - (warnings.length > 0 ? 1 : 0);
 
   const parts: string[] = [];
-
   const passCount = [...categories.entries()].filter(
     ([, v]) => !v.some((r) => r.severity === 'error' || r.severity === 'warning'),
   ).length;
+
   if (passCount > 0) parts.push(chalk.green(`${passCount} passed`));
   if (errors.length > 0) parts.push(chalk.red(`${errors.length} error${errors.length !== 1 ? 's' : ''}`));
   if (warnings.length > 0) parts.push(chalk.yellow(`${warnings.length} warning${warnings.length !== 1 ? 's' : ''}`));
 
-  console.log(`  ${parts.join(chalk.dim(' · '))}`);
+  console.log(`  ${parts.join(chalk.dim(' | '))}`);
   console.log('');
 }
 

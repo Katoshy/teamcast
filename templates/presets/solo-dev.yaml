@@ -36,6 +36,8 @@ policies:
     deny:
       - "Bash(rm -rf *)"
       - "Bash(git push --force *)"
+      - "Write(.env*)"
+      - "Edit(.env*)"
   sandbox:
     enabled: true
     auto_allow_bash: true

@@ -6,41 +6,54 @@ import { generate } from '../generator/index.js';
 import { stepProjectContext } from './steps/project-context.js';
 import { stepTeamSelection } from './steps/team-selection.js';
 import { stepConfirmGenerate } from './steps/confirm-generate.js';
-import { printSuccess, printError } from '../utils/chalk-helpers.js';
+import { stepAgentCustomization } from './steps/agent-customization.js';
+import {
+  evaluateManifest,
+  manifestHasBlockingIssues,
+  printManifestValidation,
+} from '../cli/manifest-validation.js';
+import {
+  printSuccess,
+  printError,
+  printHeader,
+  printCommandSuccess,
+  printNextSteps,
+} from '../utils/chalk-helpers.js';
 
 export interface WizardOptions {
   cwd: string;
   skipConfirm?: boolean;
+  nonInteractive?: boolean;
 }
 
 export async function runWizard(options: WizardOptions): Promise<void> {
-  const { cwd, skipConfirm = false } = options;
+  const { cwd, skipConfirm = false, nonInteractive = false } = options;
 
-  console.log('');
-  console.log(chalk.bold('AgentForge') + chalk.dim(' — design your Claude Code agent team'));
+  printHeader('Init');
+  console.log(chalk.dim('Design your Claude Code agent team'));
   console.log('');
 
   const ctx = detectProjectContext(cwd);
 
-  // Step 1: Project context
   let partial: Partial<AgentForgeManifest> = {};
-  partial = await stepProjectContext(ctx, partial);
+  partial = await stepProjectContext(ctx, partial, { nonInteractive });
 
-  // Step 2: Team selection (preset or single agent)
-  const manifest = (await stepTeamSelection(partial)) as AgentForgeManifest;
-
-  // Ensure version is set
+  let manifest = (await stepTeamSelection(partial, { nonInteractive })) as AgentForgeManifest;
   manifest.version = '1';
+  manifest = await stepAgentCustomization(manifest, { nonInteractive });
 
-  // Step 3: Confirm + generate
-  const confirmed = await stepConfirmGenerate(manifest, cwd, skipConfirm);
+  const validation = evaluateManifest(manifest);
+  if (manifestHasBlockingIssues(validation)) {
+    printManifestValidation(validation);
+    process.exit(1);
+  }
 
+  const confirmed = await stepConfirmGenerate(manifest, cwd, skipConfirm || nonInteractive);
   if (!confirmed) {
     console.log(chalk.dim('\nAborted. No files were written.'));
     return;
   }
 
-  // Write manifest and generate files
   try {
     writeManifest(manifest, cwd);
   } catch (err) {
@@ -61,12 +74,10 @@ export async function runWizard(options: WizardOptions): Promise<void> {
     printSuccess(file.path);
   }
 
-  console.log('');
-  console.log(chalk.green(`✓ Agent team initialized for project "${manifest.project.name}"`));
-  console.log('');
-  console.log('Next steps:');
-  console.log(`  ${chalk.dim('1.')} ${chalk.bold('agentforge explain')}   — view the team structure`);
-  console.log(`  ${chalk.dim('2.')} ${chalk.bold('agentforge validate')}  — check for configuration issues`);
-  console.log(`  ${chalk.dim('3.')} Edit ${chalk.bold('agentforge.yaml')} and run ${chalk.bold('agentforge generate')} to apply changes`);
-  console.log('');
+  printCommandSuccess(`Agent team initialized for project "${manifest.project.name}"`);
+  printManifestValidation(validation);
+  printNextSteps([
+    `${chalk.bold('agentforge explain')} - view the team structure`,
+    `Edit ${chalk.bold('agentforge.yaml')} and run ${chalk.bold('agentforge generate')} to apply changes`,
+  ]);
 }

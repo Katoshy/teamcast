@@ -86,6 +86,8 @@ policies:
       - "Bash(git push --force *)"
       - "Bash(curl *)"
       - "Bash(wget *)"
+      - "Write(.env*)"
+      - "Edit(.env*)"
   sandbox:
     enabled: true
     auto_allow_bash: true
