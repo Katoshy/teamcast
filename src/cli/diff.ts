@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import chalk from 'chalk';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { diffManifest } from '../diff/index.js';
+import { printHeader, printCommandSuccess, printDim } from '../utils/chalk-helpers.js';
 
 export function registerDiffCommand(program: Command): void {
   program
@@ -22,15 +23,14 @@ export function registerDiffCommand(program: Command): void {
       }
 
       const entries = diffManifest(manifest, cwd);
-      const modified = entries.filter((e) => e.status === 'modified');
-      const newFiles = entries.filter((e) => e.status === 'new');
-      const unchanged = entries.filter((e) => e.status === 'unchanged');
+      const modified = entries.filter((entry) => entry.status === 'modified');
+      const newFiles = entries.filter((entry) => entry.status === 'new');
+      const unchanged = entries.filter((entry) => entry.status === 'unchanged');
 
-      console.log('');
+      printHeader('Diff');
 
       if (modified.length === 0 && newFiles.length === 0) {
-        console.log(chalk.green('  ✓ All generated files are up to date'));
-        console.log('');
+        printCommandSuccess('All generated files are up to date');
         return;
       }
 
@@ -47,7 +47,7 @@ export function registerDiffCommand(program: Command): void {
       }
 
       for (const entry of unchanged) {
-        console.log(`  ${chalk.dim('·')} ${entry.path}  ${chalk.dim('(unchanged)')}`);
+        console.log(`  ${chalk.dim('-')} ${entry.path}  ${chalk.dim('(unchanged)')}`);
       }
 
       console.log('');
@@ -56,10 +56,10 @@ export function registerDiffCommand(program: Command): void {
       if (newFiles.length) parts.push(chalk.green(`${newFiles.length} new`));
       if (modified.length) parts.push(chalk.yellow(`${modified.length} modified`));
       if (unchanged.length) parts.push(chalk.dim(`${unchanged.length} unchanged`));
-      console.log(`  ${parts.join(chalk.dim(' · '))}`);
+      console.log(`  ${parts.join(chalk.dim(' | '))}`);
 
       console.log('');
-      console.log(chalk.dim('  Run "agentforge generate" to apply changes'));
+      printDim('  Run "agentforge generate" to apply changes');
       console.log('');
     });
 }

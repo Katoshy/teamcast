@@ -4,7 +4,18 @@ import { listPresets, loadPreset, applyPreset } from '../presets/index.js';
 import { writeManifest } from '../manifest/writer.js';
 import { generate } from '../generator/index.js';
 import { detectProjectContext } from '../detector/index.js';
-import { printHeader, printSuccess, printError, printDim } from '../utils/chalk-helpers.js';
+import {
+  evaluateManifest,
+  manifestHasBlockingIssues,
+  printManifestValidation,
+} from './manifest-validation.js';
+import {
+  printHeader,
+  printSuccess,
+  printError,
+  printCommandSuccess,
+  printNextSteps,
+} from '../utils/chalk-helpers.js';
 import { runWizard } from '../wizard/index.js';
 
 export function registerInitCommand(program: Command): void {
@@ -18,12 +29,15 @@ export function registerInitCommand(program: Command): void {
       const ctx = detectProjectContext(cwd);
 
       if (options.preset) {
-        // Fast path: preset specified on CLI
         await initWithPreset(options.preset, cwd, ctx.name);
-      } else {
-        // Interactive wizard
-        await runWizard({ cwd, skipConfirm: options.yes });
+        return;
       }
+
+      await runWizard({
+        cwd,
+        skipConfirm: options.yes,
+        nonInteractive: options.yes,
+      });
     });
 }
 
@@ -32,9 +46,10 @@ async function initWithPreset(
   cwd: string,
   detectedName: string | undefined,
 ): Promise<void> {
-  printHeader(`Initializing with preset: ${chalk.bold(presetName)}`);
+  printHeader('Init');
+  console.log(chalk.dim(`Using preset ${chalk.bold(presetName)}`));
+  console.log('');
 
-  // Load preset
   let preset;
   try {
     preset = loadPreset(presetName);
@@ -42,17 +57,21 @@ async function initWithPreset(
     printError('Unknown preset', String(err));
     console.log('');
     console.log('Available presets:');
-    for (const p of listPresets()) {
-      console.log(`  ${chalk.bold(p.name)}  ${chalk.dim(p.description)}`);
+    for (const entry of listPresets()) {
+      console.log(`  ${chalk.bold(entry.name)}  ${chalk.dim(entry.description)}`);
     }
     process.exit(1);
   }
 
-  // Apply project name
   const projectName = detectedName ?? 'my-project';
   const manifest = applyPreset(preset, projectName);
+  const validation = evaluateManifest(manifest);
 
-  // Write manifest
+  if (manifestHasBlockingIssues(validation)) {
+    printManifestValidation(validation);
+    process.exit(1);
+  }
+
   try {
     writeManifest(manifest, cwd);
   } catch (err) {
@@ -60,8 +79,8 @@ async function initWithPreset(
     process.exit(1);
   }
 
-  // Generate files
-  printHeader('Generating configuration files...');
+  printHeader('Generate');
+
   let files;
   try {
     files = generate(manifest, { cwd });
@@ -74,12 +93,10 @@ async function initWithPreset(
     printSuccess(file.path);
   }
 
-  console.log('');
-  console.log(chalk.green(`\n✓ Agent team "${presetName}" initialized for project "${projectName}"`));
-  console.log('');
-  console.log('Next steps:');
-  console.log(`  ${chalk.dim('1.')} Run ${chalk.bold('agentforge explain')} to see the team structure`);
-  console.log(`  ${chalk.dim('2.')} Run ${chalk.bold('agentforge validate')} to check for issues`);
-  console.log(`  ${chalk.dim('3.')} Open ${chalk.bold('agentforge.yaml')} to customize the team`);
-  console.log('');
+  printCommandSuccess(`Initialized "${presetName}" for project "${projectName}"`);
+  printManifestValidation(validation);
+  printNextSteps([
+    `Run ${chalk.bold('agentforge explain')} to see the team structure`,
+    `Open ${chalk.bold('agentforge.yaml')} to customize the team`,
+  ]);
 }

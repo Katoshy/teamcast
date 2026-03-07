@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import type { AgentForgeManifest } from '../types/manifest.js';
 import { generate } from '../generator/index.js';
+import { isUserEditableGeneratedFile } from '../generator/file-policies.js';
 
 export type DiffStatus = 'new' | 'modified' | 'unchanged';
 
@@ -26,6 +27,10 @@ export function diffManifest(manifest: AgentForgeManifest, cwd: string): DiffEnt
     }
 
     const existing = readFileSync(absPath, 'utf-8');
+    if (isUserEditableGeneratedFile(file.path)) {
+      return { path: file.path, status: 'unchanged' };
+    }
+
     if (existing === file.content) {
       return { path: file.path, status: 'unchanged' };
     }

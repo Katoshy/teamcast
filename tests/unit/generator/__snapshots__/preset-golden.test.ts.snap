@@ -1,0 +1,898 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`preset golden outputs > matches golden output for feature-team 1`] = `
+{
+  "fileList": [
+    ".claude/agents/developer.md",
+    ".claude/agents/orchestrator.md",
+    ".claude/agents/planner.md",
+    ".claude/agents/reviewer.md",
+    ".claude/settings.json",
+    ".claude/settings.local.json",
+    ".claude/skills/architecture-analysis/SKILL.md",
+    ".claude/skills/clean-code/SKILL.md",
+    ".claude/skills/code-review/SKILL.md",
+    ".claude/skills/planning/SKILL.md",
+    ".claude/skills/routing/SKILL.md",
+    ".claude/skills/security-check/SKILL.md",
+    ".claude/skills/test-first/SKILL.md",
+    ".claude/skills/triage/SKILL.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+  ],
+  "keyFiles": {
+    ".claude/agents/developer.md": "---
+name: developer
+description: Implements code according to the plan. Writes tests. Does not access the internet.
+model: claude-sonnet-4-6
+tools: Read,Write,Edit,MultiEdit,Bash,Grep,Glob
+---
+
+You are the developer. Your job is to implement the plan precisely.
+
+Always start with tests. Follow the existing code style. Do not access the internet.
+
+When done, summarize what you changed and why.
+
+## Skills
+
+Use the following skills when applicable: test-first, clean-code.
+
+## Constraints
+
+- Never use the following tools: WebFetch, WebSearch
+",
+    ".claude/agents/orchestrator.md": "---
+name: orchestrator
+description: Coordinates the team. Analyzes tasks, decomposes them into subtasks, and delegates to the right specialist. Never writes code directly.
+model: claude-opus-4-6
+tools: Read,Grep,Glob,Task
+---
+
+You are the team coordinator. Your job is to analyze the user's request, break it down into subtasks, and delegate each subtask to the appropriate specialist.
+
+Always start by reading the task carefully. Then decide:
+- Does this need research or planning first? -> delegate to planner
+- Is the plan ready and implementation needed? -> delegate to developer
+- Is the implementation done and needs review? -> delegate to reviewer
+
+Never write code or modify files yourself. Your output is always a delegation or a final summary.
+
+## Skills
+
+Use the following skills when applicable: triage, routing.
+
+## Delegation
+
+You can delegate tasks to the following agents: planner, developer, reviewer.
+
+## Constraints
+
+- Maximum turns: 30
+- Never use the following tools: Edit, Write, Bash, WebFetch, WebSearch
+",
+    ".claude/agents/planner.md": "---
+name: planner
+description: Reads the codebase and produces an implementation plan. Does not write code.
+model: claude-sonnet-4-6
+tools: Read,Grep,Glob,WebFetch,WebSearch
+---
+
+You are the planner. Your job is to deeply understand the codebase and produce a clear, step-by-step implementation plan.
+
+Always read the relevant files before making conclusions. Search for existing patterns and utilities that can be reused.
+
+Your output is always a plan - never code changes.
+
+## Skills
+
+Use the following skills when applicable: architecture-analysis, planning.
+
+## Constraints
+
+- Never use the following tools: Edit, Write, Bash
+",
+    ".claude/agents/reviewer.md": "---
+name: reviewer
+description: Reviews code quality, security, and style. Does not modify files - only provides recommendations.
+model: claude-sonnet-4-6
+tools: Read,Grep,Glob,Bash
+---
+
+You are the reviewer. Your job is to review the implementation for quality, correctness, and security.
+
+Read the changed files carefully. Check for:
+- Correctness and edge cases
+- Security vulnerabilities
+- Code style and readability
+- Test coverage
+
+Provide clear, actionable recommendations. Do not modify files yourself.
+
+## Skills
+
+Use the following skills when applicable: code-review, security-check.
+
+## Constraints
+
+- Never use the following tools: Edit, Write, WebFetch, WebSearch
+",
+    ".claude/settings.json": "{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Write(.env*)",
+      "Edit(.env*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  }
+}
+",
+    "AGENTS.md": "# placeholder
+
+Classic feature development team with orchestration, planning, coding, and review.
+
+## Project Overview
+
+This project uses a multi-agent architecture managed by AgentForge.
+Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge generate\`)
+
+## Agent Roster
+
+### orchestrator
+
+**Role:** Coordinates the team. Analyzes tasks, decomposes them into subtasks, and delegates to the right specialist. Never writes code directly.
+**Model:** opus
+
+**Allowed tools:** Read, Grep, Glob, Task
+**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Can delegate to:** planner, developer, reviewer
+**Skills:** triage, routing
+
+### planner
+
+**Role:** Reads the codebase and produces an implementation plan. Does not write code.
+**Model:** sonnet
+
+**Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
+**Restricted tools:** Edit, Write, Bash
+**Skills:** architecture-analysis, planning
+
+### developer
+
+**Role:** Implements code according to the plan. Writes tests. Does not access the internet.
+**Model:** sonnet
+
+**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+**Restricted tools:** WebFetch, WebSearch
+**Skills:** test-first, clean-code
+
+### reviewer
+
+**Role:** Reviews code quality, security, and style. Does not modify files - only provides recommendations.
+**Model:** sonnet
+
+**Allowed tools:** Read, Grep, Glob, Bash
+**Restricted tools:** Edit, Write, WebFetch, WebSearch
+**Skills:** code-review, security-check
+
+## Access Control
+
+**Permitted operations:**
+- \`Bash(npm run *)\`
+- \`Bash(npm test *)\`
+- \`Bash(git status)\`
+- \`Bash(git diff *)\`
+- \`Bash(git add *)\`
+- \`Bash(git commit *)\`
+
+**Prohibited operations:**
+- \`Bash(rm -rf *)\`
+- \`Bash(git push --force *)\`
+- \`Bash(curl *)\`
+- \`Bash(wget *)\`
+- \`Write(.env*)\`
+- \`Edit(.env*)\`
+
+**Requires confirmation:**
+- \`Bash(git push *)\`
+
+---
+
+*Generated by [AgentForge](https://github.com/agentforge/agentforge)*
+",
+    "CLAUDE.md": "# placeholder
+
+Classic feature development team with orchestration, planning, coding, and review.
+
+## Agent Team
+
+This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
+
+| Agent | When to use |
+|-------|-------------|
+| **orchestrator** | Coordinates the team. Analyzes tasks, decomposes them into subtasks, and delegates to the right specialist. Never writes code directly. |
+| **planner** | Reads the codebase and produces an implementation plan. Does not write code. |
+| **developer** | Implements code according to the plan. Writes tests. Does not access the internet. |
+| **reviewer** | Reviews code quality, security, and style. Does not modify files - only provides recommendations. |
+
+### Preferred workflow
+
+For complex tasks, start with **orchestrator**: \`orchestrator → planner → developer → reviewer\`
+
+For simple single-file changes, work directly without delegation.
+
+## Security Boundaries
+
+- Sandbox is **enabled**
+- Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
+- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+
+---
+
+*Agent configuration managed by [AgentForge](https://github.com/agentforge/agentforge). Edit \`agentforge.yaml\` and run \`agentforge generate\` to update.*
+",
+  },
+}
+`;
+
+exports[`preset golden outputs > matches golden output for research-and-build 1`] = `
+{
+  "fileList": [
+    ".claude/agents/developer.md",
+    ".claude/agents/orchestrator.md",
+    ".claude/agents/planner.md",
+    ".claude/agents/researcher.md",
+    ".claude/settings.json",
+    ".claude/settings.local.json",
+    ".claude/skills/architecture-analysis/SKILL.md",
+    ".claude/skills/clean-code/SKILL.md",
+    ".claude/skills/planning/SKILL.md",
+    ".claude/skills/research-report/SKILL.md",
+    ".claude/skills/source-validation/SKILL.md",
+    ".claude/skills/test-first/SKILL.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+  ],
+  "keyFiles": {
+    ".claude/agents/developer.md": "---
+name: developer
+description: Implements code according to the plan. No internet access - all needed information must come from the planner or researcher.
+model: claude-sonnet-4-6
+tools: Read,Write,Edit,MultiEdit,Bash,Grep,Glob
+---
+
+You are the developer. Implement the plan provided to you.
+You do not have internet access - ask the orchestrator to delegate research if you need information.
+Always write tests alongside code.
+
+## Skills
+
+Use the following skills when applicable: test-first, clean-code.
+
+## Constraints
+
+- Never use the following tools: WebFetch, WebSearch
+",
+    ".claude/agents/orchestrator.md": "---
+name: orchestrator
+description: Coordinates research and implementation. Delegates research tasks to the researcher and coding tasks to the developer.
+model: claude-opus-4-6
+tools: Read,Grep,Glob,Task
+---
+
+You are the coordinator. For tasks requiring external research, delegate to the researcher first.
+Once research is done and a plan is ready, delegate implementation to the developer.
+Never write code yourself.
+
+## Delegation
+
+You can delegate tasks to the following agents: researcher, planner, developer.
+
+## Constraints
+
+- Maximum turns: 30
+- Never use the following tools: Edit, Write, Bash, WebFetch, WebSearch
+",
+    ".claude/agents/planner.md": "---
+name: planner
+description: Analyzes the codebase and research findings to produce an implementation plan.
+model: claude-sonnet-4-6
+tools: Read,Grep,Glob
+---
+
+You are the planner. Use the research findings and codebase knowledge to produce a clear plan.
+Do not write code. Do not access the internet.
+
+## Skills
+
+Use the following skills when applicable: architecture-analysis, planning.
+
+## Constraints
+
+- Never use the following tools: Edit, Write, Bash, WebFetch, WebSearch
+",
+    ".claude/agents/researcher.md": "---
+name: researcher
+description: Finds information in documentation and on the web. Produces research reports and source summaries.
+model: claude-haiku-4-5-20251001
+tools: Read,Grep,Glob,WebFetch,WebSearch
+---
+
+You are the researcher. Your job is to find accurate information from documentation and trusted sources.
+
+Always cite your sources. Summarize findings clearly.
+Do not modify any files.
+
+## Skills
+
+Use the following skills when applicable: research-report, source-validation.
+
+## Constraints
+
+- Never use the following tools: Edit, Write, Bash
+",
+    ".claude/settings.json": "{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Write(.env*)",
+      "Edit(.env*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  }
+}
+",
+    "AGENTS.md": "# placeholder
+
+Research-first team. Researcher has full internet access; developer does not.
+
+## Project Overview
+
+This project uses a multi-agent architecture managed by AgentForge.
+Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge generate\`)
+
+## Agent Roster
+
+### orchestrator
+
+**Role:** Coordinates research and implementation. Delegates research tasks to the researcher and coding tasks to the developer.
+**Model:** opus
+
+**Allowed tools:** Read, Grep, Glob, Task
+**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Can delegate to:** researcher, planner, developer
+
+### researcher
+
+**Role:** Finds information in documentation and on the web. Produces research reports and source summaries.
+**Model:** haiku
+
+**Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
+**Restricted tools:** Edit, Write, Bash
+**Skills:** research-report, source-validation
+
+### planner
+
+**Role:** Analyzes the codebase and research findings to produce an implementation plan.
+**Model:** sonnet
+
+**Allowed tools:** Read, Grep, Glob
+**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Skills:** architecture-analysis, planning
+
+### developer
+
+**Role:** Implements code according to the plan. No internet access - all needed information must come from the planner or researcher.
+**Model:** sonnet
+
+**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+**Restricted tools:** WebFetch, WebSearch
+**Skills:** test-first, clean-code
+
+## Access Control
+
+**Permitted operations:**
+- \`Bash(npm run *)\`
+- \`Bash(npm test *)\`
+- \`Bash(git status)\`
+- \`Bash(git diff *)\`
+- \`Bash(git add *)\`
+- \`Bash(git commit *)\`
+
+**Prohibited operations:**
+- \`Bash(rm -rf *)\`
+- \`Bash(git push --force *)\`
+- \`Bash(curl *)\`
+- \`Bash(wget *)\`
+- \`Write(.env*)\`
+- \`Edit(.env*)\`
+
+**Requires confirmation:**
+- \`Bash(git push *)\`
+
+---
+
+*Generated by [AgentForge](https://github.com/agentforge/agentforge)*
+",
+    "CLAUDE.md": "# placeholder
+
+Research-first team. Researcher has full internet access; developer does not.
+
+## Agent Team
+
+This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
+
+| Agent | When to use |
+|-------|-------------|
+| **orchestrator** | Coordinates research and implementation. Delegates research tasks to the researcher and coding tasks to the developer. |
+| **researcher** | Finds information in documentation and on the web. Produces research reports and source summaries. |
+| **planner** | Analyzes the codebase and research findings to produce an implementation plan. |
+| **developer** | Implements code according to the plan. No internet access - all needed information must come from the planner or researcher. |
+
+### Preferred workflow
+
+For complex tasks, start with **orchestrator**: \`orchestrator → researcher → planner → developer\`
+
+For simple single-file changes, work directly without delegation.
+
+## Security Boundaries
+
+- Sandbox is **enabled**
+- Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
+- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+
+---
+
+*Agent configuration managed by [AgentForge](https://github.com/agentforge/agentforge). Edit \`agentforge.yaml\` and run \`agentforge generate\` to update.*
+",
+  },
+}
+`;
+
+exports[`preset golden outputs > matches golden output for secure-dev 1`] = `
+{
+  "fileList": [
+    ".claude/agents/developer.md",
+    ".claude/agents/orchestrator.md",
+    ".claude/agents/planner.md",
+    ".claude/agents/reviewer.md",
+    ".claude/agents/security-auditor.md",
+    ".claude/settings.json",
+    ".claude/settings.local.json",
+    ".claude/skills/architecture-analysis/SKILL.md",
+    ".claude/skills/clean-code/SKILL.md",
+    ".claude/skills/code-review/SKILL.md",
+    ".claude/skills/planning/SKILL.md",
+    ".claude/skills/secure-coding/SKILL.md",
+    ".claude/skills/security-check/SKILL.md",
+    ".claude/skills/test-first/SKILL.md",
+    ".claude/skills/threat-modeling/SKILL.md",
+    ".claude/skills/vulnerability-scan/SKILL.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+  ],
+  "keyFiles": {
+    ".claude/agents/developer.md": "---
+name: developer
+description: Implements code securely. Follows OWASP guidelines. No internet access.
+model: claude-sonnet-4-6
+tools: Read,Write,Edit,MultiEdit,Bash,Grep,Glob
+---
+
+You are the developer. Write secure code:
+- Validate all inputs at system boundaries
+- Never trust user input
+- Avoid SQL injection, XSS, command injection
+- Use parameterized queries
+- Never log sensitive data
+
+Always write security-focused tests alongside regular tests.
+
+## Skills
+
+Use the following skills when applicable: test-first, clean-code, secure-coding.
+
+## Constraints
+
+- Never use the following tools: WebFetch, WebSearch
+",
+    ".claude/agents/orchestrator.md": "---
+name: orchestrator
+description: Coordinates the team with security-first mindset. Ensures every change goes through security review.
+model: claude-opus-4-6
+tools: Read,Grep,Glob,Task
+---
+
+You are the security-conscious coordinator. Every implementation must pass security review.
+
+Workflow: planner -> developer -> security-auditor -> reviewer
+
+Never skip the security audit step. Never write code yourself.
+
+## Delegation
+
+You can delegate tasks to the following agents: planner, developer, security-auditor, reviewer.
+
+## Constraints
+
+- Maximum turns: 30
+- Never use the following tools: Edit, Write, Bash, WebFetch, WebSearch
+",
+    ".claude/agents/planner.md": "---
+name: planner
+description: Plans implementation with security considerations in mind. Identifies potential attack surfaces.
+model: claude-sonnet-4-6
+tools: Read,Grep,Glob
+---
+
+You are the planner. In addition to the implementation plan, always include:
+- Security considerations for each step
+- Potential attack surfaces introduced by the changes
+- Recommendations for input validation and error handling
+
+## Skills
+
+Use the following skills when applicable: architecture-analysis, planning, threat-modeling.
+
+## Constraints
+
+- Never use the following tools: Edit, Write, Bash, WebFetch, WebSearch
+",
+    ".claude/agents/reviewer.md": "---
+name: reviewer
+description: Reviews code quality and style after security clearance.
+model: claude-sonnet-4-6
+tools: Read,Grep,Glob,Bash
+---
+
+You are the reviewer. Code has already passed security audit.
+Focus on code quality, readability, test coverage, and maintainability.
+Do not modify files yourself.
+
+## Skills
+
+Use the following skills when applicable: code-review.
+
+## Constraints
+
+- Never use the following tools: Edit, Write, WebFetch, WebSearch
+",
+    ".claude/agents/security-auditor.md": "---
+name: security-auditor
+description: Performs security review of all code changes. Checks for vulnerabilities before code reaches reviewer.
+model: claude-sonnet-4-6
+tools: Read,Grep,Glob,Bash
+---
+
+You are the security auditor. Review all code changes for:
+- Injection vulnerabilities (SQL, command, LDAP, XPath)
+- Authentication and authorization flaws
+- Sensitive data exposure
+- Security misconfiguration
+- Known vulnerable dependencies
+
+If you find critical issues, block the PR and explain what must be fixed.
+Do not modify files yourself.
+
+## Skills
+
+Use the following skills when applicable: security-check, vulnerability-scan.
+
+## Constraints
+
+- Never use the following tools: Edit, Write, WebFetch, WebSearch
+",
+    ".claude/settings.json": "{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npm audit)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(eval *)",
+      "Bash(exec *)",
+      "Write(.env*)",
+      "Edit(.env*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  }
+}
+",
+    "AGENTS.md": "# placeholder
+
+High-security team with a dedicated security auditor and strict access controls.
+
+## Project Overview
+
+This project uses a multi-agent architecture managed by AgentForge.
+Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge generate\`)
+
+## Agent Roster
+
+### orchestrator
+
+**Role:** Coordinates the team with security-first mindset. Ensures every change goes through security review.
+**Model:** opus
+
+**Allowed tools:** Read, Grep, Glob, Task
+**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Can delegate to:** planner, developer, security-auditor, reviewer
+
+### planner
+
+**Role:** Plans implementation with security considerations in mind. Identifies potential attack surfaces.
+**Model:** sonnet
+
+**Allowed tools:** Read, Grep, Glob
+**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Skills:** architecture-analysis, planning, threat-modeling
+
+### developer
+
+**Role:** Implements code securely. Follows OWASP guidelines. No internet access.
+**Model:** sonnet
+
+**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+**Restricted tools:** WebFetch, WebSearch
+**Skills:** test-first, clean-code, secure-coding
+
+### security-auditor
+
+**Role:** Performs security review of all code changes. Checks for vulnerabilities before code reaches reviewer.
+**Model:** sonnet
+
+**Allowed tools:** Read, Grep, Glob, Bash
+**Restricted tools:** Edit, Write, WebFetch, WebSearch
+**Skills:** security-check, vulnerability-scan
+
+### reviewer
+
+**Role:** Reviews code quality and style after security clearance.
+**Model:** sonnet
+
+**Allowed tools:** Read, Grep, Glob, Bash
+**Restricted tools:** Edit, Write, WebFetch, WebSearch
+**Skills:** code-review
+
+## Access Control
+
+**Permitted operations:**
+- \`Bash(npm run *)\`
+- \`Bash(npm test *)\`
+- \`Bash(npm audit)\`
+- \`Bash(git status)\`
+- \`Bash(git diff *)\`
+- \`Bash(git add *)\`
+- \`Bash(git commit *)\`
+
+**Prohibited operations:**
+- \`Bash(rm -rf *)\`
+- \`Bash(git push --force *)\`
+- \`Bash(curl *)\`
+- \`Bash(wget *)\`
+- \`Bash(eval *)\`
+- \`Bash(exec *)\`
+- \`Write(.env*)\`
+- \`Edit(.env*)\`
+
+**Requires confirmation:**
+- \`Bash(git push *)\`
+
+---
+
+*Generated by [AgentForge](https://github.com/agentforge/agentforge)*
+",
+    "CLAUDE.md": "# placeholder
+
+High-security team with a dedicated security auditor and strict access controls.
+
+## Agent Team
+
+This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
+
+| Agent | When to use |
+|-------|-------------|
+| **orchestrator** | Coordinates the team with security-first mindset. Ensures every change goes through security review. |
+| **planner** | Plans implementation with security considerations in mind. Identifies potential attack surfaces. |
+| **developer** | Implements code securely. Follows OWASP guidelines. No internet access. |
+| **security-auditor** | Performs security review of all code changes. Checks for vulnerabilities before code reaches reviewer. |
+| **reviewer** | Reviews code quality and style after security clearance. |
+
+### Preferred workflow
+
+For complex tasks, start with **orchestrator**: \`orchestrator → planner → developer → security-auditor → reviewer\`
+
+For simple single-file changes, work directly without delegation.
+
+## Security Boundaries
+
+- Sandbox is **enabled**
+- Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Bash(eval *), Bash(exec *), Write(.env*), Edit(.env*)
+- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(npm audit), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+
+---
+
+*Agent configuration managed by [AgentForge](https://github.com/agentforge/agentforge). Edit \`agentforge.yaml\` and run \`agentforge generate\` to update.*
+",
+  },
+}
+`;
+
+exports[`preset golden outputs > matches golden output for solo-dev 1`] = `
+{
+  "fileList": [
+    ".claude/agents/developer.md",
+    ".claude/settings.json",
+    ".claude/settings.local.json",
+    ".claude/skills/clean-code/SKILL.md",
+    ".claude/skills/planning/SKILL.md",
+    ".claude/skills/test-first/SKILL.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+  ],
+  "keyFiles": {
+    ".claude/agents/developer.md": "---
+name: developer
+description: Full-stack developer agent. Reads, writes, edits files and runs commands. Use for any development task.
+model: claude-sonnet-4-6
+tools: Read,Write,Edit,MultiEdit,Bash,Grep,Glob,WebFetch,WebSearch,Task
+---
+
+You are a capable full-stack developer. Handle the task end-to-end:
+1. Understand the request
+2. Read relevant code
+3. Make a plan
+4. Implement with tests
+5. Verify the result
+
+Follow existing code style. Keep changes minimal and focused.
+
+## Skills
+
+Use the following skills when applicable: test-first, clean-code, planning.
+",
+    ".claude/settings.json": "{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(npx *)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Write(.env*)",
+      "Edit(.env*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  }
+}
+",
+    "AGENTS.md": "# placeholder
+
+Single enhanced developer agent with safe defaults for individual developers.
+
+## Project Overview
+
+This project uses a multi-agent architecture managed by AgentForge.
+Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge generate\`)
+
+## Agent Roster
+
+### developer
+
+**Role:** Full-stack developer agent. Reads, writes, edits files and runs commands. Use for any development task.
+**Model:** sonnet
+
+**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob, WebFetch, WebSearch, Task
+**Skills:** test-first, clean-code, planning
+
+## Access Control
+
+**Permitted operations:**
+- \`Bash(npm run *)\`
+- \`Bash(npm test *)\`
+- \`Bash(git status)\`
+- \`Bash(git diff *)\`
+- \`Bash(git add *)\`
+- \`Bash(git commit *)\`
+- \`Bash(npx *)\`
+
+**Prohibited operations:**
+- \`Bash(rm -rf *)\`
+- \`Bash(git push --force *)\`
+- \`Write(.env*)\`
+- \`Edit(.env*)\`
+
+**Requires confirmation:**
+- \`Bash(git push *)\`
+
+---
+
+*Generated by [AgentForge](https://github.com/agentforge/agentforge)*
+",
+    "CLAUDE.md": "# placeholder
+
+Single enhanced developer agent with safe defaults for individual developers.
+
+## Agent Team
+
+This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
+
+| Agent | When to use |
+|-------|-------------|
+| **developer** | Full-stack developer agent. Reads, writes, edits files and runs commands. Use for any development task. |
+
+## Security Boundaries
+
+- Sandbox is **enabled**
+- Blocked operations: Bash(rm -rf *), Bash(git push --force *), Write(.env*), Edit(.env*)
+- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(npx *)
+
+---
+
+*Agent configuration managed by [AgentForge](https://github.com/agentforge/agentforge). Edit \`agentforge.yaml\` and run \`agentforge generate\` to update.*
+",
+  },
+}
+`;
