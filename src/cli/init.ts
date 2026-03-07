@@ -1,9 +1,14 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
+import { readFileSync, existsSync } from 'fs';
+import { parse } from 'yaml';
 import { listPresets, loadPreset, applyPreset } from '../presets/index.js';
 import { writeManifest } from '../manifest/writer.js';
 import { generate } from '../generator/index.js';
 import { detectProjectContext } from '../detector/index.js';
+import { validateSchema } from '../manifest/schema-validator.js';
+import { applyDefaults } from '../manifest/defaults.js';
+import type { AgentForgeManifest } from '../types/manifest.js';
 import {
   evaluateManifest,
   manifestHasBlockingIssues,
@@ -23,10 +28,16 @@ export function registerInitCommand(program: Command): void {
     .command('init')
     .description('Initialize an agent team configuration in the current project')
     .option('--preset <name>', 'Skip the wizard and use a preset directly')
+    .option('--from <path>', 'Initialize from a custom YAML manifest file')
     .option('--yes', 'Accept all defaults without prompting')
-    .action(async (options: { preset?: string; yes?: boolean }) => {
+    .action(async (options: { preset?: string; from?: string; yes?: boolean }) => {
       const cwd = process.cwd();
       const ctx = detectProjectContext(cwd);
+
+      if (options.from) {
+        await initFromFile(options.from, cwd, ctx.name);
+        return;
+      }
 
       if (options.preset) {
         await initWithPreset(options.preset, cwd, ctx.name);
@@ -98,5 +109,87 @@ async function initWithPreset(
   printNextSteps([
     `Run ${chalk.bold('agentforge explain')} to see the team structure`,
     `Open ${chalk.bold('agentforge.yaml')} to customize the team`,
+  ]);
+}
+
+async function initFromFile(
+  filePath: string,
+  cwd: string,
+  detectedName: string | undefined,
+): Promise<void> {
+  printHeader('Init');
+  console.log(chalk.dim(`Loading from ${chalk.bold(filePath)}`));
+  console.log('');
+
+  if (!existsSync(filePath)) {
+    printError('File not found', filePath);
+    process.exit(1);
+  }
+
+  let raw: string;
+  try {
+    raw = readFileSync(filePath, 'utf-8');
+  } catch (err) {
+    printError('Failed to read file', String(err));
+    process.exit(1);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = parse(raw);
+  } catch (err) {
+    printError('Failed to parse YAML', String(err));
+    process.exit(1);
+  }
+
+  const { valid, errors } = validateSchema(parsed);
+  if (!valid) {
+    printError('Schema validation failed', '');
+    for (const error of errors) {
+      console.error(chalk.dim(`  ${error.path}: ${error.message}`));
+    }
+    process.exit(1);
+  }
+
+  const manifest = applyDefaults(parsed as AgentForgeManifest);
+
+  // Override project name with detected name if the file uses a placeholder
+  if (detectedName && manifest.project.name === 'my-project') {
+    manifest.project.name = detectedName;
+  }
+
+  const validation = evaluateManifest(manifest);
+
+  if (manifestHasBlockingIssues(validation)) {
+    printManifestValidation(validation);
+    process.exit(1);
+  }
+
+  try {
+    writeManifest(manifest, cwd);
+  } catch (err) {
+    printError('Failed to write agentforge.yaml', String(err));
+    process.exit(1);
+  }
+
+  printHeader('Generate');
+
+  let files;
+  try {
+    files = generate(manifest, { cwd });
+  } catch (err) {
+    printError('Generation failed', String(err));
+    process.exit(1);
+  }
+
+  for (const file of files) {
+    printSuccess(file.path);
+  }
+
+  printCommandSuccess(`Initialized from ${filePath}`);
+  printManifestValidation(validation);
+  printNextSteps([
+    `Run ${chalk.bold('agentforge explain')} to see the team structure`,
+    `Open ${chalk.bold('agentforge.yaml')} to customize`,
   ]);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { tmpdir } from 'os';
 
@@ -135,6 +135,96 @@ describe('CLI behavior', () => {
       const removeResult = runCli(['remove', 'agent', 'reviewer', '--yes'], cwd);
       expect(removeResult.status).toBe(0);
       expect(existsSync(join(cwd, '.claude/agents/reviewer.md'))).toBe(false);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('import command creates agentforge.yaml from .claude/ directory', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'agentforge-import-'));
+
+    try {
+      // Create a .claude/ structure manually (as if Claude Code already set it up)
+      const agentsDir = join(cwd, '.claude', 'agents');
+      mkdirSync(agentsDir, { recursive: true });
+
+      writeFileSync(
+        join(agentsDir, 'developer.md'),
+        [
+          '---',
+          'name: developer',
+          'description: Implements features and fixes bugs',
+          'model: claude-sonnet-4-6',
+          'tools: Read,Write,Edit,Bash,Grep,Glob',
+          '---',
+          '',
+          'Write clean, tested code.',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      writeFileSync(
+        join(cwd, '.claude', 'settings.json'),
+        JSON.stringify({
+          permissions: { deny: ['Write(.env*)'] },
+          sandbox: { enabled: true },
+        }, null, 2),
+        'utf-8',
+      );
+
+      writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'imported-app' }, null, 2));
+
+      const result = runCli(['import', '--yes'], cwd);
+      expect(result.status).toBe(0);
+
+      const yaml = readFileSync(join(cwd, 'agentforge.yaml'), 'utf-8');
+      expect(yaml).toContain('developer');
+      expect(yaml).toContain('Implements features and fixes bugs');
+      expect(yaml).toContain('sonnet');
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('init --from loads a custom manifest file', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'agentforge-from-'));
+
+    try {
+      writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'from-app' }, null, 2));
+
+      // Create a custom manifest template
+      const templatePath = join(cwd, 'my-template.yaml');
+      writeFileSync(
+        templatePath,
+        [
+          'version: "1"',
+          'project:',
+          '  name: my-project',
+          'agents:',
+          '  analyzer:',
+          '    description: Analyzes code quality',
+          '    model: sonnet',
+          '    tools:',
+          '      allow: [Read, Grep, Glob]',
+          'policies:',
+          '  permissions:',
+          '    deny: ["Write(.env*)"]',
+          '  sandbox:',
+          '    enabled: true',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const result = runCli(['init', '--from', templatePath], cwd);
+      expect(result.status).toBe(0);
+
+      expect(existsSync(join(cwd, 'agentforge.yaml'))).toBe(true);
+      expect(existsSync(join(cwd, '.claude/agents/analyzer.md'))).toBe(true);
+
+      const yaml = readFileSync(join(cwd, 'agentforge.yaml'), 'utf-8');
+      expect(yaml).toContain('analyzer');
+      // Project name should be replaced with detected name
+      expect(yaml).toContain('from-app');
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

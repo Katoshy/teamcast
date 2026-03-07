@@ -48,6 +48,9 @@
     },
     "settings": {
       "$ref": "#/definitions/GenerationSettings"
+    },
+    "preset_meta": {
+      "$ref": "#/definitions/PresetMeta"
     }
   },
   "definitions": {
@@ -314,6 +317,26 @@
           "type": "boolean",
           "default": true,
           "description": "Generate settings.local.json"
+        }
+      }
+    },
+    "PresetMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Metadata for sharing and publishing presets",
+      "properties": {
+        "author": {
+          "type": "string",
+          "description": "Author name or handle"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tags for categorization and search"
+        },
+        "min_version": {
+          "type": "string",
+          "description": "Minimum AgentForge version required"
         }
       }
     }

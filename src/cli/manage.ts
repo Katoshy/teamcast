@@ -109,6 +109,16 @@ function applyManifestChanges(
   printManifestValidation(validation);
 }
 
+function collectSkills(manifest: AgentForgeManifest): Set<string> {
+  const skills = new Set<string>();
+  for (const agent of Object.values(manifest.agents)) {
+    for (const skill of agent.skills ?? []) {
+      skills.add(skill);
+    }
+  }
+  return skills;
+}
+
 function resolveTemplateAgent(template: string): AgentConfig {
   if (!isTeamRoleName(template)) {
     const available = listRoleTemplates().map((role) => role.name).join(', ');
@@ -173,6 +183,130 @@ export function registerManageCommands(program: Command): void {
       applyManifestChanges(cwd, nextManifest);
 
       printCommandSuccess(`Agent "${name}" added and configuration regenerated`);
+    });
+
+  // create skill — just registers the skill name, generates the stub file
+  const createCmd = program.command('create').description('Create a new resource');
+
+  createCmd
+    .command('skill <name>')
+    .description('Create a new skill (generates stub file in .claude/skills/)')
+    .action(async (name: string) => {
+      const cwd = process.cwd();
+      const manifest = loadManifestOrExit(cwd);
+
+      if (!/^[a-z][a-z0-9-]*$/.test(name)) {
+        printError(
+          'Invalid skill name',
+          `"${name}" — must start with a letter, lowercase alphanumeric and hyphens only.`,
+        );
+        process.exit(1);
+      }
+
+      // Check if skill already exists anywhere
+      const allSkills = collectSkills(manifest);
+      if (allSkills.has(name)) {
+        const owners = Object.entries(manifest.agents)
+          .filter(([, a]) => a.skills?.includes(name))
+          .map(([n]) => n);
+        printError(
+          `Skill "${name}" already exists`,
+          owners.length > 0 ? `Assigned to: ${owners.join(', ')}` : 'Defined but not assigned',
+        );
+        process.exit(1);
+      }
+
+      printHeader(`Create skill ${name}`);
+
+      // Show existing skills for context
+      if (allSkills.size > 0) {
+        console.log(chalk.dim(`  Existing skills: ${[...allSkills].join(', ')}`));
+        console.log('');
+      }
+
+      // Pick one agent to initially own the skill (it needs at least one)
+      const agentNames = Object.keys(manifest.agents);
+      const owner = await promptList<string>({
+        message: 'Which agent should own this skill?',
+        choices: agentNames.map((a) => ({
+          name: `${a} — ${manifest.agents[a].description}`,
+          value: a,
+        })),
+      });
+
+      const nextAgents = { ...manifest.agents };
+      nextAgents[owner] = {
+        ...nextAgents[owner],
+        skills: [...(nextAgents[owner].skills ?? []), name],
+      };
+
+      const nextManifest: AgentForgeManifest = { ...manifest, agents: nextAgents };
+      applyManifestChanges(cwd, nextManifest);
+
+      printCommandSuccess(`Skill "${name}" created and assigned to ${owner}`);
+    });
+
+  // assign skill — assign an existing skill to additional agents
+  const assignCmd = program.command('assign').description('Assign a resource to agents');
+
+  assignCmd
+    .command('skill <name>')
+    .description('Assign an existing skill to one or more agents')
+    .action(async (name: string) => {
+      const cwd = process.cwd();
+      const manifest = loadManifestOrExit(cwd);
+      const agentNames = Object.keys(manifest.agents);
+
+      // Check skill exists
+      const allSkills = collectSkills(manifest);
+      if (!allSkills.has(name)) {
+        printError(
+          `Skill "${name}" does not exist`,
+          `Available skills: ${allSkills.size > 0 ? [...allSkills].join(', ') : '(none)'}. Use "create skill" first.`,
+        );
+        process.exit(1);
+      }
+
+      // Find agents that already have it vs those that don't
+      const alreadyAssigned = agentNames.filter((a) => manifest.agents[a].skills?.includes(name));
+      const available = agentNames.filter((a) => !manifest.agents[a].skills?.includes(name));
+
+      if (available.length === 0) {
+        printError(`Skill "${name}" is already assigned to all agents`, alreadyAssigned.join(', '));
+        process.exit(1);
+      }
+
+      printHeader(`Assign skill ${name}`);
+
+      if (alreadyAssigned.length > 0) {
+        console.log(chalk.dim(`  Already assigned to: ${alreadyAssigned.join(', ')}`));
+        console.log('');
+      }
+
+      const selectedAgents = await promptCheckbox<string>({
+        message: 'Assign to which agents?',
+        choices: available.map((a) => ({
+          name: `${a} — ${manifest.agents[a].description}`,
+          value: a,
+        })),
+        validate: (selected: string[]) =>
+          selected.length > 0 || 'Select at least one agent',
+      });
+
+      const nextAgents = { ...manifest.agents };
+      for (const agentName of selectedAgents) {
+        nextAgents[agentName] = {
+          ...nextAgents[agentName],
+          skills: [...(nextAgents[agentName].skills ?? []), name],
+        };
+      }
+
+      const nextManifest: AgentForgeManifest = { ...manifest, agents: nextAgents };
+      applyManifestChanges(cwd, nextManifest);
+
+      printCommandSuccess(
+        `Skill "${name}" assigned to ${selectedAgents.join(', ')}`,
+      );
     });
 
   const removeCmd = program.command('remove').description('Remove a resource from the team');
