@@ -108,12 +108,19 @@ export interface ProjectConfig {
   description?: string;
 }
 
+export interface PresetMeta {
+  author?: string;
+  tags?: string[];
+  min_version?: string;
+}
+
 export interface AgentForgeManifest {
   version: '1';
   project: ProjectConfig;
   agents: Record<string, AgentConfig>;
   policies?: PoliciesConfig;
   settings?: GenerationSettings;
+  preset_meta?: PresetMeta;
 }
 
 // Model alias → Claude Code model ID mapping
