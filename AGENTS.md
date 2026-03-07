@@ -14,7 +14,7 @@ Agent configuration: `agentforge.yaml` (edit this file, then run `agentforge gen
 **Role:** Use for any feature request, bug fix, or refactoring in the AgentForge project that involves planning + implementation + review. Entry point for the team pipeline.
 **Model:** opus
 
-**Allowed tools:** Read, Grep, Glob, Task
+**Allowed tools:** Read, Grep, Glob, Agent
 **Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
 **Can delegate to:** planner, developer, reviewer
 **Skills:** triage, routing
@@ -39,7 +39,7 @@ Agent configuration: `agentforge.yaml` (edit this file, then run `agentforge gen
 
 ### reviewer
 
-**Role:** Use after implementation is complete. Reviews TypeScript types, ESM imports, test coverage, pure function integrity, and CLI output style. Read-only — provides recommendations only.
+**Role:** Use after implementation is complete. Reviews TypeScript types, ESM imports, test coverage, pure function integrity, and CLI output style. Read-only, provides recommendations only.
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, Bash
