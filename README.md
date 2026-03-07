@@ -1,8 +1,8 @@
 # AgentForge
 
-CLI to design, generate, and validate Claude Code agent teams from a single manifest.
+CLI to design, generate, and validate Claude Code subagents from a single manifest.
 
-Define your entire team in one `agentforge.yaml` file. AgentForge generates the Claude Code files, validates the configuration, and keeps the generated output in sync with the manifest.
+Define your subagents in one `agentforge.yaml` file. AgentForge generates Claude Code config files, validates the configuration, and keeps generated output in sync with the manifest.
 
 ## Install
 
@@ -39,6 +39,15 @@ After `generate`, your project will have:
 - `.claude/settings.local.json` - local Claude settings when enabled
 - `CLAUDE.md` - team documentation for Claude Code
 - `AGENTS.md` - universal AI agent documentation
+
+## Native Claude Code Model
+
+AgentForge now uses a canonical agent shape that separates:
+
+- `agents.<name>.claude` - native Claude Code subagent runtime fields
+- `agents.<name>.forge` - AgentForge-only metadata such as delegation graph
+
+Legacy flat manifests are still accepted and normalized automatically, but new writes use the canonical shape.
 
 ## Command Summary
 
@@ -111,8 +120,8 @@ Interactive wizard flow:
 Important limitations of the wizard:
 
 - It does not let you rename individual agents.
-- It does not ask for custom `behavior`.
-- It does not ask for custom `skills`, `handoffs`, `max_turns`, or tool lists.
+- It does not ask for custom `claude.instructions`.
+- It does not ask for custom `claude.skills`, `forge.handoffs`, `claude.max_turns`, or exact tool lists.
 - Those values come from built-in presets or role templates.
 - If you want deeper customization, edit `agentforge.yaml` after init and run `agentforge generate`.
 
@@ -164,20 +173,20 @@ How those answers map into the manifest:
 - If write access is enabled, AgentForge adds `Write`, `Edit`, `MultiEdit`.
 - If bash access is enabled, AgentForge adds `Bash`.
 - If internet access is enabled, AgentForge adds `WebFetch`, `WebSearch`.
-- If delegation is enabled, AgentForge adds `Task`.
-- For disabled write/bash/web capabilities, the matching tools are written into `tools.deny`.
+- If delegation is enabled, AgentForge adds `Agent`.
+- For disabled write/bash/web capabilities, the matching tools are written into `claude.disallowed_tools`.
 
 What `add agent` does not ask for:
 
-- `behavior`
-- `skills`
-- `handoffs`
-- `max_turns`
-- `permission_mode`
-- `mcp_servers`
-- a fully custom `tools.allow` / `tools.deny` list
+- `claude.instructions`
+- `claude.skills`
+- `forge.handoffs`
+- `claude.max_turns`
+- `claude.permission_mode`
+- `claude.mcp_servers`
+- a fully custom `claude.tools` / `claude.disallowed_tools` list
 
-That means a custom agent added this way starts with a minimal prompt. To make it useful, edit `agentforge.yaml` and add fields such as `behavior`, `skills`, and `handoffs`.
+That means a custom agent added this way starts with a minimal prompt. To make it useful, edit `agentforge.yaml` and add fields such as `claude.instructions`, `claude.skills`, and `forge.handoffs`.
 
 ### `edit agent <name>`
 
@@ -211,16 +220,16 @@ Interactive questions:
 4. `Customize tools?`
 5. If yes:
    - `Select allowed tools:`
-   - `tools.deny` is computed automatically as the inverse of the selected allow-list
+   - `claude.disallowed_tools` is computed automatically as the inverse of the selected allow-list
 
 Important limitations:
 
-- `edit agent` does not edit `behavior`, `skills`, `handoffs`, `permission_mode`, or `mcp_servers`.
+- `edit agent` does not edit `claude.instructions`, `claude.skills`, `forge.handoffs`, `claude.permission_mode`, or `claude.mcp_servers`.
 - If you pass any direct flags such as `--description`, `--model`, or `--max-turns`, the command updates only those fields and skips the interactive tool editor.
 
 ### `remove agent <name>`
 
-`agentforge remove agent <name>` removes an agent from the manifest, removes that agent from any `handoffs`, deletes the orphaned `.claude/agents/<name>.md` file, and regenerates the rest.
+`agentforge remove agent <name>` removes an agent from the manifest, removes that agent from any `forge.handoffs`, deletes the orphaned `.claude/agents/<name>.md` file, and regenerates the rest.
 
 Interactive flow:
 
@@ -344,7 +353,8 @@ Important note:
 
 - `import` writes `agentforge.yaml`
 - it does not run `generate`
-- imported `behavior` is extracted from agent markdown body text, excluding generated `Skills`, `Delegation`, and `Constraints` sections
+- imported instructions are extracted from the agent markdown body text
+- legacy AgentForge markdown is still supported, and old generated `Skills`, `Delegation`, and `Constraints` sections are stripped during import
 
 ### `reset`
 
@@ -388,18 +398,28 @@ Use `--yes` to skip confirmation.
 
 Everything is defined in `agentforge.yaml` at the root of your project.
 
-For each agent, AgentForge renders `.claude/agents/<name>.md` from these fields:
+For each agent, AgentForge renders `.claude/agents/<name>.md` from `agents.<name>.claude`.
 
-- `description`, `model`, and `tools.allow` go into frontmatter
-- `behavior` becomes the main instruction body
-- `skills` become a `## Skills` section
-- `handoffs` become a `## Delegation` section
-- `max_turns` and denied tools become a `## Constraints` section
+Native Claude Code fields are rendered into frontmatter:
+
+- `description`
+- `model`
+- `tools`
+- `disallowedTools`
+- `permissionMode`
+- `maxTurns`
+- `skills`
+- `mcpServers`
+- `background`
+
+`claude.instructions` becomes the markdown body.
+
+`forge` metadata is not rendered into the agent markdown. It is used by AgentForge for validation, workflow docs, and delegation modeling.
 
 This is important for custom agents:
 
-- role templates and presets come with built-in `behavior`
-- `add agent <name>` without `--template` does not ask for `behavior`
+- role templates and presets come with built-in `claude.instructions`
+- `add agent <name>` without `--template` does not ask for `claude.instructions`
 - a custom agent created from `add agent` therefore starts with a very minimal prompt until you edit `agentforge.yaml`
 
 ## Configuration
@@ -415,10 +435,14 @@ project:
 
 agents:
   developer:
-    description: Implements features and fixes bugs
-    model: sonnet
-    tools:
-      allow: [Read, Write, Edit, Bash, Grep, Glob]
+    claude:
+      description: Implements features and fixes bugs
+      model: sonnet
+      tools: [Read, Write, Edit, Bash, Grep, Glob]
+      disallowed_tools: [WebFetch, WebSearch]
+      instructions: |
+        Implement the requested changes.
+        Write tests when behavior changes.
 ```
 
 ### Full Example
@@ -431,47 +455,48 @@ project:
 
 agents:
   orchestrator:
-    description: Coordinates the team and delegates tasks
-    model: opus
-    tools:
-      allow: [Read, Grep, Glob, Task]
-      deny: [Edit, Write, Bash]
-    handoffs: [planner, developer, reviewer]
-    max_turns: 30
-    behavior: |
-      You are the coordinator for the project.
-      Read the request, break it into subtasks, and delegate to the right agents.
-      Never modify files yourself.
+    claude:
+      description: Coordinates the team and delegates tasks
+      model: opus
+      tools: [Read, Grep, Glob, Agent]
+      disallowed_tools: [Edit, Write, Bash]
+      max_turns: 30
+      instructions: |
+        You are the coordinator for the project.
+        Read the request, break it into subtasks, and delegate to the right agents.
+        Never modify files yourself.
+    forge:
+      handoffs: [planner, developer, reviewer]
 
   planner:
-    description: Analyzes codebase and produces implementation plans
-    model: sonnet
-    tools:
-      allow: [Read, Grep, Glob, WebFetch, WebSearch]
-      deny: [Edit, Write, Bash]
-    behavior: |
-      Read the codebase and produce a step-by-step implementation plan.
-      Never modify files.
+    claude:
+      description: Analyzes codebase and produces implementation plans
+      model: sonnet
+      tools: [Read, Grep, Glob, WebFetch, WebSearch]
+      disallowed_tools: [Edit, Write, Bash]
+      instructions: |
+        Read the codebase and produce a step-by-step implementation plan.
+        Never modify files.
 
   developer:
-    description: Implements features based on the plan
-    model: sonnet
-    tools:
-      allow: [Read, Write, Edit, Bash, Grep, Glob]
-      deny: [WebFetch, WebSearch]
-    skills: [test-first, clean-code]
-    behavior: |
-      Implement the plan, write tests, and verify the result.
+    claude:
+      description: Implements features based on the plan
+      model: sonnet
+      tools: [Read, Write, Edit, Bash, Grep, Glob]
+      disallowed_tools: [WebFetch, WebSearch]
+      skills: [test-first, clean-code]
+      instructions: |
+        Implement the plan, write tests, and verify the result.
 
   reviewer:
-    description: Reviews code for quality and security issues
-    model: sonnet
-    tools:
-      allow: [Read, Grep, Glob, Bash]
-      deny: [Edit, Write]
-    behavior: |
-      Review the implementation for correctness, style, and security.
-      Do not modify files yourself.
+    claude:
+      description: Reviews code for quality and security issues
+      model: sonnet
+      tools: [Read, Grep, Glob, Bash]
+      disallowed_tools: [Edit, Write]
+      instructions: |
+        Review the implementation for correctness, style, and security.
+        Do not modify files yourself.
 
 policies:
   permissions:
@@ -501,20 +526,20 @@ settings:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `description` | string | Required. Shown in the Claude Code agent picker |
-| `model` | `opus \| sonnet \| haiku \| inherit` | Model to use |
-| `tools.allow` | string[] | Tools the agent can use |
-| `tools.deny` | string[] | Tools the agent should never use |
-| `handoffs` | string[] | Other agents this agent can delegate to. Requires `Task` in `tools.allow` |
-| `skills` | string[] | Skill names. Each unique skill generates `.claude/skills/<skill>/SKILL.md` |
-| `max_turns` | number | Maximum agentic turns |
-| `mcp_servers` | object[] | MCP server definitions |
-| `permission_mode` | `default \| acceptEdits \| bypassPermissions \| plan` | Claude Code permission mode |
-| `behavior` | string | Freeform behavior instructions injected into the agent file |
+| `claude.description` | string | Required. Shown in the Claude Code subagent picker |
+| `claude.model` | `opus \| sonnet \| haiku \| inherit` | Model alias to use |
+| `claude.tools` | string[] | Native Claude Code tool allow-list |
+| `claude.disallowed_tools` | string[] | Native Claude Code tool deny-list |
+| `claude.skills` | string[] | Skill names. Each unique skill generates `.claude/skills/<skill>/SKILL.md` |
+| `claude.max_turns` | number | Maximum agentic turns |
+| `claude.mcp_servers` | object[] | MCP server definitions |
+| `claude.permission_mode` | `default \| acceptEdits \| bypassPermissions \| plan \| dontAsk` | Claude Code permission mode |
+| `claude.instructions` | string | Freeform instructions used as the markdown body |
+| `forge.handoffs` | string[] | Other agents this agent can delegate to. Requires `Agent` in `claude.tools` |
 
 Available Claude Code tools:
 
-`Read`, `Write`, `Edit`, `MultiEdit`, `Grep`, `Glob`, `Bash`, `WebFetch`, `WebSearch`, `Task`
+`Read`, `Write`, `Edit`, `MultiEdit`, `Grep`, `Glob`, `Bash`, `WebFetch`, `WebSearch`, `Agent`
 
 ### Policy Fields
 

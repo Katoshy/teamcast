@@ -22,8 +22,8 @@ describe('stepCustomTeam', () => {
 
     expect(result.agents).toBeDefined();
     expect(Object.keys(result.agents!)).toEqual(['developer', 'reviewer']);
-    expect(result.agents!.developer.model).toBe('sonnet');
-    expect(result.agents!.reviewer.model).toBe('sonnet');
+    expect(result.agents!.developer.claude.model).toBe('sonnet');
+    expect(result.agents!.reviewer.claude.model).toBe('sonnet');
   });
 
   it('auto-wires orchestrator handoffs to other selected agents', async () => {
@@ -33,8 +33,8 @@ describe('stepCustomTeam', () => {
 
     const result = await stepCustomTeam({ project: { name: 'test' } });
 
-    expect(result.agents!.orchestrator.handoffs).toEqual(['developer', 'reviewer']);
-    expect(result.agents!.orchestrator.model).toBe('opus');
+    expect(result.agents!.orchestrator.forge?.handoffs).toEqual(['developer', 'reviewer']);
+    expect(result.agents!.orchestrator.claude.model).toBe('opus');
   });
 
   it('does not add handoffs when orchestrator is the only agent', async () => {
@@ -42,7 +42,7 @@ describe('stepCustomTeam', () => {
 
     const result = await stepCustomTeam({ project: { name: 'test' } });
 
-    expect(result.agents!.orchestrator.handoffs).toBeUndefined();
+    expect(result.agents!.orchestrator.forge?.handoffs).toBeUndefined();
   });
 
   it('includes default policies with sandbox enabled', async () => {
@@ -69,11 +69,11 @@ describe('stepCustomTeam', () => {
 
     const result = await stepCustomTeam({ project: { name: 'test' } });
 
-    const tools = result.agents!.researcher.tools!;
-    expect('allow' in tools && tools.allow).toContain('WebFetch');
-    expect('allow' in tools && tools.allow).toContain('WebSearch');
-    expect(tools.deny).toContain('Edit');
-    expect(tools.deny).toContain('Write');
+    const agent = result.agents!.researcher;
+    expect(agent.claude.tools).toContain('WebFetch');
+    expect(agent.claude.tools).toContain('WebSearch');
+    expect(agent.claude.disallowed_tools).toContain('Edit');
+    expect(agent.claude.disallowed_tools).toContain('Write');
   });
 
   it('produces a valid feature-style team without validation issues', async () => {

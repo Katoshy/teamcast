@@ -38,7 +38,7 @@ describe('importFromClaudeDir', () => {
         'name: developer',
         'description: Implements features and fixes bugs',
         'model: claude-sonnet-4-6',
-        'tools: Read,Write,Edit,Bash,Grep,Glob',
+        'tools: [Read, Write, Edit, Bash, Grep, Glob]',
         '---',
         '',
         'Custom behavior instructions here.',
@@ -49,10 +49,10 @@ describe('importFromClaudeDir', () => {
     const agent = result.manifest.agents.developer;
 
     expect(agent).toBeDefined();
-    expect(agent.description).toBe('Implements features and fixes bugs');
-    expect(agent.model).toBe('sonnet');
-    expect(agent.tools).toEqual({ allow: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob'] });
-    expect(agent.behavior).toBe('Custom behavior instructions here.');
+    expect(agent.claude.description).toBe('Implements features and fixes bugs');
+    expect(agent.claude.model).toBe('sonnet');
+    expect(agent.claude.tools).toEqual(['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob']);
+    expect(agent.claude.instructions).toBe('Custom behavior instructions here.');
   });
 
   it('imports multiple agents', () => {
@@ -62,7 +62,7 @@ describe('importFromClaudeDir', () => {
         'name: planner',
         'description: Plans implementation',
         'model: claude-opus-4-6',
-        'tools: Read,Grep,Glob',
+        'tools: [Read, Grep, Glob]',
         '---',
       ].join('\n'),
       'reviewer.md': [
@@ -70,15 +70,15 @@ describe('importFromClaudeDir', () => {
         'name: reviewer',
         'description: Reviews code',
         'model: claude-haiku-4-5-20251001',
-        'tools: Read,Grep,Glob',
+        'tools: [Read, Grep, Glob]',
         '---',
       ].join('\n'),
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
     expect(Object.keys(result.manifest.agents)).toHaveLength(2);
-    expect(result.manifest.agents.planner.model).toBe('opus');
-    expect(result.manifest.agents.reviewer.model).toBe('haiku');
+    expect(result.manifest.agents.planner.claude.model).toBe('opus');
+    expect(result.manifest.agents.reviewer.claude.model).toBe('haiku');
   });
 
   it('imports permissions from settings.json', () => {
@@ -103,7 +103,7 @@ describe('importFromClaudeDir', () => {
     expect(result.manifest.policies?.sandbox?.auto_allow_bash).toBe(true);
   });
 
-  it('imports hooks from settings.json (camelCase → snake_case)', () => {
+  it('imports hooks from settings.json (camelCase -> snake_case)', () => {
     setupClaudeDir({
       'dev.md': '---\nname: dev\ndescription: Dev\n---\n',
     });
@@ -133,8 +133,8 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.warnings.some((w) => w.message.includes('Unknown model ID'))).toBe(true);
-    expect(result.manifest.agents.agent.model).toBeUndefined();
+    expect(result.warnings.some((w) => w.message.includes('Unknown model'))).toBe(true);
+    expect(result.manifest.agents.agent.claude.model).toBeUndefined();
   });
 
   it('warns when no agent files found', () => {
@@ -144,7 +144,7 @@ describe('importFromClaudeDir', () => {
     expect(result.warnings.some((w) => w.message.includes('No agent .md files'))).toBe(true);
   });
 
-  it('strips generated sections (Skills, Delegation, Constraints) from behavior', () => {
+  it('strips generated sections (Skills, Delegation, Constraints) from instructions', () => {
     setupClaudeDir({
       'dev.md': [
         '---',
@@ -169,7 +169,8 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.manifest.agents.dev.behavior).toBe('Write clean code.');
+    expect(result.manifest.agents.dev.claude.instructions).toBe('Write clean code.');
+    expect(result.manifest.agents.dev.forge?.handoffs).toEqual(['reviewer']);
   });
 
   it('uses filename as agent name when frontmatter name is missing', () => {

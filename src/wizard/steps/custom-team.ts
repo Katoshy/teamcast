@@ -28,7 +28,10 @@ export async function stepCustomTeam(
   }
 
   if (agents.orchestrator && selectedRoles.length > 1) {
-    agents.orchestrator.handoffs = selectedRoles.filter((role) => role !== 'orchestrator');
+    agents.orchestrator.forge = {
+      ...agents.orchestrator.forge,
+      handoffs: selectedRoles.filter((role) => role !== 'orchestrator'),
+    };
   }
 
   return {

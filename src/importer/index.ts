@@ -1,19 +1,23 @@
 import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join, basename } from 'path';
+import { parse } from 'yaml';
 import type {
   AgentConfig,
   AgentForgeManifest,
-  ModelAlias,
-  Tool,
-  PoliciesConfig,
+  CanonicalTool,
   HooksConfig,
+  McpServerConfig,
+  ModelAlias,
+  PermissionMode,
+  PoliciesConfig,
 } from '../types/manifest.js';
-import { MODEL_ID_MAP, CLAUDE_CODE_TOOLS } from '../types/manifest.js';
+import { CLAUDE_CODE_TOOLS, COMPAT_CLAUDE_CODE_TOOLS } from '../types/manifest.js';
 
-// Reverse map: Claude Code model ID → agentforge model alias
-const REVERSE_MODEL_MAP: Record<string, Exclude<ModelAlias, 'inherit'>> = Object.fromEntries(
-  Object.entries(MODEL_ID_MAP).map(([alias, id]) => [id, alias as Exclude<ModelAlias, 'inherit'>]),
-);
+const LEGACY_MODEL_ID_MAP: Record<string, Exclude<ModelAlias, 'inherit'>> = {
+  'claude-opus-4-6': 'opus',
+  'claude-sonnet-4-6': 'sonnet',
+  'claude-haiku-4-5-20251001': 'haiku',
+};
 
 interface ImportWarning {
   file: string;
@@ -25,104 +29,177 @@ interface ImportResult {
   warnings: ImportWarning[];
 }
 
-// Parse YAML frontmatter from agent .md file
-function parseFrontmatter(content: string): Record<string, string> {
+function parseFrontmatter(content: string): Record<string, unknown> {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
 
-  const fields: Record<string, string> = {};
-  for (const line of match[1].split('\n')) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
-    const key = line.slice(0, colonIndex).trim();
-    const value = line.slice(colonIndex + 1).trim();
-    if (key && value) {
-      fields[key] = value;
-    }
+  const parsed = parse(match[1]);
+  if (parsed && typeof parsed === 'object') {
+    return parsed as Record<string, unknown>;
   }
-  return fields;
+
+  return {};
 }
 
-// Extract behavior text from agent .md (everything after frontmatter, excluding generated sections)
-function extractBehavior(content: string): string | undefined {
+function extractBody(content: string): string | undefined {
   const bodyMatch = content.match(/^---\n[\s\S]*?\n---\n\n?([\s\S]*)/);
   if (!bodyMatch) return undefined;
 
-  let body = bodyMatch[1].trim();
+  const body = bodyMatch[1].trim();
+  return body || undefined;
+}
+
+function stripLegacyGeneratedSections(body: string | undefined): string | undefined {
   if (!body) return undefined;
 
-  // Remove generated sections (Skills, Delegation, Constraints)
+  let nextBody = body;
   const generatedSections = ['## Skills', '## Delegation', '## Constraints'];
+  let changed = false;
+
   for (const section of generatedSections) {
-    const sectionIndex = body.indexOf(section);
+    const sectionIndex = nextBody.indexOf(section);
     if (sectionIndex !== -1) {
-      // Find end of this section (next ## or end of text)
-      const nextSection = body.indexOf('\n## ', sectionIndex + section.length);
+      changed = true;
+      const nextSection = nextBody.indexOf('\n## ', sectionIndex + section.length);
       if (nextSection !== -1) {
-        body = body.slice(0, sectionIndex) + body.slice(nextSection);
+        nextBody = nextBody.slice(0, sectionIndex) + nextBody.slice(nextSection);
       } else {
-        body = body.slice(0, sectionIndex);
+        nextBody = nextBody.slice(0, sectionIndex);
       }
     }
   }
 
-  body = body.trim();
-  return body || undefined;
+  nextBody = nextBody.trim();
+  return changed ? nextBody || undefined : body;
 }
 
-// Resolve model ID to alias
-function resolveModelAlias(modelId: string | undefined): ModelAlias | undefined {
-  if (!modelId) return undefined;
-  return REVERSE_MODEL_MAP[modelId] ?? undefined;
+function inferLegacyHandoffs(body: string | undefined): string[] | undefined {
+  if (!body?.includes('## Delegation')) return undefined;
+
+  const match = body.match(
+    /## Delegation\s+You can delegate tasks to the following agents:\s+([a-z0-9,\- ]+)\./i,
+  );
+  if (!match) return undefined;
+
+  const values = match[1]
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return values.length > 0 ? values : undefined;
 }
 
-// Parse comma-separated tools string
-function parseTools(toolsString: string | undefined): Tool[] | undefined {
-  if (!toolsString) return undefined;
-  const tools = toolsString.split(',').map((t) => t.trim()).filter(Boolean);
-  return tools.filter((t): t is Tool => CLAUDE_CODE_TOOLS.includes(t as Tool)) as Tool[];
+function resolveModelAlias(modelValue: unknown): ModelAlias | undefined {
+  if (typeof modelValue !== 'string' || modelValue.length === 0) return undefined;
+  if (modelValue === 'inherit' || modelValue === 'opus' || modelValue === 'sonnet' || modelValue === 'haiku') {
+    return modelValue;
+  }
+
+  return LEGACY_MODEL_ID_MAP[modelValue];
 }
 
-// Parse a single agent .md file into AgentConfig
+function parseToolList(value: unknown): CanonicalTool[] | undefined {
+  const rawTools = Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : typeof value === 'string'
+      ? value.split(',').map((item) => item.trim()).filter(Boolean)
+      : [];
+
+  if (rawTools.length === 0) return undefined;
+
+  const tools: CanonicalTool[] = [];
+  for (const tool of rawTools) {
+    if (!COMPAT_CLAUDE_CODE_TOOLS.includes(tool as CanonicalTool | 'Task')) continue;
+    const canonical = tool === 'Task' ? 'Agent' : tool;
+    if (!CLAUDE_CODE_TOOLS.includes(canonical as CanonicalTool)) continue;
+    if (!tools.includes(canonical as CanonicalTool)) {
+      tools.push(canonical as CanonicalTool);
+    }
+  }
+
+  return tools.length > 0 ? tools : undefined;
+}
+
+function parseSkillList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const skills = value.filter((item): item is string => typeof item === 'string' && item.length > 0);
+  return skills.length > 0 ? skills : undefined;
+}
+
+function parsePermissionMode(value: unknown): PermissionMode | undefined {
+  if (typeof value !== 'string') return undefined;
+  const modes: PermissionMode[] = ['default', 'acceptEdits', 'bypassPermissions', 'plan', 'dontAsk'];
+  return modes.includes(value as PermissionMode) ? (value as PermissionMode) : undefined;
+}
+
+function parseMcpServers(value: unknown): McpServerConfig[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const servers = value
+    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+    .map((item) => ({
+      name: typeof item.name === 'string' ? item.name : '',
+      url: typeof item.url === 'string' ? item.url : '',
+    }))
+    .filter((item) => item.name.length > 0 && item.url.length > 0);
+
+  return servers.length > 0 ? servers : undefined;
+}
+
 function parseAgentFile(filePath: string): { name: string; config: AgentConfig; warnings: ImportWarning[] } {
   const warnings: ImportWarning[] = [];
   const content = readFileSync(filePath, 'utf-8');
   const fields = parseFrontmatter(content);
   const fileName = basename(filePath, '.md');
-  const name = fields.name || fileName;
+  const name = typeof fields.name === 'string' && fields.name.length > 0 ? fields.name : fileName;
 
   const model = resolveModelAlias(fields.model);
-  const allowTools = parseTools(fields.tools);
-  const behavior = extractBehavior(content);
+  const tools = parseToolList(fields.tools);
+  const disallowedTools = parseToolList(fields.disallowedTools);
+  const permissionMode = parsePermissionMode(fields.permissionMode);
+  const maxTurns = typeof fields.maxTurns === 'number' ? fields.maxTurns : undefined;
+  const background = typeof fields.background === 'boolean' ? fields.background : undefined;
+  const skills = parseSkillList(fields.skills);
+  const mcpServers = parseMcpServers(fields.mcpServers);
 
   if (fields.model && !model) {
-    warnings.push({ file: filePath, message: `Unknown model ID "${fields.model}", skipping model field` });
+    warnings.push({ file: filePath, message: `Unknown model "${String(fields.model)}", skipping model field` });
+  }
+  if (fields.permissionMode && !permissionMode) {
+    warnings.push({
+      file: filePath,
+      message: `Unknown permissionMode "${String(fields.permissionMode)}", skipping`,
+    });
   }
 
-  const config: AgentConfig = {
-    description: fields.description || `Imported from ${fileName}.md`,
+  const originalBody = extractBody(content);
+  const instructions = stripLegacyGeneratedSections(originalBody);
+  const legacyHandoffs = inferLegacyHandoffs(originalBody);
+
+  return {
+    name,
+    config: {
+      claude: {
+        description:
+          typeof fields.description === 'string' && fields.description.length > 0
+            ? fields.description
+            : `Imported from ${fileName}.md`,
+        model,
+        tools,
+        disallowed_tools: disallowedTools,
+        permission_mode: permissionMode,
+        max_turns: maxTurns,
+        skills,
+        mcp_servers: mcpServers,
+        instructions,
+        background,
+      },
+      forge: legacyHandoffs?.length ? { handoffs: legacyHandoffs } : undefined,
+    },
+    warnings,
   };
-
-  if (model) config.model = model;
-  if (allowTools && allowTools.length > 0) {
-    config.tools = { allow: allowTools };
-  }
-  if (behavior) config.behavior = behavior;
-
-  // Parse permissionMode
-  if (fields.permissionMode && fields.permissionMode !== 'default') {
-    const validModes = ['default', 'acceptEdits', 'bypassPermissions', 'plan'];
-    if (validModes.includes(fields.permissionMode)) {
-      config.permission_mode = fields.permissionMode as AgentConfig['permission_mode'];
-    } else {
-      warnings.push({ file: filePath, message: `Unknown permissionMode "${fields.permissionMode}", skipping` });
-    }
-  }
-
-  return { name, config, warnings };
 }
 
-// Parse settings.json into PoliciesConfig
 function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnings: ImportWarning[] } {
   const warnings: ImportWarning[] = [];
   const content = readFileSync(filePath, 'utf-8');
@@ -137,7 +214,6 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
 
   const policies: PoliciesConfig = {};
 
-  // Parse permissions
   const perms = settings.permissions as Record<string, unknown> | undefined;
   if (perms) {
     policies.permissions = {};
@@ -149,7 +225,6 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
     }
   }
 
-  // Parse sandbox
   const sandbox = settings.sandbox as Record<string, unknown> | undefined;
   if (sandbox) {
     policies.sandbox = {};
@@ -172,21 +247,20 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
     }
   }
 
-  // Parse hooks (camelCase → snake_case)
   const hooks = settings.hooks as Record<string, unknown> | undefined;
   if (hooks) {
     const hooksConfig: HooksConfig = {};
 
     const parseHookEntries = (entries: unknown[]) =>
       entries
-        .filter((e): e is Record<string, unknown> => typeof e === 'object' && e !== null)
+        .filter((entry): entry is Record<string, unknown> => typeof entry === 'object' && entry !== null)
         .map((entry) => ({
           matcher: String(entry.matcher ?? ''),
           command: Array.isArray(entry.hooks)
             ? String((entry.hooks[0] as Record<string, unknown>)?.command ?? '')
             : '',
         }))
-        .filter((e) => e.matcher && e.command);
+        .filter((entry) => entry.matcher && entry.command);
 
     if (Array.isArray(hooks.PreToolUse)) {
       hooksConfig.pre_tool_use = parseHookEntries(hooks.PreToolUse);
@@ -206,15 +280,13 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
   return { policies, warnings };
 }
 
-// Scan .claude/ directory and build a manifest
 export function importFromClaudeDir(cwd: string, projectName: string): ImportResult {
   const warnings: ImportWarning[] = [];
   const agents: Record<string, AgentConfig> = {};
 
-  // Scan .claude/agents/*.md
   const agentsDir = join(cwd, '.claude', 'agents');
   if (existsSync(agentsDir)) {
-    const files = readdirSync(agentsDir).filter((f) => f.endsWith('.md'));
+    const files = readdirSync(agentsDir).filter((file) => file.endsWith('.md'));
     for (const file of files) {
       const filePath = join(agentsDir, file);
       const result = parseAgentFile(filePath);
@@ -227,14 +299,12 @@ export function importFromClaudeDir(cwd: string, projectName: string): ImportRes
     warnings.push({ file: agentsDir, message: 'No agent .md files found in .claude/agents/' });
   }
 
-  // Parse .claude/settings.json for policies
   let policies: PoliciesConfig | undefined;
   const settingsPath = join(cwd, '.claude', 'settings.json');
   if (existsSync(settingsPath)) {
     const result = parseSettingsJson(settingsPath);
     policies = result.policies;
     warnings.push(...result.warnings);
-    // Only include if there's actual content
     if (!policies.permissions && !policies.sandbox && !policies.hooks) {
       policies = undefined;
     }

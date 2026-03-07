@@ -21,10 +21,10 @@ export async function stepAgentCustomization(
 
   for (const name of Object.keys(updatedAgents)) {
     const agent = updatedAgents[name];
-    const currentModel = agent.model ?? 'inherit';
+    const currentModel = agent.claude.model ?? 'inherit';
 
     console.log('');
-    console.log(chalk.bold(name) + chalk.dim(` - ${agent.description}`));
+    console.log(chalk.bold(name) + chalk.dim(` - ${agent.claude.description}`));
 
     const model = await promptList<ModelAlias>({
       message: `  Model for ${name}:`,
@@ -37,7 +37,13 @@ export async function stepAgentCustomization(
       default: currentModel,
     });
 
-    updatedAgents[name] = { ...agent, model };
+    updatedAgents[name] = {
+      ...agent,
+      claude: {
+        ...agent.claude,
+        model,
+      },
+    };
   }
 
   return { ...manifest, agents: updatedAgents };

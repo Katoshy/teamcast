@@ -1,4 +1,5 @@
 import type { AgentForgeManifest } from '../types/manifest.js';
+import { normalizeManifest } from '../types/manifest.js';
 import type { GeneratedFile, GeneratorOptions } from './types.js';
 import { isUserEditableGeneratedFile } from './file-policies.js';
 import { renderAllAgentMd } from './renderers/agent-md.js';
@@ -16,20 +17,21 @@ export function generate(
   options: GeneratorOptions,
 ): GeneratedFile[] {
   const { cwd, dryRun = false } = options;
+  const normalized = normalizeManifest(manifest);
 
   const files: GeneratedFile[] = [
-    ...renderAllAgentMd(manifest),
-    renderSettingsJson(manifest),
-    ...renderSkillMd(manifest),
+    ...renderAllAgentMd(normalized),
+    renderSettingsJson(normalized),
+    ...renderSkillMd(normalized),
   ];
 
-  if (manifest.settings?.generate_local_settings !== false) {
+  if (normalized.settings?.generate_local_settings !== false) {
     files.push(renderSettingsLocalJson());
   }
 
-  if (manifest.settings?.generate_docs !== false) {
-    files.push(renderClaudeMd(manifest));
-    files.push(renderAgentsMd(manifest));
+  if (normalized.settings?.generate_docs !== false) {
+    files.push(renderClaudeMd(normalized));
+    files.push(renderAgentsMd(normalized));
   }
 
   if (!dryRun) {

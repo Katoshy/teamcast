@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { parse } from 'yaml';
-import type { AgentForgeManifest } from '../types/manifest.js';
+import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../types/manifest.js';
 import { validateSchema } from './schema-validator.js';
 import { applyDefaults } from './defaults.js';
 
@@ -15,7 +15,7 @@ export class ManifestError extends Error {
   }
 }
 
-export function readManifest(cwd: string): AgentForgeManifest {
+export function readManifest(cwd: string): NormalizedAgentForgeManifest {
   const manifestPath = join(cwd, 'agentforge.yaml');
 
   let raw: string;

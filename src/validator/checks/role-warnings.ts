@@ -1,14 +1,15 @@
-import type { AgentForgeManifest } from '../../types/manifest.js';
-import { hasAllowList } from '../../types/manifest.js';
+import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../../types/manifest.js';
+import { normalizeManifest } from '../../types/manifest.js';
 import type { Checker, ValidationResult } from '../types.js';
 
-export const checkRoleWarnings: Checker = (manifest: AgentForgeManifest): ValidationResult[] => {
+export const checkRoleWarnings: Checker = (
+  inputManifest: AgentForgeManifest | NormalizedAgentForgeManifest,
+): ValidationResult[] => {
+  const manifest = normalizeManifest(inputManifest);
   const results: ValidationResult[] = [];
 
   for (const [agentId, agent] of Object.entries(manifest.agents)) {
-    if (!agent.tools || !hasAllowList(agent.tools)) continue;
-
-    const allow = new Set(agent.tools.allow);
+    const allow = new Set(agent.claude.tools ?? []);
     const id = agentId.toLowerCase();
 
     // orchestrator should not write files

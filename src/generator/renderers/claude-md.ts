@@ -1,10 +1,10 @@
-import type { AgentForgeManifest } from '../../types/manifest.js';
-import { hasAllowList } from '../../types/manifest.js';
+import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../../types/manifest.js';
+import { normalizeManifest } from '../../types/manifest.js';
 import type { GeneratedFile } from '../types.js';
 
-// Generates CLAUDE.md — instructions for the main Claude Code session.
-// This is the primary mechanism ensuring agents are actually used.
-export function renderClaudeMd(manifest: AgentForgeManifest): GeneratedFile {
+// Generates CLAUDE.md: instructions for the main Claude Code session.
+export function renderClaudeMd(inputManifest: AgentForgeManifest | NormalizedAgentForgeManifest): GeneratedFile {
+  const manifest = normalizeManifest(inputManifest);
   const lines: string[] = [];
   const { project, agents } = manifest;
 
@@ -16,7 +16,6 @@ export function renderClaudeMd(manifest: AgentForgeManifest): GeneratedFile {
     lines.push('');
   }
 
-  // Agent team section — the key part that drives delegation
   lines.push('## Agent Team');
   lines.push('');
   lines.push('This project uses a multi-agent setup. Delegate tasks to the appropriate agent:');
@@ -25,24 +24,22 @@ export function renderClaudeMd(manifest: AgentForgeManifest): GeneratedFile {
   lines.push('|-------|-------------|');
 
   for (const [agentId, agent] of Object.entries(agents)) {
-    lines.push(`| **${agentId}** | ${agent.description} |`);
+    lines.push(`| **${agentId}** | ${agent.claude.description} |`);
   }
 
   lines.push('');
 
-  // Find orchestrator-like agents (have Task + handoffs) — these are entry points
   const entryPoints = Object.entries(agents).filter(([, agent]) => {
-    const hasTask =
-      agent.tools && hasAllowList(agent.tools) && agent.tools.allow.includes('Task');
-    const hasHandoffs = agent.handoffs && agent.handoffs.length > 0;
-    return hasTask && hasHandoffs;
+    const hasAgentTool = agent.claude.tools?.includes('Agent');
+    const hasHandoffs = (agent.forge?.handoffs?.length ?? 0) > 0;
+    return hasAgentTool && hasHandoffs;
   });
 
   if (entryPoints.length > 0) {
     lines.push('### Preferred workflow');
     lines.push('');
     for (const [agentId, agent] of entryPoints) {
-      const chain = agent.handoffs ? [agentId, ...agent.handoffs].join(' → ') : agentId;
+      const chain = agent.forge?.handoffs ? [agentId, ...agent.forge.handoffs].join(' -> ') : agentId;
       lines.push(`For complex tasks, start with **${agentId}**: \`${chain}\``);
     }
     lines.push('');
@@ -50,7 +47,6 @@ export function renderClaudeMd(manifest: AgentForgeManifest): GeneratedFile {
     lines.push('');
   }
 
-  // Security boundaries summary
   const policies = manifest.policies;
   if (policies) {
     lines.push('## Security Boundaries');

@@ -29,8 +29,8 @@ describe('renderClaudeMd', () => {
     const manifest: AgentForgeManifest = {
       ...base,
       agents: {
-        developer: { description: 'Implements features' },
-        reviewer: { description: 'Reviews code' },
+        developer: { claude: { description: 'Implements features' } },
+        reviewer: { claude: { description: 'Reviews code' } },
       },
     };
     const content = renderClaudeMd(manifest).content;
@@ -43,17 +43,21 @@ describe('renderClaudeMd', () => {
       ...base,
       agents: {
         orchestrator: {
-          description: 'Coordinates',
-          tools: { allow: ['Read', 'Task'] },
-          handoffs: ['planner', 'developer'],
+          claude: {
+            description: 'Coordinates',
+            tools: ['Read', 'Agent'],
+          },
+          forge: {
+            handoffs: ['planner', 'developer'],
+          },
         },
-        planner: { description: 'Plans' },
-        developer: { description: 'Builds' },
+        planner: { claude: { description: 'Plans' } },
+        developer: { claude: { description: 'Builds' } },
       },
     };
     const content = renderClaudeMd(manifest).content;
     expect(content).toContain('### Preferred workflow');
-    expect(content).toContain('orchestrator → planner → developer');
+    expect(content).toContain('orchestrator -> planner -> developer');
   });
 
   it('does not render workflow section for agents without handoffs', () => {
@@ -61,8 +65,10 @@ describe('renderClaudeMd', () => {
       ...base,
       agents: {
         developer: {
-          description: 'Builds',
-          tools: { allow: ['Read', 'Write'] },
+          claude: {
+            description: 'Builds',
+            tools: ['Read', 'Write'],
+          },
         },
       },
     };
@@ -72,7 +78,7 @@ describe('renderClaudeMd', () => {
   it('includes security boundaries from policies', () => {
     const manifest: AgentForgeManifest = {
       ...base,
-      agents: { dev: { description: 'Dev' } },
+      agents: { dev: { claude: { description: 'Dev' } } },
       policies: {
         sandbox: { enabled: true },
         permissions: {

@@ -1,4 +1,5 @@
-import type { AgentForgeManifest } from '../../types/manifest.js';
+import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../../types/manifest.js';
+import { normalizeManifest } from '../../types/manifest.js';
 import type { Checker, ValidationResult } from '../types.js';
 
 // Checks if a deny rule pattern covers .env files
@@ -15,7 +16,10 @@ function hasDotEnvDeny(denyRules: string[]): boolean {
   });
 }
 
-export const checkSecurityBaseline: Checker = (manifest: AgentForgeManifest): ValidationResult[] => {
+export const checkSecurityBaseline: Checker = (
+  inputManifest: AgentForgeManifest | NormalizedAgentForgeManifest,
+): ValidationResult[] => {
+  const manifest = normalizeManifest(inputManifest);
   const results: ValidationResult[] = [];
 
   const deny = manifest.policies?.permissions?.deny ?? [];
@@ -40,7 +44,7 @@ export const checkSecurityBaseline: Checker = (manifest: AgentForgeManifest): Va
 
   // bypassPermissions on any agent
   for (const [agentId, agent] of Object.entries(manifest.agents)) {
-    if (agent.permission_mode === 'bypassPermissions') {
+    if (agent.claude.permission_mode === 'bypassPermissions') {
       results.push({
         severity: 'warning',
         category: 'Security',
