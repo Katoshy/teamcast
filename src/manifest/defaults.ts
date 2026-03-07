@@ -1,24 +1,27 @@
-import type { AgentForgeManifest } from '../types/manifest.js';
+import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../types/manifest.js';
+import { normalizeManifest } from '../types/manifest.js';
 
 // Apply default values to a partially-defined manifest.
 // Returns a new object — does not mutate the input.
-export function applyDefaults(manifest: AgentForgeManifest): AgentForgeManifest {
+export function applyDefaults(manifest: AgentForgeManifest): NormalizedAgentForgeManifest {
+  const normalized = normalizeManifest(manifest);
+
   return {
-    ...manifest,
+    ...normalized,
     settings: {
       default_model: 'sonnet',
       generate_docs: true,
       generate_local_settings: true,
-      ...manifest.settings,
+      ...normalized.settings,
     },
-    policies: manifest.policies
+    policies: normalized.policies
       ? {
-          ...manifest.policies,
-          sandbox: manifest.policies.sandbox
+          ...normalized.policies,
+          sandbox: normalized.policies.sandbox
             ? {
                 enabled: false,
                 auto_allow_bash: true,
-                ...manifest.policies.sandbox,
+                ...normalized.policies.sandbox,
               }
             : undefined,
         }

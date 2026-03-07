@@ -30,14 +30,12 @@ export function registerImportCommand(program: Command): void {
 
       printHeader('Import');
 
-      // Check .claude/ exists
       const claudeDir = join(cwd, '.claude');
       if (!existsSync(claudeDir)) {
         printError('No .claude/ directory found', 'Nothing to import.');
         process.exit(1);
       }
 
-      // Check agentforge.yaml doesn't already exist
       const manifestPath = join(cwd, 'agentforge.yaml');
       if (existsSync(manifestPath)) {
         printError('agentforge.yaml already exists', 'Use "agentforge generate" to update from existing manifest.');
@@ -46,10 +44,8 @@ export function registerImportCommand(program: Command): void {
 
       const ctx = detectProjectContext(cwd);
       const projectName = ctx.name ?? 'my-project';
-
       const result = importFromClaudeDir(cwd, projectName);
 
-      // Print warnings
       if (result.warnings.length > 0) {
         for (const warning of result.warnings) {
           printWarning(warning.file, warning.message);
@@ -57,7 +53,6 @@ export function registerImportCommand(program: Command): void {
         console.log('');
       }
 
-      // Show what was found
       const agentNames = Object.keys(result.manifest.agents);
       if (agentNames.length === 0) {
         printError('No agents found', 'No .claude/agents/*.md files to import.');
@@ -67,7 +62,7 @@ export function registerImportCommand(program: Command): void {
       console.log(chalk.dim(`  Found ${agentNames.length} agent${agentNames.length !== 1 ? 's' : ''}:`));
       for (const name of agentNames) {
         const agent = result.manifest.agents[name];
-        console.log(chalk.dim(`    ${name} — ${agent.description}`));
+        console.log(chalk.dim(`    ${name} - ${agent.claude.description}`));
       }
 
       if (result.manifest.policies) {
@@ -81,7 +76,6 @@ export function registerImportCommand(program: Command): void {
       }
       console.log('');
 
-      // Validate
       const validation = evaluateManifest(result.manifest);
 
       if (manifestHasBlockingIssues(validation)) {
@@ -90,7 +84,6 @@ export function registerImportCommand(program: Command): void {
         process.exit(1);
       }
 
-      // Confirm
       if (!options.yes) {
         const confirmed = await promptConfirm({
           message: 'Write agentforge.yaml with imported configuration?',

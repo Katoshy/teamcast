@@ -72,13 +72,13 @@ async function stepSingleAgent(
     project: partial.project ?? { name: 'my-project' },
     agents: {
       developer: createRoleAgent('developer', {
-        description: 'Full-stack developer. Handles implementation, testing, and debugging.',
-        tools: {
-          allow: ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Grep', 'Glob', 'Task'],
+        claude: {
+          description: 'Full-stack developer. Handles implementation, testing, and debugging.',
+          tools: ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Grep', 'Glob', 'Agent'],
+          skills: ['test-first', 'clean-code'],
+          instructions:
+            'You are a capable developer. Understand the task, read the relevant code, make a plan, implement with tests, and verify the result.',
         },
-        skills: ['test-first', 'clean-code'],
-        behavior:
-          'You are a capable developer. Understand the task, read the relevant code, make a plan, implement with tests, and verify the result.',
       }),
     },
     policies: createPolicies('single-agent'),

@@ -2,7 +2,7 @@
 
 export type ModelAlias = 'opus' | 'sonnet' | 'haiku' | 'inherit';
 
-export type Tool =
+export type CanonicalTool =
   | 'Read'
   | 'Write'
   | 'Edit'
@@ -12,48 +12,163 @@ export type Tool =
   | 'Bash'
   | 'WebFetch'
   | 'WebSearch'
-  | 'Task';
+  | 'Agent';
 
-export const CLAUDE_CODE_TOOLS: Tool[] = [
+export type LegacyToolAlias = 'Task';
+export type Tool = CanonicalTool | LegacyToolAlias;
+
+export const CLAUDE_CODE_TOOLS: CanonicalTool[] = [
   'Read', 'Write', 'Edit', 'MultiEdit',
   'Grep', 'Glob',
   'Bash',
   'WebFetch', 'WebSearch',
-  'Task',
+  'Agent',
 ];
 
-export type PermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
+export const COMPAT_CLAUDE_CODE_TOOLS: Tool[] = [...CLAUDE_CODE_TOOLS, 'Task'];
 
-export interface ToolsConfigWithAllow {
-  allow: Tool[];
-  deny?: Tool[];
-}
-
-export interface ToolsConfigDenyOnly {
-  deny: Tool[];
-}
-
-export type ToolsConfig = ToolsConfigWithAllow | ToolsConfigDenyOnly;
-
-export function hasAllowList(tools: ToolsConfig): tools is ToolsConfigWithAllow {
-  return 'allow' in tools;
-}
+export type PermissionMode =
+  | 'default'
+  | 'acceptEdits'
+  | 'bypassPermissions'
+  | 'plan'
+  | 'dontAsk';
 
 export interface McpServerConfig {
   name: string;
   url: string;
 }
 
-export interface AgentConfig {
+export interface ClaudeAgentConfig {
   description: string;
   model?: ModelAlias;
-  tools?: ToolsConfig;
+  tools?: CanonicalTool[];
+  disallowed_tools?: CanonicalTool[];
+  skills?: string[];
+  max_turns?: number;
+  mcp_servers?: McpServerConfig[];
+  permission_mode?: PermissionMode;
+  instructions?: string;
+  background?: boolean;
+}
+
+export interface ForgeAgentMetadata {
+  handoffs?: string[];
+  role?: string;
+  template?: string;
+}
+
+export interface AgentConfig {
+  claude: ClaudeAgentConfig;
+  forge?: ForgeAgentMetadata;
+}
+
+export interface LegacyToolsConfigWithAllow {
+  allow: Tool[];
+  deny?: Tool[];
+}
+
+export interface LegacyToolsConfigDenyOnly {
+  deny: Tool[];
+}
+
+export type LegacyToolsConfig = LegacyToolsConfigWithAllow | LegacyToolsConfigDenyOnly;
+
+export interface LegacyAgentConfig {
+  description: string;
+  model?: ModelAlias;
+  tools?: LegacyToolsConfig;
   skills?: string[];
   handoffs?: string[];
   max_turns?: number;
   mcp_servers?: McpServerConfig[];
   permission_mode?: PermissionMode;
   behavior?: string;
+  background?: boolean;
+}
+
+export type AgentDefinition = AgentConfig | LegacyAgentConfig;
+
+export function isCanonicalAgentConfig(agent: AgentDefinition): agent is AgentConfig {
+  return 'claude' in agent;
+}
+
+export function isLegacyToolsConfigWithAllow(
+  tools: LegacyToolsConfig,
+): tools is LegacyToolsConfigWithAllow {
+  return 'allow' in tools;
+}
+
+function dedupeTools(tools: Tool[] | undefined): CanonicalTool[] | undefined {
+  if (!tools?.length) return undefined;
+
+  const normalized: CanonicalTool[] = [];
+  for (const tool of tools) {
+    const canonical = tool === 'Task' ? 'Agent' : tool;
+    if (!normalized.includes(canonical)) {
+      normalized.push(canonical);
+    }
+  }
+
+  return normalized;
+}
+
+export function getClaudeConfig(agent: AgentDefinition): ClaudeAgentConfig {
+  if (isCanonicalAgentConfig(agent)) {
+    return agent.claude;
+  }
+
+  const allowTools =
+    agent.tools && isLegacyToolsConfigWithAllow(agent.tools)
+      ? dedupeTools(agent.tools.allow)
+      : undefined;
+  const deniedTools = agent.tools
+    ? dedupeTools(agent.tools.deny)
+    : undefined;
+
+  return {
+    description: agent.description,
+    model: agent.model,
+    tools: allowTools,
+    disallowed_tools: deniedTools,
+    skills: agent.skills ? [...agent.skills] : undefined,
+    max_turns: agent.max_turns,
+    mcp_servers: agent.mcp_servers ? agent.mcp_servers.map((server) => ({ ...server })) : undefined,
+    permission_mode: agent.permission_mode,
+    instructions: agent.behavior,
+    background: agent.background,
+  };
+}
+
+export function getForgeConfig(agent: AgentDefinition): ForgeAgentMetadata | undefined {
+  if (isCanonicalAgentConfig(agent)) {
+    return agent.forge
+      ? {
+          handoffs: agent.forge.handoffs ? [...agent.forge.handoffs] : undefined,
+          role: agent.forge.role,
+          template: agent.forge.template,
+        }
+      : undefined;
+  }
+
+  if (!agent.handoffs?.length) return undefined;
+  return { handoffs: [...agent.handoffs] };
+}
+
+export function normalizeLegacyAgentConfig(agent: AgentDefinition): AgentConfig {
+  const claude = getClaudeConfig(agent);
+  const forge = getForgeConfig(agent);
+
+  return {
+    claude: {
+      ...claude,
+      tools: claude.tools ? [...claude.tools] : undefined,
+      disallowed_tools: claude.disallowed_tools ? [...claude.disallowed_tools] : undefined,
+      skills: claude.skills ? [...claude.skills] : undefined,
+      mcp_servers: claude.mcp_servers ? claude.mcp_servers.map((server) => ({ ...server })) : undefined,
+    },
+    forge,
+  };
 }
 
 export interface PermissionsConfig {
@@ -117,15 +232,22 @@ export interface PresetMeta {
 export interface AgentForgeManifest {
   version: '1';
   project: ProjectConfig;
-  agents: Record<string, AgentConfig>;
+  agents: Record<string, AgentDefinition>;
   policies?: PoliciesConfig;
   settings?: GenerationSettings;
   preset_meta?: PresetMeta;
 }
 
-// Model alias → Claude Code model ID mapping
-export const MODEL_ID_MAP: Record<Exclude<ModelAlias, 'inherit'>, string> = {
-  opus:   'claude-opus-4-6',
-  sonnet: 'claude-sonnet-4-6',
-  haiku:  'claude-haiku-4-5-20251001',
-};
+export interface NormalizedAgentForgeManifest
+  extends Omit<AgentForgeManifest, 'agents'> {
+  agents: Record<string, AgentConfig>;
+}
+
+export function normalizeManifest(manifest: AgentForgeManifest): NormalizedAgentForgeManifest {
+  return {
+    ...manifest,
+    agents: Object.fromEntries(
+      Object.entries(manifest.agents).map(([agentId, agent]) => [agentId, normalizeLegacyAgentConfig(agent)]),
+    ),
+  };
+}

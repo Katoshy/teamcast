@@ -1,4 +1,5 @@
 import type { AgentForgeManifest } from '../types/manifest.js';
+import { normalizeManifest } from '../types/manifest.js';
 import type { ValidationResult, Checker } from './types.js';
 import { checkHandoffGraph } from './checks/handoff-graph.js';
 import { checkToolConflicts } from './checks/tool-conflicts.js';
@@ -13,9 +14,10 @@ const CHECKERS: Checker[] = [
 ];
 
 export function runValidation(manifest: AgentForgeManifest): ValidationResult[] {
+  const normalized = normalizeManifest(manifest);
   const results: ValidationResult[] = [];
   for (const checker of CHECKERS) {
-    results.push(...checker(manifest));
+    results.push(...checker(normalized));
   }
   return results;
 }

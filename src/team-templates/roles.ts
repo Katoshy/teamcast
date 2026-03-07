@@ -1,4 +1,4 @@
-import type { AgentConfig, ModelAlias, Tool } from '../types/manifest.js';
+import type { AgentConfig, CanonicalTool, ModelAlias } from '../types/manifest.js';
 
 export type TeamRoleName =
   | 'orchestrator'
@@ -14,8 +14,8 @@ export interface RoleTemplate {
   label: string;
   description: string;
   model: Exclude<ModelAlias, 'inherit'>;
-  allow: Tool[];
-  deny: Tool[];
+  allow: CanonicalTool[];
+  deny: CanonicalTool[];
   behavior: string;
 }
 
@@ -25,7 +25,7 @@ const ROLE_TEMPLATES: Record<TeamRoleName, RoleTemplate> = {
     label: 'Orchestrator',
     description: 'Coordinates the team and delegates tasks',
     model: 'opus',
-    allow: ['Read', 'Grep', 'Glob', 'Task'],
+    allow: ['Read', 'Grep', 'Glob', 'Agent'],
     deny: ['Edit', 'Write', 'Bash'],
     behavior: 'You are the coordinator. Analyze requests, break them into subtasks, and delegate to the appropriate team members.',
   },
@@ -95,15 +95,12 @@ const CUSTOM_TEAM_ROLE_ORDER: TeamRoleName[] = [
   'security-auditor',
 ];
 
-function cloneTools(allow: Tool[], deny: Tool[]) {
-  return {
-    allow: [...allow],
-    deny: deny.length > 0 ? [...deny] : undefined,
-  };
-}
-
 function cloneArray<T>(value: T[] | undefined): T[] | undefined {
   return value ? [...value] : undefined;
+}
+
+function hasOwn<T extends object, K extends PropertyKey>(value: T | undefined, key: K): value is T & Record<K, unknown> {
+  return !!value && Object.prototype.hasOwnProperty.call(value, key);
 }
 
 export function listRoleTemplates(): RoleTemplate[] {
@@ -124,18 +121,37 @@ export function createRoleAgent(
 ): AgentConfig {
   const template = getRoleTemplate(name);
   const base: AgentConfig = {
-    description: template.description,
-    model: template.model,
-    tools: cloneTools(template.allow, template.deny),
-    behavior: template.behavior,
+    claude: {
+      description: template.description,
+      model: template.model,
+      tools: [...template.allow],
+      disallowed_tools: cloneArray(template.deny),
+      instructions: template.behavior,
+    },
   };
 
   return {
     ...base,
     ...overrides,
-    tools: overrides.tools ?? base.tools,
-    skills: cloneArray(overrides.skills ?? base.skills),
-    handoffs: cloneArray(overrides.handoffs ?? base.handoffs),
-    mcp_servers: cloneArray(overrides.mcp_servers ?? base.mcp_servers),
+    claude: {
+      ...base.claude,
+      ...overrides.claude,
+      tools: cloneArray(hasOwn(overrides.claude, 'tools') ? overrides.claude.tools : base.claude.tools),
+      disallowed_tools: cloneArray(
+        hasOwn(overrides.claude, 'disallowed_tools')
+          ? overrides.claude.disallowed_tools
+          : base.claude.disallowed_tools,
+      ),
+      skills: cloneArray(hasOwn(overrides.claude, 'skills') ? overrides.claude.skills : base.claude.skills),
+      mcp_servers: cloneArray(
+        hasOwn(overrides.claude, 'mcp_servers') ? overrides.claude.mcp_servers : base.claude.mcp_servers,
+      ),
+    },
+    forge: overrides.forge
+      ? {
+          ...overrides.forge,
+          handoffs: cloneArray(hasOwn(overrides.forge, 'handoffs') ? overrides.forge.handoffs : base.forge?.handoffs),
+        }
+      : base.forge,
   };
 }

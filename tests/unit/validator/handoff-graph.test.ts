@@ -14,13 +14,19 @@ describe('checkHandoffGraph', () => {
       ...base,
       agents: {
         orchestrator: {
-          description: 'Coordinator',
-          tools: { allow: ['Task', 'Read'] },
-          handoffs: ['developer'],
+          claude: {
+            description: 'Coordinator',
+            tools: ['Agent', 'Read'],
+          },
+          forge: {
+            handoffs: ['developer'],
+          },
         },
         developer: {
-          description: 'Developer',
-          tools: { allow: ['Read', 'Write'] },
+          claude: {
+            description: 'Developer',
+            tools: ['Read', 'Write'],
+          },
         },
       },
     };
@@ -34,9 +40,13 @@ describe('checkHandoffGraph', () => {
       ...base,
       agents: {
         orchestrator: {
-          description: 'Coordinator',
-          tools: { allow: ['Task'] },
-          handoffs: ['ghost'],
+          claude: {
+            description: 'Coordinator',
+            tools: ['Agent'],
+          },
+          forge: {
+            handoffs: ['ghost'],
+          },
         },
       },
     };
@@ -46,19 +56,27 @@ describe('checkHandoffGraph', () => {
     expect(errors[0].message).toContain('"ghost"');
   });
 
-  it('errors on A→B→A cycle', () => {
+  it('errors on A->B->A cycle', () => {
     const manifest: AgentForgeManifest = {
       ...base,
       agents: {
         a: {
-          description: 'Agent A',
-          tools: { allow: ['Task'] },
-          handoffs: ['b'],
+          claude: {
+            description: 'Agent A',
+            tools: ['Agent'],
+          },
+          forge: {
+            handoffs: ['b'],
+          },
         },
         b: {
-          description: 'Agent B',
-          tools: { allow: ['Task'] },
-          handoffs: ['a'],
+          claude: {
+            description: 'Agent B',
+            tools: ['Agent'],
+          },
+          forge: {
+            handoffs: ['a'],
+          },
         },
       },
     };
@@ -68,23 +86,29 @@ describe('checkHandoffGraph', () => {
     expect(cycleErrors).toHaveLength(1);
   });
 
-  it('errors when agent has handoffs but Task not in allow', () => {
+  it('errors when agent has handoffs but Agent not in allow', () => {
     const manifest: AgentForgeManifest = {
       ...base,
       agents: {
         orchestrator: {
-          description: 'Coordinator',
-          tools: { allow: ['Read', 'Grep'] }, // no Task
-          handoffs: ['developer'],
+          claude: {
+            description: 'Coordinator',
+            tools: ['Read', 'Grep'],
+          },
+          forge: {
+            handoffs: ['developer'],
+          },
         },
         developer: {
-          description: 'Developer',
-          tools: { allow: ['Write'] },
+          claude: {
+            description: 'Developer',
+            tools: ['Write'],
+          },
         },
       },
     };
 
     const errors = checkHandoffGraph(manifest).filter((r) => r.severity === 'error');
-    expect(errors.some((e) => e.message.includes('"Task"'))).toBe(true);
+    expect(errors.some((e) => e.message.includes('"Agent"'))).toBe(true);
   });
 });

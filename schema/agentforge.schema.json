@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://agentforge.dev/schema/v1.json",
   "title": "AgentForge Manifest",
-  "description": "Schema for agentforge.yaml — the canonical manifest for Claude Code agent team configuration",
+  "description": "Schema for agentforge.yaml, the canonical manifest for Claude Code subagent configuration",
   "type": "object",
   "required": ["version", "project", "agents"],
   "additionalProperties": false,
@@ -38,7 +38,7 @@
       "description": "Agent definitions. Keys are agent IDs.",
       "patternProperties": {
         "^[a-z][a-z0-9-]*$": {
-          "$ref": "#/definitions/AgentConfig"
+          "$ref": "#/definitions/AgentDefinition"
         }
       },
       "additionalProperties": false
@@ -59,38 +59,49 @@
       "enum": ["opus", "sonnet", "haiku", "inherit"],
       "description": "Model alias. Maps to Claude Code model field."
     },
-    "Tool": {
+    "CanonicalTool": {
       "type": "string",
       "enum": [
         "Read", "Write", "Edit", "MultiEdit",
         "Grep", "Glob",
         "Bash",
         "WebFetch", "WebSearch",
-        "Task"
+        "Agent"
       ],
-      "description": "Claude Code built-in tool name"
+      "description": "Canonical Claude Code tool name"
+    },
+    "CompatTool": {
+      "type": "string",
+      "enum": [
+        "Read", "Write", "Edit", "MultiEdit",
+        "Grep", "Glob",
+        "Bash",
+        "WebFetch", "WebSearch",
+        "Agent", "Task"
+      ],
+      "description": "Claude Code tool name, including legacy Task alias"
     },
     "PermissionMode": {
       "type": "string",
-      "enum": ["default", "acceptEdits", "bypassPermissions", "plan"],
+      "enum": ["default", "acceptEdits", "bypassPermissions", "plan", "dontAsk"],
       "description": "Permission mode for the agent"
     },
-    "ToolsConfig": {
+    "LegacyToolsConfig": {
       "type": "object",
-      "description": "Tool access configuration for an agent",
+      "description": "Legacy AgentForge tool access configuration",
       "anyOf": [
         {
           "required": ["allow"],
           "properties": {
             "allow": {
               "type": "array",
-              "items": { "$ref": "#/definitions/Tool" },
+              "items": { "$ref": "#/definitions/CompatTool" },
               "minItems": 1,
               "description": "Tools explicitly allowed for this agent"
             },
             "deny": {
               "type": "array",
-              "items": { "$ref": "#/definitions/Tool" },
+              "items": { "$ref": "#/definitions/CompatTool" },
               "description": "Tools explicitly denied for this agent"
             }
           },
@@ -101,7 +112,7 @@
           "properties": {
             "deny": {
               "type": "array",
-              "items": { "$ref": "#/definitions/Tool" },
+              "items": { "$ref": "#/definitions/CompatTool" },
               "minItems": 1,
               "description": "Tools explicitly denied (rest inherited)"
             }
@@ -126,7 +137,7 @@
         }
       }
     },
-    "AgentConfig": {
+    "ClaudeAgentConfig": {
       "type": "object",
       "required": ["description"],
       "additionalProperties": false,
@@ -134,44 +145,131 @@
         "description": {
           "type": "string",
           "minLength": 1,
-          "description": "When Claude Code should delegate to this agent. Must be clear and specific."
+          "description": "When Claude Code should delegate to this subagent."
         },
         "model": {
-          "$ref": "#/definitions/ModelAlias",
-          "default": "sonnet"
+          "$ref": "#/definitions/ModelAlias"
         },
         "tools": {
-          "$ref": "#/definitions/ToolsConfig"
+          "type": "array",
+          "items": { "$ref": "#/definitions/CanonicalTool" },
+          "minItems": 1,
+          "description": "Tools available to the subagent"
+        },
+        "disallowed_tools": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CanonicalTool" },
+          "description": "Tools explicitly disallowed for the subagent"
         },
         "skills": {
           "type": "array",
           "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
           "description": "Skill names to auto-load"
         },
+        "max_turns": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum conversation turns for this subagent"
+        },
+        "mcp_servers": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/McpServerConfig" },
+          "description": "MCP servers available to this subagent"
+        },
+        "permission_mode": {
+          "$ref": "#/definitions/PermissionMode"
+        },
+        "instructions": {
+          "type": "string",
+          "description": "Freeform instructions for the subagent body"
+        },
+        "background": {
+          "type": "boolean",
+          "description": "Whether the subagent may run in background mode"
+        }
+      }
+    },
+    "ForgeAgentMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
         "handoffs": {
           "type": "array",
           "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
           "description": "Agent IDs this agent can delegate to"
         },
+        "role": {
+          "type": "string",
+          "description": "Optional AgentForge role label"
+        },
+        "template": {
+          "type": "string",
+          "description": "Optional AgentForge template metadata"
+        }
+      }
+    },
+    "CanonicalAgentConfig": {
+      "type": "object",
+      "required": ["claude"],
+      "additionalProperties": false,
+      "properties": {
+        "claude": {
+          "$ref": "#/definitions/ClaudeAgentConfig"
+        },
+        "forge": {
+          "$ref": "#/definitions/ForgeAgentMetadata"
+        }
+      }
+    },
+    "LegacyAgentConfig": {
+      "type": "object",
+      "required": ["description"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Legacy description field"
+        },
+        "model": {
+          "$ref": "#/definitions/ModelAlias"
+        },
+        "tools": {
+          "$ref": "#/definitions/LegacyToolsConfig"
+        },
+        "skills": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+        },
+        "handoffs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+        },
         "max_turns": {
           "type": "integer",
-          "minimum": 1,
-          "description": "Maximum conversation turns for this agent"
+          "minimum": 1
         },
         "mcp_servers": {
           "type": "array",
-          "items": { "$ref": "#/definitions/McpServerConfig" },
-          "description": "MCP servers available to this agent"
+          "items": { "$ref": "#/definitions/McpServerConfig" }
         },
         "permission_mode": {
-          "$ref": "#/definitions/PermissionMode",
-          "default": "default"
+          "$ref": "#/definitions/PermissionMode"
         },
         "behavior": {
           "type": "string",
-          "description": "System prompt / behavior instructions for the agent"
+          "description": "Legacy instructions field"
+        },
+        "background": {
+          "type": "boolean"
         }
       }
+    },
+    "AgentDefinition": {
+      "anyOf": [
+        { "$ref": "#/definitions/CanonicalAgentConfig" },
+        { "$ref": "#/definitions/LegacyAgentConfig" }
+      ]
     },
     "PermissionsConfig": {
       "type": "object",
@@ -231,7 +329,7 @@
             "allow_local_binding": {
               "type": "boolean",
               "default": false,
-              "description": "Allow binding to localhost ports (macOS only)"
+              "description": "Allow binding to localhost ports"
             }
           }
         }
@@ -244,7 +342,7 @@
       "properties": {
         "matcher": {
           "type": "string",
-          "description": "Tool name pattern to match (e.g. 'Bash', 'Write|Edit')"
+          "description": "Tool name pattern to match"
         },
         "command": {
           "type": "string",
@@ -253,7 +351,7 @@
         "async": {
           "type": "boolean",
           "default": false,
-          "description": "Run non-blocking (PostToolUse/Notification only)"
+          "description": "Run non-blocking"
         }
       }
     },
@@ -263,18 +361,15 @@
       "properties": {
         "pre_tool_use": {
           "type": "array",
-          "items": { "$ref": "#/definitions/HookEntry" },
-          "description": "Hooks that run before tool execution"
+          "items": { "$ref": "#/definitions/HookEntry" }
         },
         "post_tool_use": {
           "type": "array",
-          "items": { "$ref": "#/definitions/HookEntry" },
-          "description": "Hooks that run after tool execution"
+          "items": { "$ref": "#/definitions/HookEntry" }
         },
         "notification": {
           "type": "array",
-          "items": { "$ref": "#/definitions/HookEntry" },
-          "description": "Hooks for notifications"
+          "items": { "$ref": "#/definitions/HookEntry" }
         }
       }
     },

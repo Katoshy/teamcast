@@ -1,11 +1,12 @@
-import type { AgentForgeManifest } from '../../types/manifest.js';
-import { hasAllowList } from '../../types/manifest.js';
+import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../../types/manifest.js';
+import { normalizeManifest } from '../../types/manifest.js';
 import type { GeneratedFile } from '../types.js';
 
 // Generates AGENTS.md — universal AI agent documentation.
 // Read by Codex, GitHub Copilot, Cursor, and other AI coding tools.
 // Content is tool-agnostic: project structure, conventions, how to contribute.
-export function renderAgentsMd(manifest: AgentForgeManifest): GeneratedFile {
+export function renderAgentsMd(inputManifest: AgentForgeManifest | NormalizedAgentForgeManifest): GeneratedFile {
+  const manifest = normalizeManifest(inputManifest);
   const lines: string[] = [];
   const { project, agents, policies } = manifest;
 
@@ -29,30 +30,26 @@ export function renderAgentsMd(manifest: AgentForgeManifest): GeneratedFile {
   lines.push('');
 
   for (const [agentId, agent] of Object.entries(agents)) {
-    const model = agent.model ?? manifest.settings?.default_model ?? 'sonnet';
+    const model = agent.claude.model ?? manifest.settings?.default_model ?? 'sonnet';
     lines.push(`### ${agentId}`);
     lines.push('');
-    lines.push(`**Role:** ${agent.description}`);
+    lines.push(`**Role:** ${agent.claude.description}`);
     lines.push(`**Model:** ${model}`);
     lines.push('');
 
-    if (agent.tools) {
-      if (hasAllowList(agent.tools)) {
-        lines.push(`**Allowed tools:** ${agent.tools.allow.join(', ')}`);
-        if (agent.tools.deny?.length) {
-          lines.push(`**Restricted tools:** ${agent.tools.deny.join(', ')}`);
-        }
-      } else {
-        lines.push(`**Restricted tools:** ${agent.tools.deny.join(', ')}`);
-      }
+    if (agent.claude.tools?.length) {
+      lines.push(`**Allowed tools:** ${agent.claude.tools.join(', ')}`);
+    }
+    if (agent.claude.disallowed_tools?.length) {
+      lines.push(`**Restricted tools:** ${agent.claude.disallowed_tools.join(', ')}`);
     }
 
-    if (agent.handoffs?.length) {
-      lines.push(`**Can delegate to:** ${agent.handoffs.join(', ')}`);
+    if (agent.forge?.handoffs?.length) {
+      lines.push(`**Can delegate to:** ${agent.forge.handoffs.join(', ')}`);
     }
 
-    if (agent.skills?.length) {
-      lines.push(`**Skills:** ${agent.skills.join(', ')}`);
+    if (agent.claude.skills?.length) {
+      lines.push(`**Skills:** ${agent.claude.skills.join(', ')}`);
     }
 
     lines.push('');

@@ -1,13 +1,15 @@
-import type { AgentForgeManifest } from '../../types/manifest.js';
+import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../../types/manifest.js';
+import { normalizeManifest } from '../../types/manifest.js';
 import type { GeneratedFile } from '../types.js';
 
 // Generates a stub SKILL.md for each unique skill name across all agents.
-export function renderSkillMd(manifest: AgentForgeManifest): GeneratedFile[] {
+export function renderSkillMd(inputManifest: AgentForgeManifest | NormalizedAgentForgeManifest): GeneratedFile[] {
+  const manifest = normalizeManifest(inputManifest);
   // Collect all unique skill names
   const skillNames = new Set<string>();
   for (const agent of Object.values(manifest.agents)) {
-    if (agent.skills) {
-      for (const skill of agent.skills) {
+    if (agent.claude.skills) {
+      for (const skill of agent.claude.skills) {
         skillNames.add(skill);
       }
     }
