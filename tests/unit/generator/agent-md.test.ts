@@ -120,4 +120,23 @@ describe('renderAgentMd', () => {
     const resultBypass = renderAgentMd('b', agentBypass);
     expect(resultBypass).toContain('permissionMode: bypassPermissions');
   });
+
+  it('renders background field in frontmatter', () => {
+    const agent: AgentConfig = {
+      claude: {
+        description: 'Background worker.',
+        background: true,
+      },
+    };
+    const result = renderAgentMd('worker', agent);
+    expect(result).toContain('background: true');
+
+    const agentNoBackground: AgentConfig = {
+      claude: {
+        description: 'Foreground agent.',
+      },
+    };
+    const resultNo = renderAgentMd('fg', agentNoBackground);
+    expect(resultNo).not.toContain('background');
+  });
 });

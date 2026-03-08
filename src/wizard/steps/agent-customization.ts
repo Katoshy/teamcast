@@ -1,11 +1,11 @@
 import chalk from 'chalk';
-import type { AgentForgeManifest, ModelAlias } from '../../types/manifest.js';
+import type { ModelAlias, NormalizedAgentForgeManifest } from '../../types/manifest.js';
 import { promptConfirm, promptList } from '../../utils/prompts.js';
 
 export async function stepAgentCustomization(
-  manifest: AgentForgeManifest,
+  manifest: NormalizedAgentForgeManifest,
   options?: { nonInteractive?: boolean },
-): Promise<AgentForgeManifest> {
+): Promise<NormalizedAgentForgeManifest> {
   if (options?.nonInteractive) {
     return manifest;
   }

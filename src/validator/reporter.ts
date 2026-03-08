@@ -1,12 +1,14 @@
 import chalk from 'chalk';
 import type { ValidationResult } from './types.js';
 
-interface CategoryGroup {
-  name: string;
-  results: ValidationResult[];
-}
-
 export function printValidationReport(results: ValidationResult[]): void {
+  if (results.length === 0) {
+    console.log('');
+    console.log(chalk.green('  [ok] Validation passed'));
+    console.log('');
+    return;
+  }
+
   const errors = results.filter((r) => r.severity === 'error');
   const warnings = results.filter((r) => r.severity === 'warning');
 

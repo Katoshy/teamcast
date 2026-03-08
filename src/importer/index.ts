@@ -3,11 +3,11 @@ import { join, basename } from 'path';
 import { parse } from 'yaml';
 import type {
   AgentConfig,
-  AgentForgeManifest,
   CanonicalTool,
   HooksConfig,
   McpServerConfig,
   ModelAlias,
+  NormalizedAgentForgeManifest,
   PermissionMode,
   PoliciesConfig,
 } from '../types/manifest.js';
@@ -25,12 +25,12 @@ interface ImportWarning {
 }
 
 interface ImportResult {
-  manifest: AgentForgeManifest;
+  manifest: NormalizedAgentForgeManifest;
   warnings: ImportWarning[];
 }
 
 function parseFrontmatter(content: string): Record<string, unknown> {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return {};
 
   const parsed = parse(match[1]);
@@ -42,7 +42,7 @@ function parseFrontmatter(content: string): Record<string, unknown> {
 }
 
 function extractBody(content: string): string | undefined {
-  const bodyMatch = content.match(/^---\n[\s\S]*?\n---\n\n?([\s\S]*)/);
+  const bodyMatch = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n\r?\n?([\s\S]*)/);
   if (!bodyMatch) return undefined;
 
   const body = bodyMatch[1].trim();
@@ -98,6 +98,10 @@ function resolveModelAlias(modelValue: unknown): ModelAlias | undefined {
   return LEGACY_MODEL_ID_MAP[modelValue];
 }
 
+function isCanonicalTool(value: string): value is CanonicalTool {
+  return CLAUDE_CODE_TOOLS.includes(value as CanonicalTool);
+}
+
 function parseToolList(value: unknown): CanonicalTool[] | undefined {
   const rawTools = Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
@@ -108,12 +112,10 @@ function parseToolList(value: unknown): CanonicalTool[] | undefined {
   if (rawTools.length === 0) return undefined;
 
   const tools: CanonicalTool[] = [];
-  for (const tool of rawTools) {
-    if (!COMPAT_CLAUDE_CODE_TOOLS.includes(tool as CanonicalTool | 'Task')) continue;
-    const canonical = tool === 'Task' ? 'Agent' : tool;
-    if (!CLAUDE_CODE_TOOLS.includes(canonical as CanonicalTool)) continue;
-    if (!tools.includes(canonical as CanonicalTool)) {
-      tools.push(canonical as CanonicalTool);
+  for (const raw of rawTools) {
+    const canonical = raw === 'Task' ? 'Agent' : raw;
+    if (isCanonicalTool(canonical) && !tools.includes(canonical)) {
+      tools.push(canonical);
     }
   }
 
@@ -214,7 +216,9 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
 
   const policies: PoliciesConfig = {};
 
-  const perms = settings.permissions as Record<string, unknown> | undefined;
+  const perms = typeof settings.permissions === 'object' && settings.permissions !== null
+    ? settings.permissions as Record<string, unknown>
+    : undefined;
   if (perms) {
     policies.permissions = {};
     if (Array.isArray(perms.allow)) policies.permissions.allow = perms.allow;
@@ -225,7 +229,9 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
     }
   }
 
-  const sandbox = settings.sandbox as Record<string, unknown> | undefined;
+  const sandbox = typeof settings.sandbox === 'object' && settings.sandbox !== null
+    ? settings.sandbox as Record<string, unknown>
+    : undefined;
   if (sandbox) {
     policies.sandbox = {};
     if (typeof sandbox.enabled === 'boolean') policies.sandbox.enabled = sandbox.enabled;
@@ -235,7 +241,9 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
     if (Array.isArray(sandbox.excludedCommands)) {
       policies.sandbox.excluded_commands = sandbox.excludedCommands;
     }
-    const network = sandbox.network as Record<string, unknown> | undefined;
+    const network = typeof sandbox.network === 'object' && sandbox.network !== null
+      ? sandbox.network as Record<string, unknown>
+      : undefined;
     if (network) {
       policies.sandbox.network = {};
       if (Array.isArray(network.allowUnixSockets)) {
@@ -247,7 +255,9 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
     }
   }
 
-  const hooks = settings.hooks as Record<string, unknown> | undefined;
+  const hooks = typeof settings.hooks === 'object' && settings.hooks !== null
+    ? settings.hooks as Record<string, unknown>
+    : undefined;
   if (hooks) {
     const hooksConfig: HooksConfig = {};
 
@@ -310,7 +320,7 @@ export function importFromClaudeDir(cwd: string, projectName: string): ImportRes
     }
   }
 
-  const manifest: AgentForgeManifest = {
+  const manifest: NormalizedAgentForgeManifest = {
     version: '1',
     project: { name: projectName },
     agents,

@@ -1,4 +1,4 @@
-import type { AgentForgeManifest } from '../types/manifest.js';
+import type { NormalizedAgentForgeManifest } from '../types/manifest.js';
 
 export type Severity = 'error' | 'warning' | 'info';
 
@@ -9,4 +9,4 @@ export interface ValidationResult {
   agent?: string;
 }
 
-export type Checker = (manifest: AgentForgeManifest) => ValidationResult[];
+export type Checker = (manifest: NormalizedAgentForgeManifest) => ValidationResult[];

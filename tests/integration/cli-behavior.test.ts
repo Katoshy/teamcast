@@ -116,6 +116,22 @@ describe('CLI behavior', () => {
     }
   });
 
+  it('validate prints a success message when no issues are found', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'agentforge-validate-ok-'));
+
+    try {
+      writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'validate-app' }, null, 2));
+      expect(runCli(['init', '--preset', 'feature-team'], cwd).status).toBe(0);
+
+      const result = runCli(['validate'], cwd);
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('Validation passed');
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('supports non-interactive add, edit, and remove agent flows', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'agentforge-manage-'));
 

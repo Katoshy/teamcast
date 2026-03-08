@@ -1,5 +1,4 @@
-import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../../types/manifest.js';
-import { normalizeManifest } from '../../types/manifest.js';
+import type { NormalizedAgentForgeManifest } from '../../types/manifest.js';
 import type { Checker, ValidationResult } from '../types.js';
 
 function detectCycles(graph: Map<string, string[]>): string[][] {
@@ -33,9 +32,8 @@ function detectCycles(graph: Map<string, string[]>): string[][] {
 }
 
 export const checkHandoffGraph: Checker = (
-  inputManifest: AgentForgeManifest | NormalizedAgentForgeManifest,
+  manifest: NormalizedAgentForgeManifest,
 ): ValidationResult[] => {
-  const manifest = normalizeManifest(inputManifest);
   const results: ValidationResult[] = [];
   const agentIds = new Set(Object.keys(manifest.agents));
 

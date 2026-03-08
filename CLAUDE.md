@@ -13,11 +13,15 @@ This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
 | **developer** | Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access. |
 | **reviewer** | Use after implementation is complete. Reviews TypeScript types, ESM imports, test coverage, pure function integrity, and CLI output style. Read-only, provides recommendations only. |
 
-### Preferred workflow
+### Delegation rules (MANDATORY)
 
-For complex tasks, start with **orchestrator**: `orchestrator -> planner -> developer -> reviewer`
+**ALWAYS delegate code tasks to subagents. NEVER write code, tests, or implementation directly in the main conversation.**
 
-For simple single-file changes, work directly without delegation.
+- Any task that involves writing/editing code, writing tests, or running tests → delegate to **orchestrator** (full pipeline) or **developer** (if plan is already clear).
+- Any task that requires codebase analysis before implementation → delegate to **planner** first.
+- After implementation is complete → delegate to **reviewer**.
+- The main conversation should only: coordinate agents, communicate with the user, and make architectural decisions.
+- The only exception: single-line trivial fixes (typos, renaming a variable in one place) — may be done directly.
 
 ## Security Boundaries
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { checkToolConflicts } from '../../../src/validator/checks/tool-conflicts.js';
 import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import { normalizeManifest } from '../../../src/types/manifest.js';
 
 const base: AgentForgeManifest = {
   version: '1',
@@ -19,7 +20,7 @@ describe('checkToolConflicts', () => {
         },
       },
     };
-    expect(checkToolConflicts(manifest)).toHaveLength(0);
+    expect(checkToolConflicts(normalizeManifest(manifest))).toHaveLength(0);
   });
 
   it('errors when a tool appears in both allow and deny', () => {
@@ -32,7 +33,7 @@ describe('checkToolConflicts', () => {
         },
       },
     };
-    const errors = checkToolConflicts(manifest).filter((r) => r.severity === 'error');
+    const errors = checkToolConflicts(normalizeManifest(manifest)).filter((r) => r.severity === 'error');
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('"Bash"');
     expect(errors[0].agent).toBe('broken');
@@ -48,7 +49,7 @@ describe('checkToolConflicts', () => {
         },
       },
     };
-    const errors = checkToolConflicts(manifest).filter((r) => r.severity === 'error');
+    const errors = checkToolConflicts(normalizeManifest(manifest)).filter((r) => r.severity === 'error');
     expect(errors).toHaveLength(2);
   });
 
@@ -62,7 +63,7 @@ describe('checkToolConflicts', () => {
         },
       },
     };
-    const warnings = checkToolConflicts(manifest).filter((r) => r.severity === 'warning');
+    const warnings = checkToolConflicts(normalizeManifest(manifest)).filter((r) => r.severity === 'warning');
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('read-only');
   });
@@ -77,7 +78,7 @@ describe('checkToolConflicts', () => {
         },
       },
     };
-    const warnings = checkToolConflicts(manifest).filter((r) => r.severity === 'warning');
+    const warnings = checkToolConflicts(normalizeManifest(manifest)).filter((r) => r.severity === 'warning');
     expect(warnings).toHaveLength(1);
   });
 
@@ -92,6 +93,6 @@ describe('checkToolConflicts', () => {
       },
     };
     // deny-only means no allow list → checker skips entirely
-    expect(checkToolConflicts(manifest)).toHaveLength(0);
+    expect(checkToolConflicts(normalizeManifest(manifest))).toHaveLength(0);
   });
 });

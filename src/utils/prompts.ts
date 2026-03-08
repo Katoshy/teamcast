@@ -74,6 +74,7 @@ export async function promptCheckbox<T extends string>(options: {
       choices: options.choices,
       default: options.default,
       validate: options.validate,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inquirer checkbox type mismatch: validate + generic choices
     } as any,
   ]);
 

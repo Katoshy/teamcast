@@ -114,7 +114,7 @@ function applyManifestChanges(
   printManifestValidation(validation);
 }
 
-function collectSkills(manifest: AgentForgeManifest): Set<string> {
+function collectSkills(manifest: NormalizedAgentForgeManifest): Set<string> {
   const skills = new Set<string>();
   for (const agent of Object.values(manifest.agents)) {
     for (const skill of agent.claude.skills ?? []) {
@@ -325,12 +325,10 @@ export function registerManageCommands(program: Command): void {
         process.exit(1);
       }
 
-      const confirmed = options.yes ?? false
-        ? true
-        : await promptConfirm({
-            message: `Remove agent "${name}"? This will also remove it from any handoffs.`,
-            default: false,
-          });
+      const confirmed = options.yes ?? await promptConfirm({
+        message: `Remove agent "${name}"? This will also remove it from any handoffs.`,
+        default: false,
+      });
 
       if (!confirmed) {
         console.log(chalk.dim('Aborted.'));

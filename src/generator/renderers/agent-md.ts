@@ -2,15 +2,10 @@ import { stringify } from 'yaml';
 import type {
   AgentDefinition,
   AgentConfig,
-  CanonicalTool,
   NormalizedAgentForgeManifest,
 } from '../../types/manifest.js';
 import { normalizeLegacyAgentConfig } from '../../types/manifest.js';
 import type { GeneratedFile } from '../types.js';
-
-function normalizeToolForOutput(tool: CanonicalTool): CanonicalTool {
-  return tool === 'Agent' ? 'Agent' : tool;
-}
 
 function buildFrontmatter(agentId: string, agent: AgentConfig): string {
   const frontmatter: Record<string, unknown> = {
@@ -22,10 +17,10 @@ function buildFrontmatter(agentId: string, agent: AgentConfig): string {
     frontmatter.model = agent.claude.model;
   }
   if (agent.claude.tools?.length) {
-    frontmatter.tools = agent.claude.tools.map(normalizeToolForOutput);
+    frontmatter.tools = [...agent.claude.tools];
   }
   if (agent.claude.disallowed_tools?.length) {
-    frontmatter.disallowedTools = agent.claude.disallowed_tools.map(normalizeToolForOutput);
+    frontmatter.disallowedTools = [...agent.claude.disallowed_tools];
   }
   if (agent.claude.permission_mode && agent.claude.permission_mode !== 'default') {
     frontmatter.permissionMode = agent.claude.permission_mode;
