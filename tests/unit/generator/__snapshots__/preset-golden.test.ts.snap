@@ -27,12 +27,12 @@ description: Implements code according to the plan. Writes tests. Does not acces
 model: sonnet
 tools:
   - Read
+  - Grep
+  - Glob
   - Write
   - Edit
   - MultiEdit
   - Bash
-  - Grep
-  - Glob
 disallowedTools:
   - WebFetch
   - WebSearch
@@ -57,8 +57,9 @@ tools:
   - Glob
   - Agent
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - Bash
   - WebFetch
   - WebSearch
@@ -88,8 +89,9 @@ tools:
   - WebFetch
   - WebSearch
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - Bash
 skills:
   - architecture-analysis
@@ -112,8 +114,9 @@ tools:
   - Glob
   - Bash
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - WebFetch
   - WebSearch
 skills:
@@ -176,9 +179,10 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** opus
 
 **Allowed tools:** Read, Grep, Glob, Agent
-**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
 **Can delegate to:** planner, developer, reviewer
 **Skills:** triage, routing
+**Capabilities:** read files, delegate tasks
 
 ### planner
 
@@ -186,17 +190,19 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
-**Restricted tools:** Edit, Write, Bash
+**Restricted tools:** Write, Edit, MultiEdit, Bash
 **Skills:** architecture-analysis, planning
+**Capabilities:** read files, access internet
 
 ### developer
 
 **Role:** Implements code according to the plan. Writes tests. Does not access the internet.
 **Model:** sonnet
 
-**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 **Restricted tools:** WebFetch, WebSearch
 **Skills:** test-first, clean-code
+**Capabilities:** read files, write files, run commands
 
 ### reviewer
 
@@ -204,8 +210,9 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, Bash
-**Restricted tools:** Edit, Write, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
 **Skills:** code-review, security-check
+**Capabilities:** read files, run commands
 
 ## Access Control
 
@@ -292,12 +299,12 @@ description: Implements code according to the plan. No internet access - all nee
 model: sonnet
 tools:
   - Read
+  - Grep
+  - Glob
   - Write
   - Edit
   - MultiEdit
   - Bash
-  - Grep
-  - Glob
 disallowedTools:
   - WebFetch
   - WebSearch
@@ -307,7 +314,9 @@ skills:
 ---
 
 You are the developer. Implement the plan provided to you.
+
 You do not have internet access - ask the orchestrator to delegate research if you need information.
+
 Always write tests alongside code.
 ",
     ".claude/agents/orchestrator.md": "---
@@ -320,8 +329,9 @@ tools:
   - Glob
   - Agent
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - Bash
   - WebFetch
   - WebSearch
@@ -329,7 +339,9 @@ maxTurns: 30
 ---
 
 You are the coordinator. For tasks requiring external research, delegate to the researcher first.
+
 Once research is done and a plan is ready, delegate implementation to the developer.
+
 Never write code yourself.
 ",
     ".claude/agents/planner.md": "---
@@ -341,8 +353,9 @@ tools:
   - Grep
   - Glob
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - Bash
   - WebFetch
   - WebSearch
@@ -352,6 +365,7 @@ skills:
 ---
 
 You are the planner. Use the research findings and codebase knowledge to produce a clear plan.
+
 Do not write code. Do not access the internet.
 ",
     ".claude/agents/researcher.md": "---
@@ -365,8 +379,9 @@ tools:
   - WebFetch
   - WebSearch
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - Bash
 skills:
   - research-report
@@ -376,6 +391,7 @@ skills:
 You are the researcher. Your job is to find accurate information from documentation and trusted sources.
 
 Always cite your sources. Summarize findings clearly.
+
 Do not modify any files.
 ",
     ".claude/settings.json": "{
@@ -423,8 +439,9 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** opus
 
 **Allowed tools:** Read, Grep, Glob, Agent
-**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
 **Can delegate to:** researcher, planner, developer
+**Capabilities:** read files, delegate tasks
 
 ### researcher
 
@@ -432,8 +449,9 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** haiku
 
 **Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
-**Restricted tools:** Edit, Write, Bash
+**Restricted tools:** Write, Edit, MultiEdit, Bash
 **Skills:** research-report, source-validation
+**Capabilities:** read files, access internet
 
 ### planner
 
@@ -441,17 +459,19 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob
-**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
 **Skills:** architecture-analysis, planning
+**Capabilities:** read files
 
 ### developer
 
 **Role:** Implements code according to the plan. No internet access - all needed information must come from the planner or researcher.
 **Model:** sonnet
 
-**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 **Restricted tools:** WebFetch, WebSearch
 **Skills:** test-first, clean-code
+**Capabilities:** read files, write files, run commands
 
 ## Access Control
 
@@ -542,12 +562,12 @@ description: Implements code securely. Follows OWASP guidelines. No internet acc
 model: sonnet
 tools:
   - Read
+  - Grep
+  - Glob
   - Write
   - Edit
   - MultiEdit
   - Bash
-  - Grep
-  - Glob
 disallowedTools:
   - WebFetch
   - WebSearch
@@ -576,8 +596,9 @@ tools:
   - Glob
   - Agent
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - Bash
   - WebFetch
   - WebSearch
@@ -599,8 +620,9 @@ tools:
   - Grep
   - Glob
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - Bash
   - WebFetch
   - WebSearch
@@ -625,8 +647,9 @@ tools:
   - Glob
   - Bash
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - WebFetch
   - WebSearch
 skills:
@@ -634,8 +657,8 @@ skills:
 ---
 
 You are the reviewer. Code has already passed security audit.
-Focus on code quality, readability, test coverage, and maintainability.
-Do not modify files yourself.
+
+Focus on code quality, readability, test coverage, and maintainability. Do not modify files yourself.
 ",
     ".claude/agents/security-auditor.md": "---
 name: security-auditor
@@ -647,8 +670,9 @@ tools:
   - Glob
   - Bash
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - WebFetch
   - WebSearch
 skills:
@@ -663,8 +687,7 @@ You are the security auditor. Review all code changes for:
 - Security misconfiguration
 - Known vulnerable dependencies
 
-If you find critical issues, block the PR and explain what must be fixed.
-Do not modify files yourself.
+If you find critical issues, block the PR and explain what must be fixed. Do not modify files yourself.
 ",
     ".claude/settings.json": "{
   "permissions": {
@@ -714,8 +737,9 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** opus
 
 **Allowed tools:** Read, Grep, Glob, Agent
-**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
 **Can delegate to:** planner, developer, security-auditor, reviewer
+**Capabilities:** read files, delegate tasks
 
 ### planner
 
@@ -723,17 +747,19 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob
-**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
 **Skills:** architecture-analysis, planning, threat-modeling
+**Capabilities:** read files
 
 ### developer
 
 **Role:** Implements code securely. Follows OWASP guidelines. No internet access.
 **Model:** sonnet
 
-**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 **Restricted tools:** WebFetch, WebSearch
 **Skills:** test-first, clean-code, secure-coding
+**Capabilities:** read files, write files, run commands
 
 ### security-auditor
 
@@ -741,8 +767,9 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, Bash
-**Restricted tools:** Edit, Write, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
 **Skills:** security-check, vulnerability-scan
+**Capabilities:** read files, run commands
 
 ### reviewer
 
@@ -750,8 +777,9 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, Bash
-**Restricted tools:** Edit, Write, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
 **Skills:** code-review
+**Capabilities:** read files, run commands
 
 ## Access Control
 
@@ -836,12 +864,12 @@ description: Full-stack developer agent. Reads, writes, edits files and runs com
 model: sonnet
 tools:
   - Read
+  - Grep
+  - Glob
   - Write
   - Edit
   - MultiEdit
   - Bash
-  - Grep
-  - Glob
   - WebFetch
   - WebSearch
   - Agent
@@ -851,7 +879,8 @@ skills:
   - planning
 ---
 
-You are a capable full-stack developer. Handle the task end-to-end:
+You are a capable full-stack developer. Handle the task end-to-end.
+
 1. Understand the request
 2. Read relevant code
 3. Make a plan
@@ -903,8 +932,9 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Role:** Full-stack developer agent. Reads, writes, edits files and runs commands. Use for any development task.
 **Model:** sonnet
 
-**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob, WebFetch, WebSearch, Agent
+**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash, WebFetch, WebSearch, Agent
 **Skills:** test-first, clean-code, planning
+**Capabilities:** read files, write files, run commands, access internet, delegate tasks
 
 ## Access Control
 

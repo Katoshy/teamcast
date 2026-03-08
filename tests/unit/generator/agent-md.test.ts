@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { renderAgentMd } from '../../../src/generator/renderers/agent-md.js';
-import type { AgentConfig } from '../../../src/types/manifest.js';
+import { renderAgentMd } from '../../../src/renderers/claude/agent-md.js';
+import { normalizeManifest } from '../../../src/manifest/normalize.js';
+import type { AgentConfig, AgentDefinition } from '../../../src/types/manifest.js';
+
+function toRenderAgentMd(agentId: string, agent: AgentConfig): string {
+  const team = normalizeManifest({
+    version: '1',
+    project: { name: 'test' },
+    agents: { [agentId]: agent as unknown as AgentDefinition },
+  });
+  return renderAgentMd(agentId, team.agents[agentId]);
+}
 
 describe('renderAgentMd', () => {
   it('renders a simple read-only agent', () => {
@@ -14,7 +24,7 @@ describe('renderAgentMd', () => {
       },
     };
 
-    const result = renderAgentMd('reviewer', agent);
+    const result = toRenderAgentMd('reviewer', agent);
 
     expect(result).toContain('name: reviewer');
     expect(result).toContain('description: Reviews code quality and style');
@@ -43,7 +53,7 @@ describe('renderAgentMd', () => {
       },
     };
 
-    const result = renderAgentMd('orchestrator', agent);
+    const result = toRenderAgentMd('orchestrator', agent);
 
     expect(result).toContain('name: orchestrator');
     expect(result).toContain('model: opus');
@@ -62,7 +72,7 @@ describe('renderAgentMd', () => {
       },
     };
 
-    const result = renderAgentMd('simple', agent);
+    const result = toRenderAgentMd('simple', agent);
     const frontmatter = result.split('---')[1];
 
     expect(frontmatter).not.toContain('tools:');
@@ -79,7 +89,7 @@ describe('renderAgentMd', () => {
       },
     };
 
-    const result = renderAgentMd('minimal', agent);
+    const result = toRenderAgentMd('minimal', agent);
     const frontmatter = result.split('---')[1];
     expect(frontmatter).not.toContain('model:');
   });
@@ -94,7 +104,7 @@ describe('renderAgentMd', () => {
       },
     };
 
-    const result = renderAgentMd('developer', agent);
+    const result = toRenderAgentMd('developer', agent);
     expect(result).toContain('skills:');
     expect(result).toContain('- test-first');
     expect(result).toContain('- clean-code');
@@ -108,7 +118,7 @@ describe('renderAgentMd', () => {
         permission_mode: 'default',
       },
     };
-    const resultDefault = renderAgentMd('a', agentDefault);
+    const resultDefault = toRenderAgentMd('a', agentDefault);
     expect(resultDefault).not.toContain('permissionMode');
 
     const agentBypass: AgentConfig = {
@@ -117,7 +127,7 @@ describe('renderAgentMd', () => {
         permission_mode: 'bypassPermissions',
       },
     };
-    const resultBypass = renderAgentMd('b', agentBypass);
+    const resultBypass = toRenderAgentMd('b', agentBypass);
     expect(resultBypass).toContain('permissionMode: bypassPermissions');
   });
 
@@ -128,7 +138,7 @@ describe('renderAgentMd', () => {
         background: true,
       },
     };
-    const result = renderAgentMd('worker', agent);
+    const result = toRenderAgentMd('worker', agent);
     expect(result).toContain('background: true');
 
     const agentNoBackground: AgentConfig = {
@@ -136,7 +146,7 @@ describe('renderAgentMd', () => {
         description: 'Foreground agent.',
       },
     };
-    const resultNo = renderAgentMd('fg', agentNoBackground);
+    const resultNo = toRenderAgentMd('fg', agentNoBackground);
     expect(resultNo).not.toContain('background');
   });
 });

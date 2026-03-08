@@ -1,4 +1,14 @@
-import type { AgentConfig, CanonicalTool, ModelAlias } from '../types/manifest.js';
+import type { InstructionBlock } from '../core/instructions.js';
+import type { CoreAgent, ModelAlias } from '../core/types.js';
+import type { CanonicalTool } from '../renderers/claude/tools.js';
+import type {
+  CapabilityTraitName,
+  InstructionFragmentName,
+} from '../components/agent-fragments.js';
+import {
+  mergeRuntimeWithTraits,
+  resolveInstructionFragments,
+} from '../components/agent-fragments.js';
 
 export type TeamRoleName =
   | 'orchestrator'
@@ -14,9 +24,16 @@ export interface RoleTemplate {
   label: string;
   description: string;
   model: Exclude<ModelAlias, 'inherit'>;
-  allow: CanonicalTool[];
-  deny: CanonicalTool[];
-  behavior: string;
+  capabilityTraits: CapabilityTraitName[];
+  allow?: CanonicalTool[];
+  deny?: CanonicalTool[];
+  instructionFragments: InstructionFragmentName[];
+  blocks?: InstructionBlock[];
+  skills?: string[];
+}
+
+function block(kind: InstructionBlock['kind'], content: string, title?: string): InstructionBlock {
+  return { kind, content, title };
 }
 
 const ROLE_TEMPLATES: Record<TeamRoleName, RoleTemplate> = {
@@ -25,63 +42,56 @@ const ROLE_TEMPLATES: Record<TeamRoleName, RoleTemplate> = {
     label: 'Orchestrator',
     description: 'Coordinates the team and delegates tasks',
     model: 'opus',
-    allow: ['Read', 'Grep', 'Glob', 'Agent'],
-    deny: ['Edit', 'Write', 'Bash'],
-    behavior: 'You are the coordinator. Analyze requests, break them into subtasks, and delegate to the appropriate team members.',
+    capabilityTraits: ['base-read', 'delegation', 'no-file-edits', 'no-commands'],
+    instructionFragments: ['coordination-core', 'delegate-first'],
   },
   planner: {
     name: 'planner',
     label: 'Planner',
     description: 'Analyzes codebase and produces implementation plans',
     model: 'sonnet',
-    allow: ['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch'],
-    deny: ['Edit', 'Write', 'Bash'],
-    behavior: 'You are the planner. Read the codebase, identify patterns, and produce step-by-step implementation plans. Never modify files.',
+    capabilityTraits: ['base-read', 'web-research', 'no-file-edits', 'no-commands'],
+    instructionFragments: ['planning-core', 'planning-read-only'],
   },
   researcher: {
     name: 'researcher',
     label: 'Researcher',
     description: 'Researches topics using web access',
     model: 'haiku',
-    allow: ['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch'],
-    deny: ['Edit', 'Write', 'Bash'],
-    behavior: 'You are the researcher. Search the web, read documentation, and provide structured research reports.',
+    capabilityTraits: ['base-read', 'web-research', 'no-file-edits', 'no-commands'],
+    instructionFragments: ['research-core', 'research-citation'],
   },
   developer: {
     name: 'developer',
     label: 'Developer',
     description: 'Implements features, writes code and tests',
     model: 'sonnet',
-    allow: ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Grep', 'Glob'],
-    deny: ['WebFetch', 'WebSearch'],
-    behavior: 'You are the developer. Implement features based on the plan, write tests, and verify the result.',
+    capabilityTraits: ['base-read', 'file-authoring', 'command-execution', 'no-web'],
+    instructionFragments: ['development-core', 'development-workflow'],
   },
   tester: {
     name: 'tester',
     label: 'Tester',
     description: 'Runs tests and verifies functionality',
     model: 'sonnet',
-    allow: ['Read', 'Bash', 'Grep', 'Glob'],
-    deny: ['Edit', 'Write'],
-    behavior: 'You are the tester. Run tests, analyze failures, and report results. Do not modify source code.',
+    capabilityTraits: ['base-read', 'command-execution', 'no-file-edits'],
+    instructionFragments: ['tester-core', 'tester-read-only'],
   },
   reviewer: {
     name: 'reviewer',
     label: 'Reviewer',
     description: 'Reviews code for quality and security issues',
     model: 'sonnet',
-    allow: ['Read', 'Grep', 'Glob', 'Bash'],
-    deny: ['Edit', 'Write', 'WebFetch', 'WebSearch'],
-    behavior: 'You are the reviewer. Review code for correctness, style, security, and performance. Provide actionable feedback.',
+    capabilityTraits: ['base-read', 'command-execution', 'no-file-edits', 'no-web'],
+    instructionFragments: ['review-core', 'review-feedback'],
   },
   'security-auditor': {
     name: 'security-auditor',
     label: 'Security Auditor',
     description: 'Audits code for security vulnerabilities',
     model: 'sonnet',
-    allow: ['Read', 'Grep', 'Glob', 'Bash'],
-    deny: ['Edit', 'Write', 'WebFetch', 'WebSearch'],
-    behavior: 'You are the security auditor. Check for injection, auth flaws, data exposure, misconfigurations, and vulnerable dependencies.',
+    capabilityTraits: ['base-read', 'command-execution', 'no-file-edits', 'no-web'],
+    instructionFragments: ['security-audit-core', 'security-audit-severity'],
   },
 };
 
@@ -99,10 +109,6 @@ function cloneArray<T>(value: T[] | undefined): T[] | undefined {
   return value ? [...value] : undefined;
 }
 
-function hasOwn<T extends object, K extends PropertyKey>(value: T | undefined, key: K): value is T & Record<K, unknown> {
-  return !!value && Object.prototype.hasOwnProperty.call(value, key);
-}
-
 export function listRoleTemplates(): RoleTemplate[] {
   return CUSTOM_TEAM_ROLE_ORDER.map((name) => ROLE_TEMPLATES[name]);
 }
@@ -117,41 +123,37 @@ export function getRoleTemplate(name: TeamRoleName): RoleTemplate {
 
 export function createRoleAgent(
   name: TeamRoleName,
-  overrides: Partial<AgentConfig> = {},
-): AgentConfig {
+  overrides: Partial<CoreAgent> = {},
+): CoreAgent {
   const template = getRoleTemplate(name);
-  const base: AgentConfig = {
-    claude: {
-      description: template.description,
-      model: template.model,
-      tools: [...template.allow],
-      disallowed_tools: cloneArray(template.deny),
-      instructions: template.behavior,
-    },
-  };
+  const runtime = mergeRuntimeWithTraits({
+    model: template.model,
+    tools: cloneArray(template.allow),
+    disallowedTools: cloneArray(template.deny),
+    skills: cloneArray(template.skills),
+  }, template.capabilityTraits);
+  const overrideRuntime = overrides.runtime ?? {};
 
   return {
-    ...base,
-    ...overrides,
-    claude: {
-      ...base.claude,
-      ...overrides.claude,
-      tools: cloneArray(hasOwn(overrides.claude, 'tools') ? overrides.claude.tools : base.claude.tools),
-      disallowed_tools: cloneArray(
-        hasOwn(overrides.claude, 'disallowed_tools')
-          ? overrides.claude.disallowed_tools
-          : base.claude.disallowed_tools,
-      ),
-      skills: cloneArray(hasOwn(overrides.claude, 'skills') ? overrides.claude.skills : base.claude.skills),
-      mcp_servers: cloneArray(
-        hasOwn(overrides.claude, 'mcp_servers') ? overrides.claude.mcp_servers : base.claude.mcp_servers,
-      ),
+    id: name,
+    description: template.description,
+    runtime: {
+      ...runtime,
+      ...overrideRuntime,
+      tools: cloneArray(overrideRuntime.tools ?? runtime.tools),
+      disallowedTools: cloneArray(overrideRuntime.disallowedTools ?? runtime.disallowedTools),
+      skills: cloneArray(overrideRuntime.skills ?? runtime.skills),
+      mcpServers: overrideRuntime.mcpServers?.map((server) => ({ ...server })),
     },
-    forge: overrides.forge
+    instructions: overrides.instructions
+      ? overrides.instructions.map((entry) => ({ ...entry }))
+      : resolveInstructionFragments(template.instructionFragments, template.blocks),
+    metadata: overrides.metadata
       ? {
-          ...overrides.forge,
-          handoffs: cloneArray(hasOwn(overrides.forge, 'handoffs') ? overrides.forge.handoffs : base.forge?.handoffs),
+          handoffs: cloneArray(overrides.metadata.handoffs),
+          role: overrides.metadata.role,
+          template: overrides.metadata.template,
         }
-      : base.forge,
+      : undefined,
   };
 }

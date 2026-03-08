@@ -2,16 +2,17 @@ import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join, basename } from 'path';
 import { parse } from 'yaml';
 import type {
-  AgentConfig,
-  CanonicalTool,
-  HooksConfig,
+  CoreAgent,
+  CoreTeam,
+  HookEntry,
   McpServerConfig,
   ModelAlias,
-  NormalizedAgentForgeManifest,
   PermissionMode,
-  PoliciesConfig,
-} from '../types/manifest.js';
-import { CLAUDE_CODE_TOOLS, COMPAT_CLAUDE_CODE_TOOLS } from '../types/manifest.js';
+  TeamPolicies,
+} from '../core/types.js';
+import { CLAUDE_CODE_TOOLS } from '../renderers/claude/tools.js';
+import type { CanonicalTool } from '../renderers/claude/tools.js';
+import { normalizePermissionTokens } from '../core/permissions.js';
 
 const LEGACY_MODEL_ID_MAP: Record<string, Exclude<ModelAlias, 'inherit'>> = {
   'claude-opus-4-6': 'opus',
@@ -25,7 +26,7 @@ interface ImportWarning {
 }
 
 interface ImportResult {
-  manifest: NormalizedAgentForgeManifest;
+  team: CoreTeam;
   warnings: ImportWarning[];
 }
 
@@ -54,23 +55,18 @@ function stripLegacyGeneratedSections(body: string | undefined): string | undefi
 
   let nextBody = body;
   const generatedSections = ['## Skills', '## Delegation', '## Constraints'];
-  let changed = false;
 
   for (const section of generatedSections) {
     const sectionIndex = nextBody.indexOf(section);
     if (sectionIndex !== -1) {
-      changed = true;
       const nextSection = nextBody.indexOf('\n## ', sectionIndex + section.length);
-      if (nextSection !== -1) {
-        nextBody = nextBody.slice(0, sectionIndex) + nextBody.slice(nextSection);
-      } else {
-        nextBody = nextBody.slice(0, sectionIndex);
-      }
+      nextBody = nextSection !== -1
+        ? nextBody.slice(0, sectionIndex) + nextBody.slice(nextSection)
+        : nextBody.slice(0, sectionIndex);
     }
   }
 
-  nextBody = nextBody.trim();
-  return changed ? nextBody || undefined : body;
+  return nextBody.trim() || undefined;
 }
 
 function inferLegacyHandoffs(body: string | undefined): string[] | undefined {
@@ -148,7 +144,7 @@ function parseMcpServers(value: unknown): McpServerConfig[] | undefined {
   return servers.length > 0 ? servers : undefined;
 }
 
-function parseAgentFile(filePath: string): { name: string; config: AgentConfig; warnings: ImportWarning[] } {
+function parseAgentFile(filePath: string): { name: string; agent: CoreAgent; warnings: ImportWarning[] } {
   const warnings: ImportWarning[] = [];
   const content = readFileSync(filePath, 'utf-8');
   const fields = parseFrontmatter(content);
@@ -180,29 +176,32 @@ function parseAgentFile(filePath: string): { name: string; config: AgentConfig; 
 
   return {
     name,
-    config: {
-      claude: {
-        description:
-          typeof fields.description === 'string' && fields.description.length > 0
-            ? fields.description
-            : `Imported from ${fileName}.md`,
+    agent: {
+      id: name,
+      description:
+        typeof fields.description === 'string' && fields.description.length > 0
+          ? fields.description
+          : `Imported from ${fileName}.md`,
+      runtime: {
         model,
         tools,
-        disallowed_tools: disallowedTools,
-        permission_mode: permissionMode,
-        max_turns: maxTurns,
+        disallowedTools,
+        permissionMode,
+        maxTurns,
         skills,
-        mcp_servers: mcpServers,
-        instructions,
+        mcpServers,
         background,
       },
-      forge: legacyHandoffs?.length ? { handoffs: legacyHandoffs } : undefined,
+      instructions: instructions
+        ? [{ kind: 'behavior', content: instructions }]
+        : [],
+      metadata: legacyHandoffs?.length ? { handoffs: legacyHandoffs } : undefined,
     },
     warnings,
   };
 }
 
-function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnings: ImportWarning[] } {
+function parseSettingsJson(filePath: string): { policies: TeamPolicies; warnings: ImportWarning[] } {
   const warnings: ImportWarning[] = [];
   const content = readFileSync(filePath, 'utf-8');
   let settings: Record<string, unknown>;
@@ -214,18 +213,37 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
     return { policies: {}, warnings };
   }
 
-  const policies: PoliciesConfig = {};
+  const policies: TeamPolicies = {};
 
   const perms = typeof settings.permissions === 'object' && settings.permissions !== null
     ? settings.permissions as Record<string, unknown>
     : undefined;
   if (perms) {
+    const allow = normalizePermissionTokens(
+      Array.isArray(perms.allow) ? perms.allow as string[] : undefined,
+      'allow',
+    );
+    const ask = normalizePermissionTokens(
+      Array.isArray(perms.ask) ? perms.ask as string[] : undefined,
+      'ask',
+    );
+    const deny = normalizePermissionTokens(
+      Array.isArray(perms.deny) ? perms.deny as string[] : undefined,
+      'deny',
+    );
+
     policies.permissions = {};
-    if (Array.isArray(perms.allow)) policies.permissions.allow = perms.allow;
-    if (Array.isArray(perms.ask)) policies.permissions.ask = perms.ask;
-    if (Array.isArray(perms.deny)) policies.permissions.deny = perms.deny;
+    if (allow.abstract) policies.permissions.allow = allow.abstract;
+    if (ask.abstract) policies.permissions.ask = ask.abstract;
+    if (deny.abstract) policies.permissions.deny = deny.abstract;
+    if (allow.raw || ask.raw || deny.raw) {
+      policies.permissions.rawRules = {};
+      if (allow.raw) policies.permissions.rawRules.allow = allow.raw;
+      if (ask.raw) policies.permissions.rawRules.ask = ask.raw;
+      if (deny.raw) policies.permissions.rawRules.deny = deny.raw;
+    }
     if (perms.defaultMode && typeof perms.defaultMode === 'string') {
-      policies.permissions.default_mode = perms.defaultMode as 'default' | 'acceptEdits';
+      policies.permissions.defaultMode = perms.defaultMode as 'default' | 'acceptEdits';
     }
   }
 
@@ -236,10 +254,10 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
     policies.sandbox = {};
     if (typeof sandbox.enabled === 'boolean') policies.sandbox.enabled = sandbox.enabled;
     if (typeof sandbox.autoAllowBashIfSandboxed === 'boolean') {
-      policies.sandbox.auto_allow_bash = sandbox.autoAllowBashIfSandboxed;
+      policies.sandbox.autoAllowBash = sandbox.autoAllowBashIfSandboxed;
     }
     if (Array.isArray(sandbox.excludedCommands)) {
-      policies.sandbox.excluded_commands = sandbox.excludedCommands;
+      policies.sandbox.excludedCommands = sandbox.excludedCommands as string[];
     }
     const network = typeof sandbox.network === 'object' && sandbox.network !== null
       ? sandbox.network as Record<string, unknown>
@@ -247,10 +265,10 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
     if (network) {
       policies.sandbox.network = {};
       if (Array.isArray(network.allowUnixSockets)) {
-        policies.sandbox.network.allow_unix_sockets = network.allowUnixSockets;
+        policies.sandbox.network.allowUnixSockets = network.allowUnixSockets as string[];
       }
       if (typeof network.allowLocalBinding === 'boolean') {
-        policies.sandbox.network.allow_local_binding = network.allowLocalBinding;
+        policies.sandbox.network.allowLocalBinding = network.allowLocalBinding;
       }
     }
   }
@@ -259,8 +277,6 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
     ? settings.hooks as Record<string, unknown>
     : undefined;
   if (hooks) {
-    const hooksConfig: HooksConfig = {};
-
     const parseHookEntries = (entries: unknown[]) =>
       entries
         .filter((entry): entry is Record<string, unknown> => typeof entry === 'object' && entry !== null)
@@ -272,18 +288,15 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
         }))
         .filter((entry) => entry.matcher && entry.command);
 
+    policies.hooks = {};
     if (Array.isArray(hooks.PreToolUse)) {
-      hooksConfig.pre_tool_use = parseHookEntries(hooks.PreToolUse);
+      policies.hooks.preToolUse = parseHookEntries(hooks.PreToolUse);
     }
     if (Array.isArray(hooks.PostToolUse)) {
-      hooksConfig.post_tool_use = parseHookEntries(hooks.PostToolUse);
+      policies.hooks.postToolUse = parseHookEntries(hooks.PostToolUse);
     }
     if (Array.isArray(hooks.Notification)) {
-      hooksConfig.notification = parseHookEntries(hooks.Notification);
-    }
-
-    if (hooksConfig.pre_tool_use?.length || hooksConfig.post_tool_use?.length || hooksConfig.notification?.length) {
-      policies.hooks = hooksConfig;
+      policies.hooks.notification = parseHookEntries(hooks.Notification);
     }
   }
 
@@ -292,7 +305,7 @@ function parseSettingsJson(filePath: string): { policies: PoliciesConfig; warnin
 
 export function importFromClaudeDir(cwd: string, projectName: string): ImportResult {
   const warnings: ImportWarning[] = [];
-  const agents: Record<string, AgentConfig> = {};
+  const agents: Record<string, CoreAgent> = {};
 
   const agentsDir = join(cwd, '.claude', 'agents');
   if (existsSync(agentsDir)) {
@@ -300,7 +313,7 @@ export function importFromClaudeDir(cwd: string, projectName: string): ImportRes
     for (const file of files) {
       const filePath = join(agentsDir, file);
       const result = parseAgentFile(filePath);
-      agents[result.name] = result.config;
+      agents[result.name] = result.agent;
       warnings.push(...result.warnings);
     }
   }
@@ -309,26 +322,26 @@ export function importFromClaudeDir(cwd: string, projectName: string): ImportRes
     warnings.push({ file: agentsDir, message: 'No agent .md files found in .claude/agents/' });
   }
 
-  let policies: PoliciesConfig | undefined;
+  let policies: TeamPolicies | undefined;
   const settingsPath = join(cwd, '.claude', 'settings.json');
   if (existsSync(settingsPath)) {
     const result = parseSettingsJson(settingsPath);
     policies = result.policies;
     warnings.push(...result.warnings);
-    if (!policies.permissions && !policies.sandbox && !policies.hooks) {
-      policies = undefined;
-    }
   }
 
-  const manifest: NormalizedAgentForgeManifest = {
-    version: '1',
-    project: { name: projectName },
-    agents,
+  return {
+    team: {
+      version: '2',
+      project: { name: projectName },
+      agents,
+      policies,
+      settings: {
+        defaultModel: 'sonnet',
+        generateDocs: true,
+        generateLocalSettings: true,
+      },
+    },
+    warnings,
   };
-
-  if (policies) {
-    manifest.policies = policies;
-  }
-
-  return { manifest, warnings };
 }

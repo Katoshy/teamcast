@@ -1,8 +1,8 @@
 import chalk from 'chalk';
-import type { AgentForgeManifest, CanonicalTool, NormalizedAgentForgeManifest } from '../types/manifest.js';
-import { normalizeManifest } from '../types/manifest.js';
+import type { CoreTeam } from '../core/types.js';
+import { mapPoliciesToClaudePermissions } from '../renderers/claude/policy-mapper.js';
 
-function describeToolCapabilities(tools: CanonicalTool[] | undefined, disallowedTools: CanonicalTool[] | undefined): {
+function describeToolCapabilities(tools: string[] | undefined, disallowedTools: string[] | undefined): {
   can: string[];
   cannot: string[];
 } {
@@ -19,9 +19,7 @@ function describeToolCapabilities(tools: CanonicalTool[] | undefined, disallowed
     can.push('write files');
   }
   if (allowed.includes('Bash')) can.push('run commands');
-  if (allowed.includes('WebFetch') || allowed.includes('WebSearch')) {
-    can.push('access internet');
-  }
+  if (allowed.includes('WebFetch') || allowed.includes('WebSearch')) can.push('access internet');
   if (allowed.includes('Agent')) can.push('delegate tasks');
 
   if (denied.includes('Write') || denied.includes('Edit') || denied.includes('MultiEdit')) {
@@ -36,32 +34,30 @@ function describeToolCapabilities(tools: CanonicalTool[] | undefined, disallowed
   return { can, cannot };
 }
 
-export function buildExplanation(inputManifest: AgentForgeManifest | NormalizedAgentForgeManifest): string {
-  const manifest = normalizeManifest(inputManifest);
+export function buildExplanation(team: CoreTeam): string {
   const lines: string[] = [];
-  const { project, agents, policies } = manifest;
 
-  const preset = project.preset ? ` (preset: ${project.preset})` : '';
-  lines.push(chalk.bold(`Project: ${project.name}`) + chalk.dim(preset));
+  const preset = team.project.preset ? ` (preset: ${team.project.preset})` : '';
+  lines.push(chalk.bold(`Project: ${team.project.name}`) + chalk.dim(preset));
   lines.push('');
   lines.push(chalk.bold('Team structure:'));
 
-  for (const [agentId, agent] of Object.entries(agents)) {
-    const model = agent.claude.model ?? manifest.settings?.default_model ?? 'sonnet';
+  for (const [agentId, agent] of Object.entries(team.agents)) {
+    const model = agent.runtime.model ?? team.settings?.defaultModel ?? 'sonnet';
     lines.push(`  ${chalk.cyan(agentId)} ${chalk.dim(`(${model})`)}`);
 
-    const { can, cannot } = describeToolCapabilities(agent.claude.tools, agent.claude.disallowed_tools);
+    const { can, cannot } = describeToolCapabilities(agent.runtime.tools, agent.runtime.disallowedTools);
     if (can.length) {
       lines.push(`    ${chalk.dim('|--')} can: ${can.join(', ')}`);
     }
     if (cannot.length) {
       lines.push(`    ${chalk.dim('|--')} cannot: ${cannot.join(', ')}`);
     }
-    if (agent.claude.skills?.length) {
-      lines.push(`    ${chalk.dim('|--')} skills: ${agent.claude.skills.join(', ')}`);
+    if (agent.runtime.skills?.length) {
+      lines.push(`    ${chalk.dim('|--')} skills: ${agent.runtime.skills.join(', ')}`);
     }
-    if (agent.forge?.handoffs?.length) {
-      lines.push(`    ${chalk.dim('`--')} delegates to: ${agent.forge.handoffs.join(', ')}`);
+    if (agent.metadata?.handoffs?.length) {
+      lines.push(`    ${chalk.dim('`--')} delegates to: ${agent.metadata.handoffs.join(', ')}`);
     } else if (lines[lines.length - 1]?.includes('|--')) {
       lines[lines.length - 1] = lines[lines.length - 1].replace('|--', '`--');
     }
@@ -69,24 +65,24 @@ export function buildExplanation(inputManifest: AgentForgeManifest | NormalizedA
     lines.push('');
   }
 
-  if (policies) {
+  if (team.policies) {
     lines.push(chalk.bold('Security boundaries:'));
 
-    const sandbox = policies.sandbox;
+    const sandbox = team.policies.sandbox;
     lines.push(`  ${chalk.dim('*')} Sandbox: ${sandbox?.enabled ? chalk.green('enabled') : chalk.yellow('disabled')}`);
 
-    if (policies.network?.allowed_domains?.length) {
-      lines.push(`  ${chalk.dim('*')} Network: restricted to ${policies.network.allowed_domains.join(', ')}`);
+    if (team.policies.network?.allowedDomains?.length) {
+      lines.push(`  ${chalk.dim('*')} Network: restricted to ${team.policies.network.allowedDomains.join(', ')}`);
     }
 
-    const denied = policies.permissions?.deny ?? [];
+    const denied = mapPoliciesToClaudePermissions(team.policies).deny;
     if (denied.length) {
       lines.push(`  ${chalk.dim('*')} Blocked: ${denied.join(', ')}`);
     }
 
     const hookCount =
-      (policies.hooks?.pre_tool_use?.length ?? 0) +
-      (policies.hooks?.post_tool_use?.length ?? 0);
+      (team.policies.hooks?.preToolUse?.length ?? 0) +
+      (team.policies.hooks?.postToolUse?.length ?? 0);
     if (hookCount > 0) {
       lines.push(`  ${chalk.dim('*')} Hooks: ${hookCount} configured`);
     }

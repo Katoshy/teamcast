@@ -1,19 +1,20 @@
 import chalk from 'chalk';
-import type { AgentForgeManifest } from '../../types/manifest.js';
-import { listPresets, loadPreset, applyPreset } from '../../presets/index.js';
+import type { CoreTeam } from '../../core/types.js';
+import { listPresets } from '../../presets/index.js';
 import { stepCustomTeam } from './custom-team.js';
 import { promptList } from '../../utils/prompts.js';
-import { createRoleAgent } from '../../team-templates/roles.js';
-import { createPolicies } from '../../team-templates/policies.js';
+import { buildSingleAgentTeam, buildTeamFromPreset } from '../../application/team.js';
 
 type SelectionMode = 'preset' | 'custom' | 'single';
 
 export async function stepTeamSelection(
-  partial: Partial<AgentForgeManifest>,
+  partial: Pick<CoreTeam, 'project'>,
   options?: { nonInteractive?: boolean },
-): Promise<Partial<AgentForgeManifest>> {
+): Promise<CoreTeam> {
+  const projectName = partial.project.name;
+
   if (options?.nonInteractive) {
-    return stepSelectPreset(partial, 'feature-team');
+    return buildTeamFromPreset('feature-team', projectName);
   }
 
   const mode = await promptList<SelectionMode>({
@@ -35,52 +36,20 @@ export async function stepTeamSelection(
   });
 
   if (mode === 'preset') {
-    return stepSelectPreset(partial);
+    const presets = listPresets();
+    const presetName = await promptList<string>({
+      message: 'Select a preset:',
+      choices: presets.map((preset) => ({
+        name: `${chalk.bold(preset.name)}  ${chalk.dim(preset.description)}`,
+        value: preset.name,
+      })),
+    });
+    return buildTeamFromPreset(presetName, projectName);
   }
 
   if (mode === 'custom') {
-    return stepCustomTeam(partial);
+    return stepCustomTeam(projectName);
   }
 
-  return stepSingleAgent(partial);
-}
-
-async function stepSelectPreset(
-  partial: Partial<AgentForgeManifest>,
-  presetNameOverride?: string,
-): Promise<Partial<AgentForgeManifest>> {
-  const presets = listPresets();
-  const presetName = presetNameOverride ?? await promptList<string>({
-    message: 'Select a preset:',
-    choices: presets.map((preset) => ({
-      name: `${chalk.bold(preset.name)}  ${chalk.dim(preset.description)}`,
-      value: preset.name,
-    })),
-  });
-
-  const preset = loadPreset(presetName);
-  const projectName = partial.project?.name ?? 'my-project';
-  return applyPreset(preset, projectName);
-}
-
-async function stepSingleAgent(
-  partial: Partial<AgentForgeManifest>,
-): Promise<Partial<AgentForgeManifest>> {
-  return {
-    ...partial,
-    version: '1',
-    project: partial.project ?? { name: 'my-project' },
-    agents: {
-      developer: createRoleAgent('developer', {
-        claude: {
-          description: 'Full-stack developer. Handles implementation, testing, and debugging.',
-          tools: ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Grep', 'Glob', 'Agent'],
-          skills: ['test-first', 'clean-code'],
-          instructions:
-            'You are a capable developer. Understand the task, read the relevant code, make a plan, implement with tests, and verify the result.',
-        },
-      }),
-    },
-    policies: createPolicies('single-agent'),
-  } as AgentForgeManifest;
+  return buildSingleAgentTeam(projectName);
 }

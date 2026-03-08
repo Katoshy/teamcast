@@ -10,9 +10,9 @@ describe('applyDefaults', () => {
       agents: { dev: { description: 'Dev' } },
     };
     const result = applyDefaults(input);
-    expect(result.settings!.default_model).toBe('sonnet');
-    expect(result.settings!.generate_docs).toBe(true);
-    expect(result.settings!.generate_local_settings).toBe(true);
+    expect(result.settings!.defaultModel).toBe('sonnet');
+    expect(result.settings!.generateDocs).toBe(true);
+    expect(result.settings!.generateLocalSettings).toBe(true);
   });
 
   it('preserves user-specified settings', () => {
@@ -23,10 +23,10 @@ describe('applyDefaults', () => {
       settings: { default_model: 'opus', generate_docs: false },
     };
     const result = applyDefaults(input);
-    expect(result.settings!.default_model).toBe('opus');
-    expect(result.settings!.generate_docs).toBe(false);
+    expect(result.settings!.defaultModel).toBe('opus');
+    expect(result.settings!.generateDocs).toBe(false);
     // generate_local_settings should still get default
-    expect(result.settings!.generate_local_settings).toBe(true);
+    expect(result.settings!.generateLocalSettings).toBe(true);
   });
 
   it('sets sandbox defaults when sandbox section exists', () => {
@@ -38,7 +38,7 @@ describe('applyDefaults', () => {
     };
     const result = applyDefaults(input);
     expect(result.policies!.sandbox!.enabled).toBe(true);
-    expect(result.policies!.sandbox!.auto_allow_bash).toBe(true);
+    expect(result.policies!.sandbox!.autoAllowBash).toBe(true);
   });
 
   it('does not add sandbox section when policies exist but sandbox is missing', () => {

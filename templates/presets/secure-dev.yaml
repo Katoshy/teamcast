@@ -1,4 +1,7 @@
-version: "1"
+version: "2"
+preset_meta:
+  tags: [security, team, audit]
+  min_version: "2"
 project:
   name: placeholder
   preset: secure-dev
@@ -6,101 +9,75 @@ project:
 
 agents:
   orchestrator:
-    description: Coordinates the team with security-first mindset. Ensures every change goes through security review.
-    model: opus
-    tools:
-      allow: [Read, Grep, Glob, Task]
-      deny: [Edit, Write, Bash, WebFetch, WebSearch]
-    handoffs: [planner, developer, security-auditor, reviewer]
-    max_turns: 30
-    behavior: |
-      You are the security-conscious coordinator. Every implementation must pass security review.
-
-      Workflow: planner → developer → security-auditor → reviewer
-
-      Never skip the security audit step. Never write code yourself.
+    claude:
+      description: Coordinates the team with security-first mindset. Ensures every change goes through security review.
+      model: opus
+      capability_traits: [base-read, delegation, no-file-edits, no-commands, no-web]
+      max_turns: 30
+      instruction_fragments:
+        - secure-orchestrator-core
+        - secure-orchestrator-workflow
+        - secure-orchestrator-gate
+    forge:
+      handoffs: [planner, developer, security-auditor, reviewer]
 
   planner:
-    description: Plans implementation with security considerations in mind. Identifies potential attack surfaces.
-    model: sonnet
-    tools:
-      allow: [Read, Grep, Glob]
-      deny: [Edit, Write, Bash, WebFetch, WebSearch]
-    skills: [architecture-analysis, planning, threat-modeling]
-    behavior: |
-      You are the planner. In addition to the implementation plan, always include:
-      - Security considerations for each step
-      - Potential attack surfaces introduced by the changes
-      - Recommendations for input validation and error handling
+    claude:
+      description: Plans implementation with security considerations in mind. Identifies potential attack surfaces.
+      model: sonnet
+      capability_traits: [base-read, no-file-edits, no-commands, no-web]
+      skills: [architecture-analysis, planning, threat-modeling]
+      instruction_fragments:
+        - secure-planning
 
   developer:
-    description: Implements code securely. Follows OWASP guidelines. No internet access.
-    model: sonnet
-    tools:
-      allow: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob]
-      deny: [WebFetch, WebSearch]
-    skills: [test-first, clean-code, secure-coding]
-    behavior: |
-      You are the developer. Write secure code:
-      - Validate all inputs at system boundaries
-      - Never trust user input
-      - Avoid SQL injection, XSS, command injection
-      - Use parameterized queries
-      - Never log sensitive data
-
-      Always write security-focused tests alongside regular tests.
+    claude:
+      description: Implements code securely. Follows OWASP guidelines. No internet access.
+      model: sonnet
+      capability_traits: [base-read, file-authoring, command-execution, no-web]
+      skills: [test-first, clean-code, secure-coding]
+      instruction_fragments:
+        - secure-development
+        - secure-development-tests
 
   security-auditor:
-    description: Performs security review of all code changes. Checks for vulnerabilities before code reaches reviewer.
-    model: sonnet
-    tools:
-      allow: [Read, Grep, Glob, Bash]
-      deny: [Edit, Write, WebFetch, WebSearch]
-    skills: [security-check, vulnerability-scan]
-    behavior: |
-      You are the security auditor. Review all code changes for:
-      - Injection vulnerabilities (SQL, command, LDAP, XPath)
-      - Authentication and authorization flaws
-      - Sensitive data exposure
-      - Security misconfiguration
-      - Known vulnerable dependencies
-
-      If you find critical issues, block the PR and explain what must be fixed.
-      Do not modify files yourself.
+    claude:
+      description: Performs security review of all code changes. Checks for vulnerabilities before code reaches reviewer.
+      model: sonnet
+      capability_traits: [base-read, command-execution, no-file-edits, no-web]
+      skills: [security-check, vulnerability-scan]
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            You are the security auditor. Review all code changes for:
+            - Injection vulnerabilities (SQL, command, LDAP, XPath)
+            - Authentication and authorization flaws
+            - Sensitive data exposure
+            - Security misconfiguration
+            - Known vulnerable dependencies
+      instruction_fragments:
+        - security-review-gate
 
   reviewer:
-    description: Reviews code quality and style after security clearance.
-    model: sonnet
-    tools:
-      allow: [Read, Grep, Glob, Bash]
-      deny: [Edit, Write, WebFetch, WebSearch]
-    skills: [code-review]
-    behavior: |
-      You are the reviewer. Code has already passed security audit.
-      Focus on code quality, readability, test coverage, and maintainability.
-      Do not modify files yourself.
+    claude:
+      description: Reviews code quality and style after security clearance.
+      model: sonnet
+      capability_traits: [base-read, command-execution, no-file-edits, no-web]
+      skills: [code-review]
+      instruction_fragments:
+        - post-audit-review-core
+        - post-audit-review
 
 policies:
-  permissions:
-    allow:
-      - "Bash(npm run *)"
-      - "Bash(npm test *)"
-      - "Bash(npm audit)"
-      - "Bash(git status)"
-      - "Bash(git diff *)"
-      - "Bash(git add *)"
-      - "Bash(git commit *)"
-    ask:
-      - "Bash(git push *)"
-    deny:
-      - "Bash(rm -rf *)"
-      - "Bash(git push --force *)"
-      - "Bash(curl *)"
-      - "Bash(wget *)"
-      - "Bash(eval *)"
-      - "Bash(exec *)"
-      - "Write(.env*)"
-      - "Edit(.env*)"
-  sandbox:
-    enabled: true
-    auto_allow_bash: true
+  fragments:
+    - allow-npm-run
+    - allow-npm-test
+    - allow-npm-audit
+    - allow-git-read
+    - allow-git-write
+    - ask-git-push
+    - deny-destructive-shell
+    - deny-network-downloads
+    - deny-dynamic-exec
+    - deny-env-files
+    - sandbox-default

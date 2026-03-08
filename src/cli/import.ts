@@ -53,7 +53,7 @@ export function registerImportCommand(program: Command): void {
         console.log('');
       }
 
-      const agentNames = Object.keys(result.manifest.agents);
+      const agentNames = Object.keys(result.team.agents);
       if (agentNames.length === 0) {
         printError('No agents found', 'No .claude/agents/*.md files to import.');
         process.exit(1);
@@ -61,22 +61,22 @@ export function registerImportCommand(program: Command): void {
 
       console.log(chalk.dim(`  Found ${agentNames.length} agent${agentNames.length !== 1 ? 's' : ''}:`));
       for (const name of agentNames) {
-        const agent = result.manifest.agents[name];
-        console.log(chalk.dim(`    ${name} - ${agent.claude.description}`));
+        const agent = result.team.agents[name];
+        console.log(chalk.dim(`    ${name} - ${agent.description}`));
       }
 
-      if (result.manifest.policies) {
+      if (result.team.policies) {
         const parts: string[] = [];
-        if (result.manifest.policies.permissions) parts.push('permissions');
-        if (result.manifest.policies.sandbox) parts.push('sandbox');
-        if (result.manifest.policies.hooks) parts.push('hooks');
+        if (result.team.policies.permissions) parts.push('permissions');
+        if (result.team.policies.sandbox) parts.push('sandbox');
+        if (result.team.policies.hooks) parts.push('hooks');
         if (parts.length > 0) {
           console.log(chalk.dim(`  Policies: ${parts.join(', ')}`));
         }
       }
       console.log('');
 
-      const validation = evaluateManifest(result.manifest);
+      const validation = evaluateManifest(result.team);
 
       if (manifestHasBlockingIssues(validation)) {
         printManifestValidation(validation);
@@ -96,7 +96,7 @@ export function registerImportCommand(program: Command): void {
       }
 
       try {
-        writeManifest(result.manifest, cwd);
+        writeManifest(result.team, cwd);
       } catch (err) {
         printError('Failed to write agentforge.yaml', String(err));
         process.exit(1);

@@ -12,13 +12,11 @@ import {
   printCommandSuccess,
 } from '../utils/chalk-helpers.js';
 import type {
-  AgentConfig,
-  AgentForgeManifest,
-  CanonicalTool,
+  CoreAgent,
+  CoreTeam,
   ModelAlias,
-  NormalizedAgentForgeManifest,
-} from '../types/manifest.js';
-import { CLAUDE_CODE_TOOLS } from '../types/manifest.js';
+} from '../core/types.js';
+import { CLAUDE_CODE_TOOLS } from '../renderers/claude/tools.js';
 import {
   evaluateManifest,
   manifestHasBlockingIssues,
@@ -35,6 +33,15 @@ import {
   isTeamRoleName,
   listRoleTemplates,
 } from '../team-templates/roles.js';
+import {
+  addAgentToTeam,
+  assignSkillToAgents,
+  buildCustomAgent,
+  editAgentInTeam,
+  invertToolSelection,
+  removeAgentFromTeam,
+  updateAgentBasics,
+} from '../application/team.js';
 
 interface AddAgentOptions {
   template?: string;
@@ -50,7 +57,7 @@ interface EditAgentOptions {
   maxTurns?: string;
 }
 
-function loadManifestOrExit(cwd: string): NormalizedAgentForgeManifest {
+function loadTeamOrExit(cwd: string): CoreTeam {
   try {
     return readManifest(cwd);
   } catch (err) {
@@ -67,8 +74,8 @@ function loadManifestOrExit(cwd: string): NormalizedAgentForgeManifest {
   }
 }
 
-function validateManifestOrExit(manifest: AgentForgeManifest) {
-  const validation = evaluateManifest(manifest);
+function validateTeamOrExit(team: CoreTeam) {
+  const validation = evaluateManifest(team);
   if (manifestHasBlockingIssues(validation)) {
     printManifestValidation(validation);
     process.exit(1);
@@ -84,15 +91,15 @@ function printGeneratedFiles(paths: string[]): void {
   }
 }
 
-function applyManifestChanges(
+function applyTeamChanges(
   cwd: string,
-  manifest: AgentForgeManifest,
+  team: CoreTeam,
   options?: { orphanedAgentFile?: string },
 ): void {
-  const validation = validateManifestOrExit(manifest);
+  const validation = validateTeamOrExit(team);
 
   try {
-    writeManifest(manifest, cwd);
+    writeManifest(team, cwd);
   } catch (err) {
     printError('Failed to write agentforge.yaml', String(err));
     process.exit(1);
@@ -104,7 +111,7 @@ function applyManifestChanges(
 
   let files;
   try {
-    files = generate(manifest, { cwd });
+    files = generate(team, { cwd });
   } catch (err) {
     printError('Generation failed', String(err));
     process.exit(1);
@@ -114,30 +121,31 @@ function applyManifestChanges(
   printManifestValidation(validation);
 }
 
-function collectSkills(manifest: NormalizedAgentForgeManifest): Set<string> {
+function collectSkills(team: CoreTeam): Set<string> {
   const skills = new Set<string>();
-  for (const agent of Object.values(manifest.agents)) {
-    for (const skill of agent.claude.skills ?? []) {
+  for (const agent of Object.values(team.agents)) {
+    for (const skill of agent.runtime.skills ?? []) {
       skills.add(skill);
     }
   }
   return skills;
 }
 
-function resolveTemplateAgent(template: string): AgentConfig {
+function resolveTemplateAgent(name: string, template: string): CoreAgent {
   if (!isTeamRoleName(template)) {
     const available = listRoleTemplates().map((role) => role.name).join(', ');
     printError('Unknown role template', `"${template}". Available templates: ${available}`);
     process.exit(1);
   }
 
-  return createRoleAgent(template);
+  return {
+    ...createRoleAgent(template),
+    id: name,
+  };
 }
 
-function applyEditOptions(current: AgentConfig, options: EditAgentOptions): AgentConfig {
-  const nextModel = options.model ?? current.claude.model;
-  const nextDescription = options.description?.trim() || current.claude.description;
-  let nextMaxTurns = current.claude.max_turns;
+function applyEditOptions(current: CoreAgent, options: EditAgentOptions): CoreAgent {
+  let nextMaxTurns = current.runtime.maxTurns;
 
   if (options.maxTurns !== undefined && options.maxTurns.trim() !== '') {
     const parsed = parseInt(options.maxTurns.trim(), 10);
@@ -148,15 +156,11 @@ function applyEditOptions(current: AgentConfig, options: EditAgentOptions): Agen
     nextMaxTurns = parsed;
   }
 
-  return {
-    ...current,
-    claude: {
-      ...current.claude,
-      description: nextDescription,
-      model: nextModel,
-      max_turns: nextMaxTurns,
-    },
-  };
+  return updateAgentBasics(current, {
+    description: options.description,
+    model: options.model,
+    maxTurns: nextMaxTurns,
+  });
 }
 
 export function registerManageCommands(program: Command): void {
@@ -168,9 +172,9 @@ export function registerManageCommands(program: Command): void {
     .option('--template <role>', 'Create agent from a built-in role template')
     .action(async (name: string, options: AddAgentOptions) => {
       const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
+      const team = loadTeamOrExit(cwd);
 
-      if (manifest.agents[name]) {
+      if (team.agents[name]) {
         console.error(chalk.red(`\nAgent "${name}" already exists.`));
         process.exit(1);
       }
@@ -178,18 +182,11 @@ export function registerManageCommands(program: Command): void {
       printHeader(`Add agent ${name}`);
 
       const agent = options.template
-        ? resolveTemplateAgent(options.template)
+        ? resolveTemplateAgent(name, options.template)
         : await promptAgentConfig(name);
-      const nextManifest: AgentForgeManifest = {
-        ...manifest,
-        agents: {
-          ...manifest.agents,
-          [name]: agent,
-        },
-      };
+      const nextTeam = addAgentToTeam(team, name, agent);
 
-      applyManifestChanges(cwd, nextManifest);
-
+      applyTeamChanges(cwd, nextTeam);
       printCommandSuccess(`Agent "${name}" added and configuration regenerated`);
     });
 
@@ -200,7 +197,7 @@ export function registerManageCommands(program: Command): void {
     .description('Create a new skill (generates stub file in .claude/skills/)')
     .action(async (name: string) => {
       const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
+      const team = loadTeamOrExit(cwd);
 
       if (!/^[a-z][a-z0-9-]*$/.test(name)) {
         printError(
@@ -210,10 +207,10 @@ export function registerManageCommands(program: Command): void {
         process.exit(1);
       }
 
-      const allSkills = collectSkills(manifest);
+      const allSkills = collectSkills(team);
       if (allSkills.has(name)) {
-        const owners = Object.entries(manifest.agents)
-          .filter(([, agent]) => agent.claude.skills?.includes(name))
+        const owners = Object.entries(team.agents)
+          .filter(([, agent]) => agent.runtime.skills?.includes(name))
           .map(([agentName]) => agentName);
         printError(
           `Skill "${name}" already exists`,
@@ -229,25 +226,17 @@ export function registerManageCommands(program: Command): void {
         console.log('');
       }
 
-      const agentNames = Object.keys(manifest.agents);
+      const agentNames = Object.keys(team.agents);
       const owner = await promptList<string>({
         message: 'Which agent should own this skill?',
         choices: agentNames.map((agentName) => ({
-          name: `${agentName} - ${manifest.agents[agentName].claude.description}`,
+          name: `${agentName} - ${team.agents[agentName].description}`,
           value: agentName,
         })),
       });
 
-      const nextAgents = { ...manifest.agents };
-      nextAgents[owner] = {
-        ...nextAgents[owner],
-        claude: {
-          ...nextAgents[owner].claude,
-          skills: [...(nextAgents[owner].claude.skills ?? []), name],
-        },
-      };
-
-      applyManifestChanges(cwd, { ...manifest, agents: nextAgents });
+      const nextTeam = assignSkillToAgents(team, name, [owner]);
+      applyTeamChanges(cwd, nextTeam);
       printCommandSuccess(`Skill "${name}" created and assigned to ${owner}`);
     });
 
@@ -258,10 +247,10 @@ export function registerManageCommands(program: Command): void {
     .description('Assign an existing skill to one or more agents')
     .action(async (name: string) => {
       const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
-      const agentNames = Object.keys(manifest.agents);
+      const team = loadTeamOrExit(cwd);
+      const agentNames = Object.keys(team.agents);
 
-      const allSkills = collectSkills(manifest);
+      const allSkills = collectSkills(team);
       if (!allSkills.has(name)) {
         printError(
           `Skill "${name}" does not exist`,
@@ -270,8 +259,8 @@ export function registerManageCommands(program: Command): void {
         process.exit(1);
       }
 
-      const alreadyAssigned = agentNames.filter((agentName) => manifest.agents[agentName].claude.skills?.includes(name));
-      const available = agentNames.filter((agentName) => !manifest.agents[agentName].claude.skills?.includes(name));
+      const alreadyAssigned = agentNames.filter((agentName) => team.agents[agentName].runtime.skills?.includes(name));
+      const available = agentNames.filter((agentName) => !team.agents[agentName].runtime.skills?.includes(name));
 
       if (available.length === 0) {
         printError(`Skill "${name}" is already assigned to all agents`, alreadyAssigned.join(', '));
@@ -288,24 +277,14 @@ export function registerManageCommands(program: Command): void {
       const selectedAgents = await promptCheckbox<string>({
         message: 'Assign to which agents?',
         choices: available.map((agentName) => ({
-          name: `${agentName} - ${manifest.agents[agentName].claude.description}`,
+          name: `${agentName} - ${team.agents[agentName].description}`,
           value: agentName,
         })),
         validate: (selected: string[]) => selected.length > 0 || 'Select at least one agent',
       });
 
-      const nextAgents = { ...manifest.agents };
-      for (const agentName of selectedAgents) {
-        nextAgents[agentName] = {
-          ...nextAgents[agentName],
-          claude: {
-            ...nextAgents[agentName].claude,
-            skills: [...(nextAgents[agentName].claude.skills ?? []), name],
-          },
-        };
-      }
-
-      applyManifestChanges(cwd, { ...manifest, agents: nextAgents });
+      const nextTeam = assignSkillToAgents(team, name, selectedAgents);
+      applyTeamChanges(cwd, nextTeam);
       printCommandSuccess(`Skill "${name}" assigned to ${selectedAgents.join(', ')}`);
     });
 
@@ -317,11 +296,11 @@ export function registerManageCommands(program: Command): void {
     .option('--yes', 'Skip confirmation')
     .action(async (name: string, options: RemoveAgentOptions) => {
       const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
+      const team = loadTeamOrExit(cwd);
 
-      if (!manifest.agents[name]) {
+      if (!team.agents[name]) {
         console.error(chalk.red(`\nAgent "${name}" not found.`));
-        console.error(chalk.dim(`Available agents: ${Object.keys(manifest.agents).join(', ')}`));
+        console.error(chalk.dim(`Available agents: ${Object.keys(team.agents).join(', ')}`));
         process.exit(1);
       }
 
@@ -335,24 +314,10 @@ export function registerManageCommands(program: Command): void {
         return;
       }
 
-      const remainingAgents = { ...manifest.agents };
-      delete remainingAgents[name];
-
-      for (const [agentName, agent] of Object.entries(remainingAgents)) {
-        if (agent.forge?.handoffs) {
-          remainingAgents[agentName] = {
-            ...agent,
-            forge: {
-              ...agent.forge,
-              handoffs: agent.forge.handoffs.filter((handoff) => handoff !== name),
-            },
-          };
-        }
-      }
-
-      applyManifestChanges(
+      const nextTeam = removeAgentFromTeam(team, name);
+      applyTeamChanges(
         cwd,
-        { ...manifest, agents: remainingAgents },
+        nextTeam,
         { orphanedAgentFile: join(cwd, `.claude/agents/${name}.md`) },
       );
 
@@ -369,23 +334,23 @@ export function registerManageCommands(program: Command): void {
     .option('--max-turns <number>', 'Update max turns')
     .action(async (name: string, options: EditAgentOptions) => {
       const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
-      const agent = manifest.agents[name];
+      const team = loadTeamOrExit(cwd);
+      const agent = team.agents[name];
 
       if (!agent) {
         console.error(chalk.red(`\nAgent "${name}" not found.`));
-        console.error(chalk.dim(`Available agents: ${Object.keys(manifest.agents).join(', ')}`));
+        console.error(chalk.dim(`Available agents: ${Object.keys(team.agents).join(', ')}`));
         process.exit(1);
       }
 
       printHeader(`Edit agent ${name}`);
-      console.log(chalk.dim(`  description: ${agent.claude.description}`));
-      console.log(chalk.dim(`  model: ${agent.claude.model ?? 'inherit'}`));
-      if (agent.claude.tools?.length) {
-        console.log(chalk.dim(`  tools: ${agent.claude.tools.join(', ')}`));
+      console.log(chalk.dim(`  description: ${agent.description}`));
+      console.log(chalk.dim(`  model: ${agent.runtime.model ?? 'inherit'}`));
+      if (agent.runtime.tools?.length) {
+        console.log(chalk.dim(`  tools: ${agent.runtime.tools.join(', ')}`));
       }
-      if (agent.claude.disallowed_tools?.length) {
-        console.log(chalk.dim(`  disallowed_tools: ${agent.claude.disallowed_tools.join(', ')}`));
+      if (agent.runtime.disallowedTools?.length) {
+        console.log(chalk.dim(`  disallowed_tools: ${agent.runtime.disallowedTools.join(', ')}`));
       }
       console.log('');
 
@@ -395,19 +360,12 @@ export function registerManageCommands(program: Command): void {
         ? applyEditOptions(agent, options)
         : await promptEditAgent(agent);
 
-      applyManifestChanges(cwd, {
-        ...manifest,
-        agents: {
-          ...manifest.agents,
-          [name]: updated,
-        },
-      });
-
+      applyTeamChanges(cwd, editAgentInTeam(team, name, updated));
       printCommandSuccess(`Agent "${name}" updated and configuration regenerated`);
     });
 }
 
-async function promptAgentConfig(name: string): Promise<AgentConfig> {
+async function promptAgentConfig(name: string): Promise<CoreAgent> {
   const description = await promptInput({
     message: 'Agent description (when should Claude delegate to this agent?):',
     validate: (value: string) => value.trim().length > 0 || 'Description is required',
@@ -438,47 +396,23 @@ async function promptAgentConfig(name: string): Promise<AgentConfig> {
     default: false,
   });
 
-  const allow: CanonicalTool[] = ['Read', 'Grep', 'Glob'];
-  const deny: CanonicalTool[] = [];
-
-  if (canWrite) {
-    allow.push('Write', 'Edit', 'MultiEdit');
-  } else {
-    deny.push('Write', 'Edit');
-  }
-
-  if (canBash) {
-    allow.push('Bash');
-  } else {
-    deny.push('Bash');
-  }
-
-  if (canWeb) {
-    allow.push('WebFetch', 'WebSearch');
-  } else {
-    deny.push('WebFetch', 'WebSearch');
-  }
-
-  if (canDelegate) {
-    allow.push('Agent');
-  }
-
-  return {
-    claude: {
-      description: description.trim(),
-      model,
-      tools: allow,
-      disallowed_tools: deny.length > 0 ? deny : undefined,
-    },
-  };
+  return buildCustomAgent({
+    name,
+    description,
+    model,
+    canWrite,
+    canBash,
+    canWeb,
+    canDelegate,
+  });
 }
 
-async function promptEditAgent(current: AgentConfig): Promise<AgentConfig> {
-  const currentAllow = current.claude.tools ?? [];
+async function promptEditAgent(current: CoreAgent): Promise<CoreAgent> {
+  const currentAllow = current.runtime.tools ?? [];
 
   const description = await promptInput({
     message: 'Description:',
-    default: current.claude.description,
+    default: current.description,
     validate: (value: string) => value.trim().length > 0 || 'Description is required',
   });
   const model = await promptList<ModelAlias>({
@@ -489,11 +423,11 @@ async function promptEditAgent(current: AgentConfig): Promise<AgentConfig> {
       { name: 'haiku   (fastest, lightweight tasks)', value: 'haiku' },
       { name: 'inherit (use project default)', value: 'inherit' },
     ],
-    default: current.claude.model ?? 'inherit',
+    default: current.runtime.model ?? 'inherit',
   });
   const maxTurnsInput = await promptInput({
     message: 'Max turns (leave empty to keep current):',
-    default: current.claude.max_turns?.toString() ?? '',
+    default: current.runtime.maxTurns?.toString() ?? '',
     validate: (value: string) => {
       if (value.trim() === '') return true;
       const parsed = parseInt(value.trim(), 10);
@@ -505,36 +439,31 @@ async function promptEditAgent(current: AgentConfig): Promise<AgentConfig> {
     default: false,
   });
 
-  let tools = current.claude.tools;
-  let disallowedTools = current.claude.disallowed_tools;
+  let tools = current.runtime.tools;
+  let disallowedTools = current.runtime.disallowedTools;
 
   if (customizeTools) {
-    const allowList = await promptCheckbox<CanonicalTool>({
+    const allowList = await promptCheckbox({
       message: 'Select allowed tools:',
       choices: CLAUDE_CODE_TOOLS.map((tool) => ({
         name: tool,
         value: tool,
         checked: currentAllow.includes(tool),
       })),
-      validate: (selected: CanonicalTool[]) => selected.length > 0 || 'Select at least one tool',
+      validate: (selected: string[]) => selected.length > 0 || 'Select at least one tool',
     });
-    const denyList = CLAUDE_CODE_TOOLS.filter((tool) => !allowList.includes(tool));
 
-    tools = allowList;
-    disallowedTools = denyList.length > 0 ? denyList : undefined;
+    tools = allowList as CoreAgent['runtime']['tools'];
+    disallowedTools = invertToolSelection(tools ?? []);
   }
 
   const maxTurns = maxTurnsInput.trim() ? parseInt(maxTurnsInput.trim(), 10) : undefined;
 
-  return {
-    ...current,
-    claude: {
-      ...current.claude,
-      description: description.trim(),
-      model,
-      tools,
-      disallowed_tools: disallowedTools,
-      max_turns: maxTurns ?? current.claude.max_turns,
-    },
-  };
+  return updateAgentBasics(current, {
+    description,
+    model,
+    maxTurns: maxTurns ?? current.runtime.maxTurns,
+    tools,
+    disallowedTools,
+  });
 }

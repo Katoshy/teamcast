@@ -1,14 +1,17 @@
-import type { NormalizedAgentForgeManifest } from '../../types/manifest.js';
+import type { CoreTeam } from '../../core/types.js';
 import type { Checker, ValidationResult } from '../types.js';
 
 export const checkToolConflicts: Checker = (
-  manifest: NormalizedAgentForgeManifest,
+  team: CoreTeam,
 ): ValidationResult[] => {
   const results: ValidationResult[] = [];
 
-  for (const [agentId, agent] of Object.entries(manifest.agents)) {
-    const allow = new Set(agent.claude.tools ?? []);
-    const deny = new Set(agent.claude.disallowed_tools ?? []);
+  for (const [agentId, agent] of Object.entries(team.agents)) {
+    // runtime.tools and runtime.disallowedTools are already expanded to CanonicalTool[]
+    // during normalization: AgentSkill values (e.g. 'read_files') are resolved to their
+    // concrete tool equivalents (e.g. 'Read', 'Grep', 'Glob') before this checker runs.
+    const allow = new Set(agent.runtime.tools ?? []);
+    const deny = new Set(agent.runtime.disallowedTools ?? []);
 
     for (const tool of allow) {
       if (deny.has(tool)) {
@@ -21,7 +24,7 @@ export const checkToolConflicts: Checker = (
       }
     }
 
-    const desc = agent.claude.description.toLowerCase();
+    const desc = agent.description.toLowerCase();
     if (
       (desc.includes('read-only') || desc.includes('cannot modify') || desc.includes('does not write')) &&
       (allow.has('Write') || allow.has('Edit') || allow.has('MultiEdit'))

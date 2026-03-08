@@ -1,4 +1,4 @@
-import type { AgentForgeManifest } from '../types/manifest.js';
+import type { CoreTeam } from '../core/types.js';
 
 export interface PresetMeta {
   name: string;
@@ -9,6 +9,5 @@ export interface PresetMeta {
 
 export interface Preset {
   meta: PresetMeta;
-  /** Full manifest with project.name set to "placeholder" */
-  manifest: AgentForgeManifest;
+  team: CoreTeam;
 }

@@ -3,8 +3,8 @@ import { generate } from '../../../src/generator/index.js';
 import { listPresets, loadPreset } from '../../../src/presets/index.js';
 
 function buildGoldenOutput(presetName: string) {
-  const manifest = loadPreset(presetName).manifest;
-  const files = generate(manifest, { cwd: process.cwd(), dryRun: true });
+  const team = loadPreset(presetName).team;
+  const files = generate(team, { cwd: process.cwd(), dryRun: true });
   const sortedFiles = [...files].sort((left, right) => left.path.localeCompare(right.path));
 
   const keyFiles = sortedFiles.filter((file) => {

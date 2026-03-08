@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { renderSettingsJson } from '../../../src/generator/renderers/settings-json.js';
+import { renderSettingsJson } from '../../../src/renderers/claude/settings.js';
+import { applyDefaults } from '../../../src/manifest/defaults.js';
 import type { AgentForgeManifest } from '../../../src/types/manifest.js';
 
 const baseManifest: AgentForgeManifest = {
@@ -10,7 +11,7 @@ const baseManifest: AgentForgeManifest = {
 
 describe('renderSettingsJson', () => {
   it('generates empty permissions object when no policies', () => {
-    const result = renderSettingsJson(baseManifest);
+    const result = renderSettingsJson(applyDefaults(baseManifest));
     expect(result.path).toBe('.claude/settings.json');
     const parsed = JSON.parse(result.content);
     expect(parsed).toEqual({});
@@ -28,12 +29,38 @@ describe('renderSettingsJson', () => {
       },
     };
 
-    const result = renderSettingsJson(manifest);
+    const result = renderSettingsJson(applyDefaults(manifest));
     const parsed = JSON.parse(result.content);
 
     expect(parsed.permissions.allow).toContain('Bash(npm run *)');
     expect(parsed.permissions.ask).toContain('Bash(git push *)');
     expect(parsed.permissions.deny).toContain('Bash(rm -rf *)');
+  });
+
+  it('maps abstract permissions to Claude-specific rules', () => {
+    const manifest: AgentForgeManifest = {
+      ...baseManifest,
+      version: '2',
+      policies: {
+        permissions: {
+          allow: ['project.commands', 'git.read'],
+          ask: ['git.push'],
+          deny: ['env.write', 'downloads'],
+        },
+      },
+    };
+
+    const result = renderSettingsJson(applyDefaults(manifest));
+    const parsed = JSON.parse(result.content);
+
+    expect(parsed.permissions.allow).toContain('Bash(npm run *)');
+    expect(parsed.permissions.allow).toContain('Bash(git status)');
+    expect(parsed.permissions.allow).toContain('Bash(git diff *)');
+    expect(parsed.permissions.ask).toContain('Bash(git push *)');
+    expect(parsed.permissions.deny).toContain('Write(.env*)');
+    expect(parsed.permissions.deny).toContain('Edit(.env*)');
+    expect(parsed.permissions.deny).toContain('Bash(curl *)');
+    expect(parsed.permissions.deny).toContain('Bash(wget *)');
   });
 
   it('converts network.allowed_domains to WebFetch rules', () => {
@@ -46,7 +73,7 @@ describe('renderSettingsJson', () => {
       },
     };
 
-    const result = renderSettingsJson(manifest);
+    const result = renderSettingsJson(applyDefaults(manifest));
     const parsed = JSON.parse(result.content);
 
     expect(parsed.permissions.allow).toContain('WebFetch(github.com:*)');
@@ -65,7 +92,7 @@ describe('renderSettingsJson', () => {
       },
     };
 
-    const result = renderSettingsJson(manifest);
+    const result = renderSettingsJson(applyDefaults(manifest));
     const parsed = JSON.parse(result.content);
 
     expect(parsed.sandbox.enabled).toBe(true);
@@ -84,7 +111,7 @@ describe('renderSettingsJson', () => {
       },
     };
 
-    const result = renderSettingsJson(manifest);
+    const result = renderSettingsJson(applyDefaults(manifest));
     const parsed = JSON.parse(result.content);
 
     expect(parsed.hooks.PreToolUse).toHaveLength(1);

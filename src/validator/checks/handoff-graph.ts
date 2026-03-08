@@ -1,4 +1,4 @@
-import type { NormalizedAgentForgeManifest } from '../../types/manifest.js';
+import type { CoreTeam } from '../../core/types.js';
 import type { Checker, ValidationResult } from '../types.js';
 
 function detectCycles(graph: Map<string, string[]>): string[][] {
@@ -32,18 +32,18 @@ function detectCycles(graph: Map<string, string[]>): string[][] {
 }
 
 export const checkHandoffGraph: Checker = (
-  manifest: NormalizedAgentForgeManifest,
+  team: CoreTeam,
 ): ValidationResult[] => {
   const results: ValidationResult[] = [];
-  const agentIds = new Set(Object.keys(manifest.agents));
+  const agentIds = new Set(Object.keys(team.agents));
 
   const graph = new Map<string, string[]>();
-  for (const [agentId, agent] of Object.entries(manifest.agents)) {
-    graph.set(agentId, agent.forge?.handoffs ?? []);
+  for (const [agentId, agent] of Object.entries(team.agents)) {
+    graph.set(agentId, agent.metadata?.handoffs ?? []);
   }
 
-  for (const [agentId, agent] of Object.entries(manifest.agents)) {
-    for (const target of agent.forge?.handoffs ?? []) {
+  for (const [agentId, agent] of Object.entries(team.agents)) {
+    for (const target of agent.metadata?.handoffs ?? []) {
       if (!agentIds.has(target)) {
         results.push({
           severity: 'error',
@@ -55,22 +55,18 @@ export const checkHandoffGraph: Checker = (
     }
   }
 
-  for (const [agentId, agent] of Object.entries(manifest.agents)) {
-    if (agent.forge?.handoffs && agent.forge.handoffs.length > 0) {
-      const tools = new Set(agent.claude.tools ?? []);
-      if (!tools.has('Agent')) {
-        results.push({
-          severity: 'error',
-          category: 'Handoff graph',
-          message: `Agent "${agentId}" has handoffs but "Agent" is not in its tools list`,
-          agent: agentId,
-        });
-      }
+  for (const [agentId, agent] of Object.entries(team.agents)) {
+    if ((agent.metadata?.handoffs?.length ?? 0) > 0 && !agent.runtime.tools?.includes('Agent')) {
+      results.push({
+        severity: 'error',
+        category: 'Handoff graph',
+        message: `Agent "${agentId}" has handoffs but "Agent" is not in its tools list`,
+        agent: agentId,
+      });
     }
   }
 
-  const cycles = detectCycles(graph);
-  for (const cycle of cycles) {
+  for (const cycle of detectCycles(graph)) {
     results.push({
       severity: 'error',
       category: 'Handoff graph',

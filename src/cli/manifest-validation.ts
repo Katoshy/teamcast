@@ -1,33 +1,26 @@
 import chalk from 'chalk';
 import type { AgentForgeManifest } from '../types/manifest.js';
-import { validateSchema } from '../manifest/schema-validator.js';
-import { runValidation } from '../validator/index.js';
-import { hasErrors, printValidationReport } from '../validator/reporter.js';
-import type { ValidationResult } from '../validator/types.js';
+import { evaluateTeam, teamHasBlockingIssues } from '../application/validate-team.js';
+import { printValidationReport } from '../validator/reporter.js';
+import type { TeamValidationSummary } from '../application/validate-team.js';
 
-export interface ManifestValidationSummary {
-  schemaErrors: Array<{ path: string; message: string }>;
-  validationResults: ValidationResult[];
-}
+// Re-export the type under the legacy name for backward compatibility
+export type ManifestValidationSummary = TeamValidationSummary;
 
+/**
+ * @deprecated Use evaluateTeam() from application/validate-team.ts directly.
+ * Thin wrapper kept for backward compatibility with existing CLI commands.
+ */
 export function evaluateManifest(manifest: AgentForgeManifest): ManifestValidationSummary {
-  const schema = validateSchema(manifest);
-
-  if (!schema.valid) {
-    return {
-      schemaErrors: schema.errors,
-      validationResults: [],
-    };
-  }
-
-  return {
-    schemaErrors: [],
-    validationResults: runValidation(manifest),
-  };
+  return evaluateTeam(manifest);
 }
 
+/**
+ * @deprecated Use teamHasBlockingIssues() from application/validate-team.ts directly.
+ * Thin wrapper kept for backward compatibility with existing CLI commands.
+ */
 export function manifestHasBlockingIssues(summary: ManifestValidationSummary): boolean {
-  return summary.schemaErrors.length > 0 || hasErrors(summary.validationResults);
+  return teamHasBlockingIssues(summary);
 }
 
 export function printManifestValidation(summary: ManifestValidationSummary): void {

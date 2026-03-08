@@ -1,16 +1,13 @@
 import chalk from 'chalk';
-import type { AgentForgeManifest, AgentConfig } from '../../types/manifest.js';
+import type { CoreTeam } from '../../core/types.js';
 import { promptCheckbox } from '../../utils/prompts.js';
 import {
-  createRoleAgent,
   listRoleTemplates,
   type TeamRoleName,
 } from '../../team-templates/roles.js';
-import { createPolicies } from '../../team-templates/policies.js';
+import { buildTeamFromRoles } from '../../application/team.js';
 
-export async function stepCustomTeam(
-  partial: Partial<AgentForgeManifest>,
-): Promise<Partial<AgentForgeManifest>> {
+export async function stepCustomTeam(projectName: string): Promise<CoreTeam> {
   const roleTemplates = listRoleTemplates();
   const selectedRoles = await promptCheckbox<TeamRoleName>({
     message: 'Select roles for your team:',
@@ -21,24 +18,5 @@ export async function stepCustomTeam(
     validate: (value: TeamRoleName[]) => value.length > 0 || 'Select at least one role',
   });
 
-  const agents: Record<string, AgentConfig> = {};
-
-  for (const roleName of selectedRoles) {
-    agents[roleName] = createRoleAgent(roleName);
-  }
-
-  if (agents.orchestrator && selectedRoles.length > 1) {
-    agents.orchestrator.forge = {
-      ...agents.orchestrator.forge,
-      handoffs: selectedRoles.filter((role) => role !== 'orchestrator'),
-    };
-  }
-
-  return {
-    ...partial,
-    version: '1',
-    project: partial.project ?? { name: 'my-project' },
-    agents,
-    policies: createPolicies('custom-team'),
-  } as AgentForgeManifest;
+  return buildTeamFromRoles(projectName, selectedRoles);
 }

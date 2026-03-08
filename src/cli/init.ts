@@ -8,7 +8,7 @@ import { generate } from '../generator/index.js';
 import { detectProjectContext } from '../detector/index.js';
 import { validateSchema } from '../manifest/schema-validator.js';
 import { applyDefaults } from '../manifest/defaults.js';
-import type { AgentForgeManifest } from '../types/manifest.js';
+import type { AgentForgeManifest } from '../manifest/types.js';
 import {
   evaluateManifest,
   manifestHasBlockingIssues,
@@ -75,8 +75,8 @@ async function initWithPreset(
   }
 
   const projectName = detectedName ?? 'my-project';
-  const manifest = applyPreset(preset, projectName);
-  const validation = evaluateManifest(manifest);
+  const team = applyPreset(preset, projectName);
+  const validation = evaluateManifest(team);
 
   if (manifestHasBlockingIssues(validation)) {
     printManifestValidation(validation);
@@ -84,7 +84,7 @@ async function initWithPreset(
   }
 
   try {
-    writeManifest(manifest, cwd);
+    writeManifest(team, cwd);
   } catch (err) {
     printError('Failed to write agentforge.yaml', String(err));
     process.exit(1);
@@ -94,7 +94,7 @@ async function initWithPreset(
 
   let files;
   try {
-    files = generate(manifest, { cwd });
+    files = generate(team, { cwd });
   } catch (err) {
     printError('Generation failed', String(err));
     process.exit(1);
@@ -151,14 +151,12 @@ async function initFromFile(
     process.exit(1);
   }
 
-  const manifest = applyDefaults(parsed as AgentForgeManifest);
-
-  // Override project name with detected name if the file uses a placeholder
-  if (detectedName && manifest.project.name === 'my-project') {
-    manifest.project.name = detectedName;
+  const team = applyDefaults(parsed as AgentForgeManifest);
+  if (detectedName && team.project.name === 'my-project') {
+    team.project.name = detectedName;
   }
 
-  const validation = evaluateManifest(manifest);
+  const validation = evaluateManifest(team);
 
   if (manifestHasBlockingIssues(validation)) {
     printManifestValidation(validation);
@@ -166,7 +164,7 @@ async function initFromFile(
   }
 
   try {
-    writeManifest(manifest, cwd);
+    writeManifest(team, cwd);
   } catch (err) {
     printError('Failed to write agentforge.yaml', String(err));
     process.exit(1);
@@ -176,7 +174,7 @@ async function initFromFile(
 
   let files;
   try {
-    files = generate(manifest, { cwd });
+    files = generate(team, { cwd });
   } catch (err) {
     printError('Generation failed', String(err));
     process.exit(1);

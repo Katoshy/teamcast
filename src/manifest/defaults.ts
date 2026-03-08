@@ -1,27 +1,29 @@
-import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../types/manifest.js';
-import { normalizeManifest } from '../types/manifest.js';
+import type { CoreTeam } from '../core/types.js';
+import type { AgentForgeManifest } from './types.js';
+import { normalizeManifest } from './normalize.js';
 
-// Apply default values to a partially-defined manifest.
-// Returns a new object — does not mutate the input.
-export function applyDefaults(manifest: AgentForgeManifest): NormalizedAgentForgeManifest {
+// Apply default values to a partially-defined manifest and normalize it to the core team model.
+export function applyDefaults(manifest: AgentForgeManifest): CoreTeam {
   const normalized = normalizeManifest(manifest);
+  const sandbox = normalized.policies?.sandbox;
 
   return {
     ...normalized,
     settings: {
-      default_model: 'sonnet',
-      generate_docs: true,
-      generate_local_settings: true,
+      defaultModel: 'sonnet',
+      generateDocs: true,
+      generateLocalSettings: true,
       ...normalized.settings,
     },
     policies: normalized.policies
       ? {
           ...normalized.policies,
-          sandbox: normalized.policies.sandbox
+          sandbox:
+            sandbox
             ? {
-                enabled: false,
-                auto_allow_bash: true,
-                ...normalized.policies.sandbox,
+                ...sandbox,
+                enabled: sandbox.enabled ?? false,
+                autoAllowBash: sandbox.autoAllowBash ?? true,
               }
             : undefined,
         }

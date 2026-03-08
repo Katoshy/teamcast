@@ -7,11 +7,8 @@ import { stepProjectContext } from './steps/project-context.js';
 import { stepTeamSelection } from './steps/team-selection.js';
 import { stepConfirmGenerate } from './steps/confirm-generate.js';
 import { stepAgentCustomization } from './steps/agent-customization.js';
-import {
-  evaluateManifest,
-  manifestHasBlockingIssues,
-  printManifestValidation,
-} from '../cli/manifest-validation.js';
+import { evaluateTeam, teamHasBlockingIssues } from '../application/validate-team.js';
+import { printManifestValidation } from '../cli/manifest-validation.js';
 import {
   printSuccess,
   printError,
@@ -42,8 +39,8 @@ export async function runWizard(options: WizardOptions): Promise<void> {
   manifest.version = '1';
   manifest = await stepAgentCustomization(manifest, { nonInteractive });
 
-  const validation = evaluateManifest(manifest);
-  if (manifestHasBlockingIssues(validation)) {
+  const validation = evaluateTeam(manifest);
+  if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
     process.exit(1);
   }

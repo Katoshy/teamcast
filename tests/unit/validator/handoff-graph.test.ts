@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { checkHandoffGraph } from '../../../src/validator/checks/handoff-graph.js';
+import { applyDefaults } from '../../../src/manifest/defaults.js';
 import type { AgentForgeManifest } from '../../../src/types/manifest.js';
 
 const base: AgentForgeManifest = {
@@ -31,7 +32,7 @@ describe('checkHandoffGraph', () => {
       },
     };
 
-    const results = checkHandoffGraph(manifest);
+    const results = checkHandoffGraph(applyDefaults(manifest));
     expect(results.filter((r) => r.severity === 'error')).toHaveLength(0);
   });
 
@@ -51,7 +52,7 @@ describe('checkHandoffGraph', () => {
       },
     };
 
-    const errors = checkHandoffGraph(manifest).filter((r) => r.severity === 'error');
+    const errors = checkHandoffGraph(applyDefaults(manifest)).filter((r) => r.severity === 'error');
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('"ghost"');
   });
@@ -81,7 +82,7 @@ describe('checkHandoffGraph', () => {
       },
     };
 
-    const errors = checkHandoffGraph(manifest).filter((r) => r.severity === 'error');
+    const errors = checkHandoffGraph(applyDefaults(manifest)).filter((r) => r.severity === 'error');
     const cycleErrors = errors.filter((e) => e.message.includes('Cyclic'));
     expect(cycleErrors).toHaveLength(1);
   });
@@ -108,7 +109,7 @@ describe('checkHandoffGraph', () => {
       },
     };
 
-    const errors = checkHandoffGraph(manifest).filter((r) => r.severity === 'error');
+    const errors = checkHandoffGraph(applyDefaults(manifest)).filter((r) => r.severity === 'error');
     expect(errors.some((e) => e.message.includes('"Agent"'))).toBe(true);
   });
 });

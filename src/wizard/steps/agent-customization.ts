@@ -1,13 +1,13 @@
 import chalk from 'chalk';
-import type { ModelAlias, NormalizedAgentForgeManifest } from '../../types/manifest.js';
+import type { CoreTeam, ModelAlias } from '../../core/types.js';
 import { promptConfirm, promptList } from '../../utils/prompts.js';
 
 export async function stepAgentCustomization(
-  manifest: NormalizedAgentForgeManifest,
+  team: CoreTeam,
   options?: { nonInteractive?: boolean },
-): Promise<NormalizedAgentForgeManifest> {
+): Promise<CoreTeam> {
   if (options?.nonInteractive) {
-    return manifest;
+    return team;
   }
 
   const customize = await promptConfirm({
@@ -15,16 +15,16 @@ export async function stepAgentCustomization(
     default: false,
   });
 
-  if (!customize) return manifest;
+  if (!customize) return team;
 
-  const updatedAgents = { ...manifest.agents };
+  const updatedAgents = { ...team.agents };
 
   for (const name of Object.keys(updatedAgents)) {
     const agent = updatedAgents[name];
-    const currentModel = agent.claude.model ?? 'inherit';
+    const currentModel = agent.runtime.model ?? 'inherit';
 
     console.log('');
-    console.log(chalk.bold(name) + chalk.dim(` - ${agent.claude.description}`));
+    console.log(chalk.bold(name) + chalk.dim(` - ${agent.description}`));
 
     const model = await promptList<ModelAlias>({
       message: `  Model for ${name}:`,
@@ -39,12 +39,12 @@ export async function stepAgentCustomization(
 
     updatedAgents[name] = {
       ...agent,
-      claude: {
-        ...agent.claude,
+      runtime: {
+        ...agent.runtime,
         model,
       },
     };
   }
 
-  return { ...manifest, agents: updatedAgents };
+  return { ...team, agents: updatedAgents };
 }

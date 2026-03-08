@@ -1,23 +1,34 @@
-import type { AgentForgeManifest } from '../types/manifest.js';
-import { normalizeManifest } from '../types/manifest.js';
+import type { CoreTeam } from '../core/types.js';
+import type { AgentForgeManifest } from '../manifest/types.js';
+import { isCoreTeam } from '../core/guards.js';
+import { applyDefaults } from '../manifest/defaults.js';
 import type { ValidationResult, Checker } from './types.js';
 import { checkHandoffGraph } from './checks/handoff-graph.js';
 import { checkToolConflicts } from './checks/tool-conflicts.js';
 import { checkRoleWarnings } from './checks/role-warnings.js';
 import { checkSecurityBaseline } from './checks/security-baseline.js';
+import { checkInstructionBlocks } from './checks/instruction-blocks.js';
 
 const CHECKERS: Checker[] = [
   checkHandoffGraph,
   checkToolConflicts,
   checkRoleWarnings,
   checkSecurityBaseline,
+  checkInstructionBlocks,
 ];
 
-export function runValidation(manifest: AgentForgeManifest): ValidationResult[] {
-  const normalized = normalizeManifest(manifest);
+export function runValidation(
+  input: AgentForgeManifest | CoreTeam,
+  extraCheckers?: Checker[],
+): ValidationResult[] {
+  const team = isCoreTeam(input) ? input : applyDefaults(input as AgentForgeManifest);
   const results: ValidationResult[] = [];
-  for (const checker of CHECKERS) {
-    results.push(...checker(normalized));
+
+  const checkers = extraCheckers ? [...CHECKERS, ...extraCheckers] : CHECKERS;
+
+  for (const checker of checkers) {
+    results.push(...checker(team));
   }
+
   return results;
 }

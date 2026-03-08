@@ -46,13 +46,13 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    const agent = result.manifest.agents.developer;
+    const agent = result.team.agents.developer;
 
     expect(agent).toBeDefined();
-    expect(agent.claude.description).toBe('Implements features and fixes bugs');
-    expect(agent.claude.model).toBe('sonnet');
-    expect(agent.claude.tools).toEqual(['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob']);
-    expect(agent.claude.instructions).toBe('Custom behavior instructions here.');
+    expect(agent.description).toBe('Implements features and fixes bugs');
+    expect(agent.runtime.model).toBe('sonnet');
+    expect(agent.runtime.tools).toEqual(['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob']);
+    expect(agent.instructions).toEqual([{ kind: 'behavior', content: 'Custom behavior instructions here.' }]);
   });
 
   it('imports multiple agents', () => {
@@ -76,9 +76,9 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(Object.keys(result.manifest.agents)).toHaveLength(2);
-    expect(result.manifest.agents.planner.claude.model).toBe('opus');
-    expect(result.manifest.agents.reviewer.claude.model).toBe('haiku');
+    expect(Object.keys(result.team.agents)).toHaveLength(2);
+    expect(result.team.agents.planner.runtime.model).toBe('opus');
+    expect(result.team.agents.reviewer.runtime.model).toBe('haiku');
   });
 
   it('imports permissions from settings.json', () => {
@@ -97,10 +97,11 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.manifest.policies?.permissions?.allow).toEqual(['Bash(npm test)']);
-    expect(result.manifest.policies?.permissions?.deny).toContain('Write(.env*)');
-    expect(result.manifest.policies?.sandbox?.enabled).toBe(true);
-    expect(result.manifest.policies?.sandbox?.auto_allow_bash).toBe(true);
+    expect(result.team.policies?.permissions?.allow).toEqual(['tests']);
+    expect(result.team.policies?.permissions?.deny).toContain('env.write');
+    expect(result.team.policies?.permissions?.deny).toContain('destructive-shell');
+    expect(result.team.policies?.sandbox?.enabled).toBe(true);
+    expect(result.team.policies?.sandbox?.autoAllowBash).toBe(true);
   });
 
   it('imports hooks from settings.json (camelCase -> snake_case)', () => {
@@ -119,10 +120,10 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.manifest.policies?.hooks?.pre_tool_use).toEqual([
+    expect(result.team.policies?.hooks?.preToolUse).toEqual([
       { matcher: 'Bash', command: 'echo pre' },
     ]);
-    expect(result.manifest.policies?.hooks?.post_tool_use).toEqual([
+    expect(result.team.policies?.hooks?.postToolUse).toEqual([
       { matcher: 'Write', command: 'echo post' },
     ]);
   });
@@ -134,7 +135,7 @@ describe('importFromClaudeDir', () => {
 
     const result = importFromClaudeDir(TMP, 'test-project');
     expect(result.warnings.some((w) => w.message.includes('Unknown model'))).toBe(true);
-    expect(result.manifest.agents.agent.claude.model).toBeUndefined();
+    expect(result.team.agents.agent.runtime.model).toBeUndefined();
   });
 
   it('warns when no agent files found', () => {
@@ -169,8 +170,8 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.manifest.agents.dev.claude.instructions).toBe('Write clean code.');
-    expect(result.manifest.agents.dev.forge?.handoffs).toEqual(['reviewer']);
+    expect(result.team.agents.dev.instructions).toEqual([{ kind: 'behavior', content: 'Write clean code.' }]);
+    expect(result.team.agents.dev.metadata?.handoffs).toEqual(['reviewer']);
   });
 
   it('uses filename as agent name when frontmatter name is missing', () => {
@@ -179,7 +180,7 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.manifest.agents['my-agent']).toBeDefined();
+    expect(result.team.agents['my-agent']).toBeDefined();
   });
 
   it('sets project name correctly', () => {
@@ -188,8 +189,8 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'cool-project');
-    expect(result.manifest.project.name).toBe('cool-project');
-    expect(result.manifest.version).toBe('1');
+    expect(result.team.project.name).toBe('cool-project');
+    expect(result.team.version).toBe('2');
   });
 
   it('imports disallowedTools from frontmatter', () => {
@@ -198,7 +199,7 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.manifest.agents.reader.claude.disallowed_tools).toEqual(['Write', 'Edit', 'Bash']);
+    expect(result.team.agents.reader.runtime.disallowedTools).toEqual(['Write', 'Edit', 'Bash']);
   });
 
   it('handles CRLF line endings in agent files', () => {
@@ -207,8 +208,8 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.manifest.agents['win-agent'].claude.description).toBe('Windows agent');
-    expect(result.manifest.agents['win-agent'].claude.model).toBe('opus');
-    expect(result.manifest.agents['win-agent'].claude.instructions).toBe('Windows instructions.');
+    expect(result.team.agents['win-agent'].description).toBe('Windows agent');
+    expect(result.team.agents['win-agent'].runtime.model).toBe('opus');
+    expect(result.team.agents['win-agent'].instructions).toEqual([{ kind: 'behavior', content: 'Windows instructions.' }]);
   });
 });

@@ -1,15 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://agentforge.dev/schema/v1.json",
+  "$id": "https://agentforge.dev/schema/v2.json",
   "title": "AgentForge Manifest",
-  "description": "Schema for agentforge.yaml, the canonical manifest for Claude Code subagent configuration",
+  "description": "Schema for agentforge.yaml and built-in preset manifests",
   "type": "object",
   "required": ["version", "project", "agents"],
   "additionalProperties": false,
   "properties": {
     "version": {
       "type": "string",
-      "const": "1",
+      "enum": ["1", "2"],
       "description": "Manifest format version"
     },
     "project": {
@@ -19,23 +19,19 @@
       "properties": {
         "name": {
           "type": "string",
-          "pattern": "^[a-z0-9][a-z0-9-]*$",
-          "description": "Project name. Lowercase, hyphens allowed."
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
         },
         "preset": {
-          "type": "string",
-          "description": "Preset this configuration was based on"
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "Project description for generated AGENTS.md"
+          "type": "string"
         }
       }
     },
     "agents": {
       "type": "object",
       "minProperties": 1,
-      "description": "Agent definitions. Keys are agent IDs.",
       "patternProperties": {
         "^[a-z][a-z0-9-]*$": {
           "$ref": "#/definitions/AgentDefinition"
@@ -56,8 +52,11 @@
   "definitions": {
     "ModelAlias": {
       "type": "string",
-      "enum": ["opus", "sonnet", "haiku", "inherit"],
-      "description": "Model alias. Maps to Claude Code model field."
+      "enum": ["opus", "sonnet", "haiku", "inherit"]
+    },
+    "AgentSkill": {
+      "type": "string",
+      "enum": ["read_files", "write_files", "execute", "search", "web", "delegate", "interact", "notebook"]
     },
     "CanonicalTool": {
       "type": "string",
@@ -67,8 +66,7 @@
         "Bash",
         "WebFetch", "WebSearch",
         "Agent"
-      ],
-      "description": "Canonical Claude Code tool name"
+      ]
     },
     "CompatTool": {
       "type": "string",
@@ -78,17 +76,130 @@
         "Bash",
         "WebFetch", "WebSearch",
         "Agent", "Task"
-      ],
-      "description": "Claude Code tool name, including legacy Task alias"
+      ]
     },
     "PermissionMode": {
       "type": "string",
-      "enum": ["default", "acceptEdits", "bypassPermissions", "plan", "dontAsk"],
-      "description": "Permission mode for the agent"
+      "enum": ["default", "acceptEdits", "bypassPermissions", "plan", "dontAsk"]
+    },
+    "InstructionBlockKind": {
+      "type": "string",
+      "enum": ["behavior", "workflow", "safety", "style", "delegation"]
+    },
+    "CapabilityTraitName": {
+      "type": "string",
+      "enum": [
+        "base-read",
+        "file-authoring",
+        "command-execution",
+        "web-research",
+        "delegation",
+        "no-file-edits",
+        "no-commands",
+        "no-web"
+      ]
+    },
+    "InstructionFragmentName": {
+      "type": "string",
+      "enum": [
+        "coordination-core",
+        "delegate-first",
+        "planning-core",
+        "planning-read-only",
+        "research-core",
+        "research-citation",
+        "research-no-file-edits",
+        "development-core",
+        "development-workflow",
+        "tester-core",
+        "tester-read-only",
+        "review-core",
+        "review-feedback",
+        "security-audit-core",
+        "security-audit-severity",
+        "research-handoff",
+        "secure-planning",
+        "secure-development",
+        "secure-development-tests",
+        "security-review-gate",
+        "post-audit-review",
+        "solo-dev-core",
+        "solo-dev-workflow",
+        "solo-dev-style",
+        "feature-orchestrator-workflow",
+        "feature-orchestrator-output",
+        "feature-planner-workflow",
+        "feature-planner-read-only",
+        "feature-developer-core",
+        "feature-developer-workflow",
+        "feature-developer-summary",
+        "feature-reviewer-checklist",
+        "feature-reviewer-style",
+        "research-orchestrator-core",
+        "research-orchestrator-workflow",
+        "research-orchestrator-output",
+        "research-planner-core",
+        "research-planner-constraints",
+        "research-developer-core",
+        "research-developer-tests",
+        "secure-orchestrator-core",
+        "secure-orchestrator-workflow",
+        "secure-orchestrator-gate",
+        "post-audit-review-core"
+      ]
+    },
+    "PolicyFragmentName": {
+      "type": "string",
+      "enum": [
+        "allow-npm-run",
+        "allow-npm-test",
+        "allow-git-read",
+        "allow-git-write",
+        "allow-npx",
+        "allow-npm-audit",
+        "ask-git-push",
+        "deny-destructive-shell",
+        "deny-network-downloads",
+        "deny-dynamic-exec",
+        "deny-env-files",
+        "sandbox-default"
+      ]
+    },
+    "AbstractPermission": {
+      "type": "string",
+      "enum": [
+        "project.commands",
+        "tests",
+        "git.read",
+        "git.write",
+        "package.exec",
+        "security.audit",
+        "git.push",
+        "destructive-shell",
+        "downloads",
+        "dynamic-exec",
+        "env.write"
+      ]
+    },
+    "InstructionBlock": {
+      "type": "object",
+      "required": ["kind", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/definitions/InstructionBlockKind"
+        },
+        "title": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "LegacyToolsConfig": {
       "type": "object",
-      "description": "Legacy AgentForge tool access configuration",
       "anyOf": [
         {
           "required": ["allow"],
@@ -96,13 +207,11 @@
             "allow": {
               "type": "array",
               "items": { "$ref": "#/definitions/CompatTool" },
-              "minItems": 1,
-              "description": "Tools explicitly allowed for this agent"
+              "minItems": 1
             },
             "deny": {
               "type": "array",
-              "items": { "$ref": "#/definitions/CompatTool" },
-              "description": "Tools explicitly denied for this agent"
+              "items": { "$ref": "#/definitions/CompatTool" }
             }
           },
           "additionalProperties": false
@@ -113,8 +222,7 @@
             "deny": {
               "type": "array",
               "items": { "$ref": "#/definitions/CompatTool" },
-              "minItems": 1,
-              "description": "Tools explicitly denied (rest inherited)"
+              "minItems": 1
             }
           },
           "additionalProperties": false
@@ -126,66 +234,104 @@
       "required": ["name", "url"],
       "additionalProperties": false,
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "MCP server name"
-        },
-        "url": {
-          "type": "string",
-          "format": "uri",
-          "description": "MCP server URL"
-        }
+        "name": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
       }
     },
-    "ClaudeAgentConfig": {
+    "ClaudeAgentConfigV2": {
       "type": "object",
       "required": ["description"],
       "additionalProperties": false,
       "properties": {
-        "description": {
-          "type": "string",
-          "minLength": 1,
-          "description": "When Claude Code should delegate to this subagent."
-        },
-        "model": {
-          "$ref": "#/definitions/ModelAlias"
+        "description": { "type": "string", "minLength": 1 },
+        "model": { "$ref": "#/definitions/ModelAlias" },
+        "capability_traits": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CapabilityTraitName" }
         },
         "tools": {
           "type": "array",
-          "items": { "$ref": "#/definitions/CanonicalTool" },
-          "minItems": 1,
-          "description": "Tools available to the subagent"
+          "items": {
+            "anyOf": [
+              { "$ref": "#/definitions/AgentSkill" },
+              { "$ref": "#/definitions/CanonicalTool" }
+            ]
+          },
+          "minItems": 1
         },
         "disallowed_tools": {
           "type": "array",
-          "items": { "$ref": "#/definitions/CanonicalTool" },
-          "description": "Tools explicitly disallowed for the subagent"
+          "items": {
+            "anyOf": [
+              { "$ref": "#/definitions/AgentSkill" },
+              { "$ref": "#/definitions/CanonicalTool" }
+            ]
+          }
         },
         "skills": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-          "description": "Skill names to auto-load"
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
         },
         "max_turns": {
           "type": "integer",
-          "minimum": 1,
-          "description": "Maximum conversation turns for this subagent"
+          "minimum": 1
         },
         "mcp_servers": {
           "type": "array",
-          "items": { "$ref": "#/definitions/McpServerConfig" },
-          "description": "MCP servers available to this subagent"
+          "items": { "$ref": "#/definitions/McpServerConfig" }
+        },
+        "permission_mode": {
+          "$ref": "#/definitions/PermissionMode"
+        },
+        "instruction_fragments": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/InstructionFragmentName" }
+        },
+        "instruction_blocks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/InstructionBlock" }
+        },
+        "background": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ClaudeAgentConfigV1": {
+      "type": "object",
+      "required": ["description"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "model": { "$ref": "#/definitions/ModelAlias" },
+        "tools": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CanonicalTool" },
+          "minItems": 1
+        },
+        "disallowed_tools": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CanonicalTool" }
+        },
+        "skills": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+        },
+        "max_turns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mcp_servers": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/McpServerConfig" }
         },
         "permission_mode": {
           "$ref": "#/definitions/PermissionMode"
         },
         "instructions": {
-          "type": "string",
-          "description": "Freeform instructions for the subagent body"
+          "type": "string"
         },
         "background": {
-          "type": "boolean",
-          "description": "Whether the subagent may run in background mode"
+          "type": "boolean"
         }
       }
     },
@@ -195,30 +341,28 @@
       "properties": {
         "handoffs": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-          "description": "Agent IDs this agent can delegate to"
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
         },
-        "role": {
-          "type": "string",
-          "description": "Optional AgentForge role label"
-        },
-        "template": {
-          "type": "string",
-          "description": "Optional AgentForge template metadata"
-        }
+        "role": { "type": "string" },
+        "template": { "type": "string" }
       }
     },
-    "CanonicalAgentConfig": {
+    "CanonicalAgentConfigV2": {
       "type": "object",
       "required": ["claude"],
       "additionalProperties": false,
       "properties": {
-        "claude": {
-          "$ref": "#/definitions/ClaudeAgentConfig"
-        },
-        "forge": {
-          "$ref": "#/definitions/ForgeAgentMetadata"
-        }
+        "claude": { "$ref": "#/definitions/ClaudeAgentConfigV2" },
+        "forge": { "$ref": "#/definitions/ForgeAgentMetadata" }
+      }
+    },
+    "CanonicalAgentConfigV1": {
+      "type": "object",
+      "required": ["claude"],
+      "additionalProperties": false,
+      "properties": {
+        "claude": { "$ref": "#/definitions/ClaudeAgentConfigV1" },
+        "forge": { "$ref": "#/definitions/ForgeAgentMetadata" }
       }
     },
     "LegacyAgentConfig": {
@@ -226,17 +370,9 @@
       "required": ["description"],
       "additionalProperties": false,
       "properties": {
-        "description": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Legacy description field"
-        },
-        "model": {
-          "$ref": "#/definitions/ModelAlias"
-        },
-        "tools": {
-          "$ref": "#/definitions/LegacyToolsConfig"
-        },
+        "description": { "type": "string", "minLength": 1 },
+        "model": { "$ref": "#/definitions/ModelAlias" },
+        "tools": { "$ref": "#/definitions/LegacyToolsConfig" },
         "skills": {
           "type": "array",
           "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
@@ -257,8 +393,7 @@
           "$ref": "#/definitions/PermissionMode"
         },
         "behavior": {
-          "type": "string",
-          "description": "Legacy instructions field"
+          "type": "string"
         },
         "background": {
           "type": "boolean"
@@ -267,7 +402,8 @@
     },
     "AgentDefinition": {
       "anyOf": [
-        { "$ref": "#/definitions/CanonicalAgentConfig" },
+        { "$ref": "#/definitions/CanonicalAgentConfigV2" },
+        { "$ref": "#/definitions/CanonicalAgentConfigV1" },
         { "$ref": "#/definitions/LegacyAgentConfig" }
       ]
     },
@@ -277,24 +413,52 @@
       "properties": {
         "allow": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Permission rules to auto-allow. Uses Claude Code permission rule syntax."
+          "items": {
+            "anyOf": [
+              { "$ref": "#/definitions/AbstractPermission" },
+              { "type": "string" }
+            ]
+          }
         },
         "ask": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Permission rules requiring confirmation"
+          "items": {
+            "anyOf": [
+              { "$ref": "#/definitions/AbstractPermission" },
+              { "type": "string" }
+            ]
+          }
         },
         "deny": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Permission rules to deny"
+          "items": {
+            "anyOf": [
+              { "$ref": "#/definitions/AbstractPermission" },
+              { "type": "string" }
+            ]
+          }
         },
         "default_mode": {
           "type": "string",
-          "enum": ["default", "acceptEdits"],
-          "default": "default",
-          "description": "Default permission mode for the project"
+          "enum": ["default", "acceptEdits"]
+        },
+        "rules": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allow": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "ask": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "deny": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
         }
       }
     },
@@ -302,20 +466,11 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable OS-level bash sandboxing"
-        },
-        "auto_allow_bash": {
-          "type": "boolean",
-          "default": true,
-          "description": "Auto-approve bash commands when sandboxed"
-        },
+        "enabled": { "type": "boolean" },
+        "auto_allow_bash": { "type": "boolean" },
         "excluded_commands": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Commands that run outside sandbox"
+          "items": { "type": "string" }
         },
         "network": {
           "type": "object",
@@ -323,13 +478,10 @@
           "properties": {
             "allow_unix_sockets": {
               "type": "array",
-              "items": { "type": "string" },
-              "description": "Unix socket paths accessible in sandbox"
+              "items": { "type": "string" }
             },
             "allow_local_binding": {
-              "type": "boolean",
-              "default": false,
-              "description": "Allow binding to localhost ports"
+              "type": "boolean"
             }
           }
         }
@@ -340,19 +492,9 @@
       "required": ["matcher", "command"],
       "additionalProperties": false,
       "properties": {
-        "matcher": {
-          "type": "string",
-          "description": "Tool name pattern to match"
-        },
-        "command": {
-          "type": "string",
-          "description": "Shell command to execute"
-        },
-        "async": {
-          "type": "boolean",
-          "default": false,
-          "description": "Run non-blocking"
-        }
+        "matcher": { "type": "string" },
+        "command": { "type": "string" },
+        "async": { "type": "boolean" }
       }
     },
     "HooksConfig": {
@@ -379,8 +521,7 @@
       "properties": {
         "allowed_domains": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Domains accessible via WebFetch. Converted to WebFetch permission rules."
+          "items": { "type": "string" }
         }
       }
     },
@@ -388,6 +529,10 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "fragments": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/PolicyFragmentName" }
+        },
         "permissions": { "$ref": "#/definitions/PermissionsConfig" },
         "sandbox": { "$ref": "#/definitions/SandboxConfig" },
         "hooks": { "$ref": "#/definitions/HooksConfig" },
@@ -398,41 +543,21 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "default_model": {
-          "$ref": "#/definitions/ModelAlias",
-          "default": "sonnet",
-          "description": "Default model for agents that don't specify one"
-        },
-        "generate_docs": {
-          "type": "boolean",
-          "default": true,
-          "description": "Generate AGENTS.md documentation"
-        },
-        "generate_local_settings": {
-          "type": "boolean",
-          "default": true,
-          "description": "Generate settings.local.json"
-        }
+        "default_model": { "$ref": "#/definitions/ModelAlias" },
+        "generate_docs": { "type": "boolean" },
+        "generate_local_settings": { "type": "boolean" }
       }
     },
     "PresetMeta": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Metadata for sharing and publishing presets",
       "properties": {
-        "author": {
-          "type": "string",
-          "description": "Author name or handle"
-        },
+        "author": { "type": "string" },
         "tags": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Tags for categorization and search"
+          "items": { "type": "string" }
         },
-        "min_version": {
-          "type": "string",
-          "description": "Minimum AgentForge version required"
-        }
+        "min_version": { "type": "string" }
       }
     }
   }

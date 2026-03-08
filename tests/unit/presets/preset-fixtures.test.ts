@@ -36,8 +36,8 @@ describe('preset fixtures', () => {
       const fixtureManifest = applyDefaults(parse(readFileSync(fixturePath, 'utf-8')) as AgentForgeManifest);
 
       expect(
-        normalizeValue(loadPreset(preset.name).manifest),
-        `preset fixture "${preset.name}" should match the TypeScript source of truth`,
+        normalizeValue(loadPreset(preset.name).team),
+        `preset fixture "${preset.name}" should match the YAML source of truth`,
       ).toEqual(normalizeValue(fixtureManifest));
     }
   });

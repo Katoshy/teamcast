@@ -1,15 +1,14 @@
-import type { AgentForgeManifest } from '../../types/manifest.js';
+import type { CoreTeam } from '../../core/types.js';
 import type { ProjectContext } from '../../detector/index.js';
 import { promptInput } from '../../utils/prompts.js';
 
 export async function stepProjectContext(
   ctx: ProjectContext,
-  partial: Partial<AgentForgeManifest>,
+  partial: Pick<CoreTeam, 'project'> | undefined,
   options?: { nonInteractive?: boolean },
-): Promise<Partial<AgentForgeManifest>> {
+): Promise<Pick<CoreTeam, 'project'>> {
   if (options?.nonInteractive) {
     return {
-      ...partial,
       project: {
         name: ctx.name ?? 'my-project',
       },

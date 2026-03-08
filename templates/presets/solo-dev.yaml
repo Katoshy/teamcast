@@ -1,4 +1,7 @@
-version: "1"
+version: "2"
+preset_meta:
+  tags: [solo, simple]
+  min_version: "2"
 project:
   name: placeholder
   preset: solo-dev
@@ -6,38 +9,24 @@ project:
 
 agents:
   developer:
-    description: Full-stack developer agent. Reads, writes, edits files and runs commands. Use for any development task.
-    model: sonnet
-    tools:
-      allow: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, WebFetch, WebSearch, Task]
-    skills: [test-first, clean-code, planning]
-    behavior: |
-      You are a capable full-stack developer. Handle the task end-to-end:
-      1. Understand the request
-      2. Read relevant code
-      3. Make a plan
-      4. Implement with tests
-      5. Verify the result
-
-      Follow existing code style. Keep changes minimal and focused.
+    claude:
+      description: Full-stack developer agent. Reads, writes, edits files and runs commands. Use for any development task.
+      model: sonnet
+      capability_traits: [base-read, file-authoring, command-execution, web-research, delegation]
+      skills: [test-first, clean-code, planning]
+      instruction_fragments:
+        - solo-dev-core
+        - solo-dev-workflow
+        - solo-dev-style
 
 policies:
-  permissions:
-    allow:
-      - "Bash(npm run *)"
-      - "Bash(npm test *)"
-      - "Bash(git status)"
-      - "Bash(git diff *)"
-      - "Bash(git add *)"
-      - "Bash(git commit *)"
-      - "Bash(npx *)"
-    ask:
-      - "Bash(git push *)"
-    deny:
-      - "Bash(rm -rf *)"
-      - "Bash(git push --force *)"
-      - "Write(.env*)"
-      - "Edit(.env*)"
-  sandbox:
-    enabled: true
-    auto_allow_bash: true
+  fragments:
+    - allow-npm-run
+    - allow-npm-test
+    - allow-git-read
+    - allow-git-write
+    - allow-npx
+    - ask-git-push
+    - deny-destructive-shell
+    - deny-env-files
+    - sandbox-default

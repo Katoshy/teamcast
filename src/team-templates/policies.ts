@@ -1,4 +1,6 @@
-import type { PermissionsConfig, PoliciesConfig, SandboxConfig } from '../types/manifest.js';
+import type { TeamPolicies } from '../core/types.js';
+import type { PolicyFragmentName } from '../components/policy-fragments.js';
+import { composePoliciesFromFragments } from '../components/policy-fragments.js';
 
 export type PolicyBundleName =
   | 'custom-team'
@@ -8,133 +10,71 @@ export type PolicyBundleName =
   | 'research-and-build'
   | 'secure-dev';
 
-const DEFAULT_SANDBOX: SandboxConfig = {
-  enabled: true,
-  auto_allow_bash: true,
+const POLICY_BUNDLES: Record<PolicyBundleName, PolicyFragmentName[]> = {
+  'custom-team': [
+    'allow-npm-run',
+    'allow-git-read',
+    'ask-git-push',
+    'deny-destructive-shell',
+    'deny-env-files',
+    'sandbox-default',
+  ],
+  'single-agent': [
+    'allow-npm-run',
+    'allow-git-read',
+    'ask-git-push',
+    'deny-destructive-shell',
+    'deny-env-files',
+    'sandbox-default',
+  ],
+  'feature-team': [
+    'allow-npm-run',
+    'allow-npm-test',
+    'allow-git-read',
+    'allow-git-write',
+    'ask-git-push',
+    'deny-destructive-shell',
+    'deny-network-downloads',
+    'deny-env-files',
+    'sandbox-default',
+  ],
+  'solo-dev': [
+    'allow-npm-run',
+    'allow-npm-test',
+    'allow-git-read',
+    'allow-git-write',
+    'allow-npx',
+    'ask-git-push',
+    'deny-destructive-shell',
+    'deny-env-files',
+    'sandbox-default',
+  ],
+  'research-and-build': [
+    'allow-npm-run',
+    'allow-npm-test',
+    'allow-git-read',
+    'allow-git-write',
+    'ask-git-push',
+    'deny-destructive-shell',
+    'deny-network-downloads',
+    'deny-env-files',
+    'sandbox-default',
+  ],
+  'secure-dev': [
+    'allow-npm-run',
+    'allow-npm-test',
+    'allow-npm-audit',
+    'allow-git-read',
+    'allow-git-write',
+    'ask-git-push',
+    'deny-destructive-shell',
+    'deny-network-downloads',
+    'deny-dynamic-exec',
+    'deny-env-files',
+    'sandbox-default',
+  ],
 };
 
-const POLICY_BUNDLES: Record<PolicyBundleName, PoliciesConfig> = {
-  'custom-team': {
-    permissions: {
-      allow: ['Bash(npm run *)', 'Bash(npm test)', 'Bash(git status)', 'Bash(git diff *)'],
-      ask: ['Bash(git push *)'],
-      deny: ['Bash(rm -rf *)', 'Bash(git push --force *)', 'Write(.env*)', 'Edit(.env*)'],
-    },
-    sandbox: DEFAULT_SANDBOX,
-  },
-  'single-agent': {
-    permissions: {
-      allow: ['Bash(npm run *)', 'Bash(git status)', 'Bash(git diff *)'],
-      ask: ['Bash(git push *)'],
-      deny: ['Bash(rm -rf *)', 'Bash(git push --force *)', 'Write(.env*)', 'Edit(.env*)'],
-    },
-    sandbox: DEFAULT_SANDBOX,
-  },
-  'feature-team': {
-    permissions: {
-      allow: [
-        'Bash(npm run *)',
-        'Bash(npm test *)',
-        'Bash(git status)',
-        'Bash(git diff *)',
-        'Bash(git add *)',
-        'Bash(git commit *)',
-      ],
-      ask: ['Bash(git push *)'],
-      deny: [
-        'Bash(rm -rf *)',
-        'Bash(git push --force *)',
-        'Bash(curl *)',
-        'Bash(wget *)',
-        'Write(.env*)',
-        'Edit(.env*)',
-      ],
-    },
-    sandbox: DEFAULT_SANDBOX,
-  },
-  'solo-dev': {
-    permissions: {
-      allow: [
-        'Bash(npm run *)',
-        'Bash(npm test *)',
-        'Bash(git status)',
-        'Bash(git diff *)',
-        'Bash(git add *)',
-        'Bash(git commit *)',
-        'Bash(npx *)',
-      ],
-      ask: ['Bash(git push *)'],
-      deny: ['Bash(rm -rf *)', 'Bash(git push --force *)', 'Write(.env*)', 'Edit(.env*)'],
-    },
-    sandbox: DEFAULT_SANDBOX,
-  },
-  'research-and-build': {
-    permissions: {
-      allow: [
-        'Bash(npm run *)',
-        'Bash(npm test *)',
-        'Bash(git status)',
-        'Bash(git diff *)',
-        'Bash(git add *)',
-        'Bash(git commit *)',
-      ],
-      ask: ['Bash(git push *)'],
-      deny: [
-        'Bash(rm -rf *)',
-        'Bash(git push --force *)',
-        'Bash(curl *)',
-        'Bash(wget *)',
-        'Write(.env*)',
-        'Edit(.env*)',
-      ],
-    },
-    sandbox: DEFAULT_SANDBOX,
-  },
-  'secure-dev': {
-    permissions: {
-      allow: [
-        'Bash(npm run *)',
-        'Bash(npm test *)',
-        'Bash(npm audit)',
-        'Bash(git status)',
-        'Bash(git diff *)',
-        'Bash(git add *)',
-        'Bash(git commit *)',
-      ],
-      ask: ['Bash(git push *)'],
-      deny: [
-        'Bash(rm -rf *)',
-        'Bash(git push --force *)',
-        'Bash(curl *)',
-        'Bash(wget *)',
-        'Bash(eval *)',
-        'Bash(exec *)',
-        'Write(.env*)',
-        'Edit(.env*)',
-      ],
-    },
-    sandbox: DEFAULT_SANDBOX,
-  },
-};
-
-function clonePermissions(permissions: PermissionsConfig | undefined): PermissionsConfig | undefined {
-  if (!permissions) return undefined;
-
-  return {
-    allow: permissions.allow ? [...permissions.allow] : undefined,
-    ask: permissions.ask ? [...permissions.ask] : undefined,
-    deny: permissions.deny ? [...permissions.deny] : undefined,
-    default_mode: permissions.default_mode,
-  };
-}
-
-export function createPolicies(bundle: PolicyBundleName): PoliciesConfig {
-  const source = POLICY_BUNDLES[bundle];
-
-  return {
-    permissions: clonePermissions(source.permissions),
-    sandbox: source.sandbox ? { ...source.sandbox } : undefined,
-    hooks: source.hooks ? { ...source.hooks } : undefined,
-    network: source.network ? { ...source.network } : undefined,
-  };
+export function createPolicies(bundle: PolicyBundleName): TeamPolicies {
+  return composePoliciesFromFragments(POLICY_BUNDLES[bundle]);
 }
