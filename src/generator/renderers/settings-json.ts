@@ -6,11 +6,6 @@ function domainToPermissionRule(domain: string): string {
   return `WebFetch(${domain}:*)`;
 }
 
-// Maps shell pattern to Bash permission rule
-function shellPatternToRule(pattern: string): string {
-  return `Bash(${pattern})`;
-}
-
 // Maps hook entries to Claude Code hooks format
 function mapHooks(entries: HookEntry[]): Array<{ matcher: string; hooks: Array<{ type: string; command: string }> }> {
   return entries.map((entry) => ({
@@ -55,11 +50,6 @@ export function renderSettingsJson(manifest: AgentForgeManifest): GeneratedFile 
   const allow: string[] = [...(policies?.permissions?.allow ?? [])];
   const ask: string[] = [...(policies?.permissions?.ask ?? [])];
   const deny: string[] = [...(policies?.permissions?.deny ?? [])];
-
-  // Convert shell rules to Bash() permission rules
-  if (policies?.permissions) {
-    // Already in allow/ask/deny — pass through as-is
-  }
 
   // Convert network allowed domains to WebFetch rules
   if (policies?.network?.allowed_domains) {

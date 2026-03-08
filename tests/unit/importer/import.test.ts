@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'os';
 import { importFromClaudeDir } from '../../../src/importer/index.js';
 
-const TMP = join(process.cwd(), 'tests/.tmp-import');
+let TMP: string;
 
 function setupClaudeDir(files: Record<string, string>) {
   mkdirSync(join(TMP, '.claude', 'agents'), { recursive: true });
@@ -23,8 +24,7 @@ function setupSettings(settings: object) {
 
 describe('importFromClaudeDir', () => {
   beforeEach(() => {
-    if (existsSync(TMP)) rmSync(TMP, { recursive: true });
-    mkdirSync(TMP, { recursive: true });
+    TMP = mkdtempSync(join(tmpdir(), 'agentforge-import-'));
   });
 
   afterEach(() => {
@@ -190,5 +190,25 @@ describe('importFromClaudeDir', () => {
     const result = importFromClaudeDir(TMP, 'cool-project');
     expect(result.manifest.project.name).toBe('cool-project');
     expect(result.manifest.version).toBe('1');
+  });
+
+  it('imports disallowedTools from frontmatter', () => {
+    setupClaudeDir({
+      'reader.md': '---\nname: reader\ndescription: Reader\ndisallowedTools: [Write, Edit, Bash]\n---\n',
+    });
+
+    const result = importFromClaudeDir(TMP, 'test-project');
+    expect(result.manifest.agents.reader.claude.disallowed_tools).toEqual(['Write', 'Edit', 'Bash']);
+  });
+
+  it('handles CRLF line endings in agent files', () => {
+    setupClaudeDir({
+      'win-agent.md': '---\r\nname: win-agent\r\ndescription: Windows agent\r\nmodel: opus\r\n---\r\n\r\nWindows instructions.\r\n',
+    });
+
+    const result = importFromClaudeDir(TMP, 'test-project');
+    expect(result.manifest.agents['win-agent'].claude.description).toBe('Windows agent');
+    expect(result.manifest.agents['win-agent'].claude.model).toBe('opus');
+    expect(result.manifest.agents['win-agent'].claude.instructions).toBe('Windows instructions.');
   });
 });

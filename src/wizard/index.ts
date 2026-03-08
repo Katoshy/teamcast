@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import type { AgentForgeManifest } from '../types/manifest.js';
+import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../types/manifest.js';
 import { detectProjectContext } from '../detector/index.js';
 import { writeManifest } from '../manifest/writer.js';
 import { generate } from '../generator/index.js';
@@ -38,7 +38,7 @@ export async function runWizard(options: WizardOptions): Promise<void> {
   let partial: Partial<AgentForgeManifest> = {};
   partial = await stepProjectContext(ctx, partial, { nonInteractive });
 
-  let manifest = (await stepTeamSelection(partial, { nonInteractive })) as AgentForgeManifest;
+  let manifest = (await stepTeamSelection(partial, { nonInteractive })) as NormalizedAgentForgeManifest;
   manifest.version = '1';
   manifest = await stepAgentCustomization(manifest, { nonInteractive });
 

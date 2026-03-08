@@ -1,5 +1,4 @@
-import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../../types/manifest.js';
-import { normalizeManifest } from '../../types/manifest.js';
+import type { NormalizedAgentForgeManifest } from '../../types/manifest.js';
 import type { Checker, ValidationResult } from '../types.js';
 
 // Checks if a deny rule pattern covers .env files
@@ -17,9 +16,8 @@ function hasDotEnvDeny(denyRules: string[]): boolean {
 }
 
 export const checkSecurityBaseline: Checker = (
-  inputManifest: AgentForgeManifest | NormalizedAgentForgeManifest,
+  manifest: NormalizedAgentForgeManifest,
 ): ValidationResult[] => {
-  const manifest = normalizeManifest(inputManifest);
   const results: ValidationResult[] = [];
 
   const deny = manifest.policies?.permissions?.deny ?? [];

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { checkRoleWarnings } from '../../../src/validator/checks/role-warnings.js';
 import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import { normalizeManifest } from '../../../src/types/manifest.js';
 
 const base: AgentForgeManifest = {
   version: '1',
@@ -27,7 +28,7 @@ describe('checkRoleWarnings', () => {
         },
       },
     };
-    expect(checkRoleWarnings(manifest)).toHaveLength(0);
+    expect(checkRoleWarnings(normalizeManifest(manifest))).toHaveLength(0);
   });
 
   it('warns when orchestrator has Write tool', () => {
@@ -40,7 +41,7 @@ describe('checkRoleWarnings', () => {
         },
       },
     };
-    const warnings = checkRoleWarnings(manifest);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest));
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('orchestrator');
     expect(warnings[0].message).toContain('file-write');
@@ -56,7 +57,7 @@ describe('checkRoleWarnings', () => {
         },
       },
     };
-    const warnings = checkRoleWarnings(manifest);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest));
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('internet access');
   });
@@ -71,7 +72,7 @@ describe('checkRoleWarnings', () => {
         },
       },
     };
-    const warnings = checkRoleWarnings(manifest);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest));
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('reviewer');
   });
@@ -86,7 +87,7 @@ describe('checkRoleWarnings', () => {
         },
       },
     };
-    const warnings = checkRoleWarnings(manifest);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest));
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('planner');
   });
@@ -101,7 +102,7 @@ describe('checkRoleWarnings', () => {
         },
       },
     };
-    const warnings = checkRoleWarnings(manifest);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest));
     expect(warnings).toHaveLength(1);
   });
 
@@ -115,7 +116,7 @@ describe('checkRoleWarnings', () => {
         },
       },
     };
-    const warnings = checkRoleWarnings(manifest);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest));
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('reviewer');
   });
