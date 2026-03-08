@@ -51,7 +51,8 @@ describe('importFromClaudeDir', () => {
     expect(agent).toBeDefined();
     expect(agent.description).toBe('Implements features and fixes bugs');
     expect(agent.runtime.model).toBe('sonnet');
-    expect(agent.runtime.tools).toEqual(['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob']);
+    // Read+Grep+Glob -> read_files, Bash -> execute; Write and Edit remain (no MultiEdit to complete write_files)
+    expect(agent.runtime.tools).toEqual(['read_files', 'execute', 'Write', 'Edit']);
     expect(agent.instructions).toEqual([{ kind: 'behavior', content: 'Custom behavior instructions here.' }]);
   });
 
@@ -200,6 +201,51 @@ describe('importFromClaudeDir', () => {
 
     const result = importFromClaudeDir(TMP, 'test-project');
     expect(result.team.agents.reader.runtime.disallowedTools).toEqual(['Write', 'Edit', 'Bash']);
+  });
+
+  it('reverse-maps canonical tools to AgentSkill names when all tools for a skill are present', () => {
+    setupClaudeDir({
+      'fullstack.md': [
+        '---',
+        'name: fullstack',
+        'description: Full-stack agent',
+        'tools: [Read, Grep, Glob, Write, Edit, MultiEdit, Bash, Agent]',
+        '---',
+      ].join('\n'),
+    });
+
+    const result = importFromClaudeDir(TMP, 'test-project');
+    const tools = result.team.agents.fullstack.runtime.tools ?? [];
+    // All four skills should be present
+    expect(tools).toContain('read_files');
+    expect(tools).toContain('write_files');
+    expect(tools).toContain('execute');
+    expect(tools).toContain('delegate');
+    // No raw CanonicalTool names should remain
+    expect(tools).not.toContain('Read');
+    expect(tools).not.toContain('Write');
+    expect(tools).not.toContain('Bash');
+    expect(tools).not.toContain('Agent');
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('keeps partial tool sets as raw tool names when skill cannot be completed', () => {
+    setupClaudeDir({
+      'partial.md': [
+        '---',
+        'name: partial',
+        'description: Partial tools agent',
+        // read_files requires Read+Grep+Glob; only Read here
+        'tools: [Read, Bash]',
+        '---',
+      ].join('\n'),
+    });
+
+    const result = importFromClaudeDir(TMP, 'test-project');
+    const tools = result.team.agents.partial.runtime.tools ?? [];
+    expect(tools).toContain('execute');
+    expect(tools).toContain('Read');
+    expect(tools).not.toContain('read_files');
   });
 
   it('handles CRLF line endings in agent files', () => {

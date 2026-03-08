@@ -12,6 +12,7 @@ import type {
 } from '../core/types.js';
 import { CLAUDE_CODE_TOOLS } from '../renderers/claude/tools.js';
 import type { CanonicalTool } from '../renderers/claude/tools.js';
+import { reverseMapToolsToSkills } from '../renderers/claude/skill-map.js';
 import { normalizePermissionTokens } from '../core/permissions.js';
 
 const LEGACY_MODEL_ID_MAP: Record<string, Exclude<ModelAlias, 'inherit'>> = {
@@ -152,7 +153,13 @@ function parseAgentFile(filePath: string): { name: string; agent: CoreAgent; war
   const name = typeof fields.name === 'string' && fields.name.length > 0 ? fields.name : fileName;
 
   const model = resolveModelAlias(fields.model);
-  const tools = parseToolList(fields.tools);
+  const rawTools = parseToolList(fields.tools);
+  const tools: string[] | undefined = rawTools
+    ? (() => {
+        const { skills, remainingTools } = reverseMapToolsToSkills(rawTools);
+        return [...skills, ...remainingTools];
+      })()
+    : undefined;
   const disallowedTools = parseToolList(fields.disallowedTools);
   const permissionMode = parsePermissionMode(fields.permissionMode);
   const maxTurns = typeof fields.maxTurns === 'number' ? fields.maxTurns : undefined;

@@ -1,6 +1,23 @@
 import chalk from 'chalk';
 import type { CoreTeam, ModelAlias } from '../../core/types.js';
-import { promptConfirm, promptList } from '../../utils/prompts.js';
+import { AGENT_SKILLS, type AgentSkill } from '../../core/skills.js';
+import { promptConfirm, promptList, promptCheckbox } from '../../utils/prompts.js';
+import { expandSkillsToTools, reverseMapToolsToSkills } from '../../renderers/claude/skill-map.js';
+
+/**
+ * Human-readable labels for each AgentSkill value, shown in the wizard checkbox.
+ * Format: "<label> (<tools>)"
+ */
+const SKILL_LABELS: Record<AgentSkill, string> = {
+  read_files: 'Read files       (Read, Glob, Grep)',
+  write_files: 'Write files      (Write, Edit, MultiEdit)',
+  execute: 'Execute commands (Bash)',
+  search: 'Search           (Glob, Grep)',
+  web: 'Web access       (WebFetch, WebSearch)',
+  delegate: 'Delegate         (Agent)',
+  interact: 'Interact         (AskUserQuestion, TodoWrite, TodoRead)',
+  notebook: 'Notebook         (NotebookEdit)',
+};
 
 export async function stepAgentCustomization(
   team: CoreTeam,
@@ -37,11 +54,27 @@ export async function stepAgentCustomization(
       default: currentModel,
     });
 
+    // Reverse-map the agent's current tools to pre-select matching skills.
+    const { skills: currentSkills } = reverseMapToolsToSkills(agent.runtime.tools ?? []);
+
+    const selectedSkills = await promptCheckbox<AgentSkill>({
+      message: `  Skills for ${name}:`,
+      choices: AGENT_SKILLS.map((skill) => ({
+        name: SKILL_LABELS[skill],
+        value: skill,
+        checked: currentSkills.includes(skill),
+      })),
+    });
+
+    // Expand the selected skills to canonical tools.
+    const expandedTools = selectedSkills.length > 0 ? expandSkillsToTools(selectedSkills) : undefined;
+
     updatedAgents[name] = {
       ...agent,
       runtime: {
         ...agent.runtime,
         model,
+        tools: expandedTools,
       },
     };
   }

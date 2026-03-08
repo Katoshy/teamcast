@@ -1,37 +1,63 @@
 import chalk from 'chalk';
 import type { CoreTeam } from '../core/types.js';
-import { mapPoliciesToClaudePermissions } from '../renderers/claude/policy-mapper.js';
+import { reverseMapToolsToSkills } from '../renderers/claude/skill-map.js';
 
-function describeToolCapabilities(tools: string[] | undefined, disallowedTools: string[] | undefined): {
-  can: string[];
-  cannot: string[];
-} {
-  const can: string[] = [];
-  const cannot: string[] = [];
+function formatAgentSection(agentId: string, agent: CoreTeam['agents'][string], defaultModel?: string): string[] {
+  const lines: string[] = [];
+  const model = agent.runtime.model ?? defaultModel ?? 'sonnet';
 
-  const allowed = tools ?? [];
-  const denied = disallowedTools ?? [];
+  lines.push(`  ${chalk.cyan(agentId)} ${chalk.dim(`(${model})`)}`);
 
-  if (allowed.includes('Read') || allowed.includes('Grep') || allowed.includes('Glob')) {
-    can.push('read files');
+  // Description
+  if (agent.description) {
+    lines.push(`    ${chalk.dim('Description:')} ${agent.description}`);
   }
-  if (allowed.includes('Write') || allowed.includes('Edit') || allowed.includes('MultiEdit')) {
-    can.push('write files');
-  }
-  if (allowed.includes('Bash')) can.push('run commands');
-  if (allowed.includes('WebFetch') || allowed.includes('WebSearch')) can.push('access internet');
-  if (allowed.includes('Agent')) can.push('delegate tasks');
 
-  if (denied.includes('Write') || denied.includes('Edit') || denied.includes('MultiEdit')) {
-    cannot.push('write files');
-  }
-  if (denied.includes('Bash')) cannot.push('run commands');
-  if (denied.includes('WebFetch') || denied.includes('WebSearch')) {
-    cannot.push('access internet');
-  }
-  if (denied.includes('Agent')) cannot.push('delegate tasks');
+  // Skills (abstract) — reverse-mapped from tools, or from runtime.skills if no tools
+  const tools = agent.runtime.tools ?? [];
+  if (tools.length > 0) {
+    const { skills, remainingTools } = reverseMapToolsToSkills(tools);
 
-  return { can, cannot };
+    if (skills.length > 0) {
+      lines.push(`    ${chalk.dim('Skills:')} ${skills.join(', ')}`);
+    }
+
+    // Expanded tools list (all, including unmapped remainders)
+    lines.push(`    ${chalk.dim('Tools:')} ${tools.join(', ')}`);
+
+    if (remainingTools.length > 0) {
+      // Unmapped tools shown for transparency
+      lines.push(`    ${chalk.dim('Unmapped tools:')} ${remainingTools.join(', ')}`);
+    }
+  }
+
+  // Disallowed tools
+  if (agent.runtime.disallowedTools?.length) {
+    lines.push(`    ${chalk.dim('Blocked tools:')} ${agent.runtime.disallowedTools.join(', ')}`);
+  }
+
+  // Skill doc references (runtime.skills — distinct from abstract AgentSkill values)
+  if (agent.runtime.skills?.length) {
+    lines.push(`    ${chalk.dim('Skill docs:')} ${agent.runtime.skills.join(', ')}`);
+  }
+
+  // Instruction block kinds (deduplicated)
+  if (agent.instructions?.length) {
+    const kinds = [...new Set(agent.instructions.map((b) => b.kind))];
+    lines.push(`    ${chalk.dim('Instruction blocks:')} ${kinds.join(', ')}`);
+  }
+
+  // Permission mode (only when non-default)
+  if (agent.runtime.permissionMode) {
+    lines.push(`    ${chalk.dim('Permission mode:')} ${agent.runtime.permissionMode}`);
+  }
+
+  // Handoffs
+  if (agent.metadata?.handoffs?.length) {
+    lines.push(`    ${chalk.dim('Delegates to:')} ${agent.metadata.handoffs.join(', ')}`);
+  }
+
+  return lines;
 }
 
 export function buildExplanation(team: CoreTeam): string {
@@ -43,25 +69,7 @@ export function buildExplanation(team: CoreTeam): string {
   lines.push(chalk.bold('Team structure:'));
 
   for (const [agentId, agent] of Object.entries(team.agents)) {
-    const model = agent.runtime.model ?? team.settings?.defaultModel ?? 'sonnet';
-    lines.push(`  ${chalk.cyan(agentId)} ${chalk.dim(`(${model})`)}`);
-
-    const { can, cannot } = describeToolCapabilities(agent.runtime.tools, agent.runtime.disallowedTools);
-    if (can.length) {
-      lines.push(`    ${chalk.dim('|--')} can: ${can.join(', ')}`);
-    }
-    if (cannot.length) {
-      lines.push(`    ${chalk.dim('|--')} cannot: ${cannot.join(', ')}`);
-    }
-    if (agent.runtime.skills?.length) {
-      lines.push(`    ${chalk.dim('|--')} skills: ${agent.runtime.skills.join(', ')}`);
-    }
-    if (agent.metadata?.handoffs?.length) {
-      lines.push(`    ${chalk.dim('`--')} delegates to: ${agent.metadata.handoffs.join(', ')}`);
-    } else if (lines[lines.length - 1]?.includes('|--')) {
-      lines[lines.length - 1] = lines[lines.length - 1].replace('|--', '`--');
-    }
-
+    lines.push(...formatAgentSection(agentId, agent, team.settings?.defaultModel));
     lines.push('');
   }
 
@@ -75,9 +83,16 @@ export function buildExplanation(team: CoreTeam): string {
       lines.push(`  ${chalk.dim('*')} Network: restricted to ${team.policies.network.allowedDomains.join(', ')}`);
     }
 
-    const denied = mapPoliciesToClaudePermissions(team.policies).deny;
-    if (denied.length) {
-      lines.push(`  ${chalk.dim('*')} Blocked: ${denied.join(', ')}`);
+    // Abstract permissions (allow / ask / deny)
+    const perms = team.policies.permissions;
+    if (perms?.allow?.length) {
+      lines.push(`  ${chalk.dim('*')} Allowed: ${perms.allow.join(', ')}`);
+    }
+    if (perms?.ask?.length) {
+      lines.push(`  ${chalk.dim('*')} Ask before: ${perms.ask.join(', ')}`);
+    }
+    if (perms?.deny?.length) {
+      lines.push(`  ${chalk.dim('*')} Denied: ${perms.deny.join(', ')}`);
     }
 
     const hookCount =

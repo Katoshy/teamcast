@@ -1,6 +1,6 @@
 {
   "name": "agentforge",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "description": "CLI to design, generate, and validate Claude Code agent teams from a single manifest",
   "type": "module",
   "bin": {
