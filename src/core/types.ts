@@ -4,6 +4,7 @@
 // This module must not import from manifest/ to avoid circular dependencies.
 
 import type { InstructionBlock } from './instructions.js';
+import type { PolicyAssertion } from './assertions.js';
 
 // --- Primitive aliases ---
 
@@ -120,6 +121,7 @@ export interface TeamPolicies {
   network?: {
     allowedDomains?: string[];
   };
+  assertions?: PolicyAssertion[];
 }
 
 // --- Resolved settings ---

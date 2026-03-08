@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { runValidation } from '../../../src/validator/index.js';
 import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { CoreTeam } from '../../../src/core/types.js';
 
 describe('runValidation (full pipeline)', () => {
   it('returns no issues for a well-configured feature-team', () => {
@@ -58,6 +59,32 @@ describe('runValidation (full pipeline)', () => {
     // orchestrator with Write = warning, reviewer with Edit = warning,
     // no .env deny = warning, no sandbox = warning
     expect(warnings.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('returns policy category results when policies.assertions are defined', () => {
+    const team: CoreTeam = {
+      version: '2',
+      project: { name: 'policy-test' },
+      agents: {
+        developer: {
+          id: 'developer',
+          description: 'Implements features',
+          runtime: { tools: ['Bash', 'Write', 'Edit', 'Read'] },
+          instructions: [],
+        },
+      },
+      policies: {
+        sandbox: { enabled: false },
+        assertions: [
+          { rule: 'require_sandbox_with_execute' },
+          { rule: 'no_unrestricted_execute' },
+        ],
+      },
+    };
+    const results = runValidation(team);
+    const policyResults = results.filter((r) => r.category === 'policy');
+    expect(policyResults.length).toBeGreaterThanOrEqual(1);
+    expect(policyResults.every((r) => r.category === 'policy')).toBe(true);
   });
 
   it('detects three-node cycle A→B→C→A', () => {

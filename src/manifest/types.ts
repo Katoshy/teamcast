@@ -13,6 +13,7 @@ import type {
   InstructionFragmentName,
 } from '../components/agent-fragments.js';
 import type { PolicyFragmentName } from '../components/policy-fragments.js';
+import type { PolicyAssertion } from '../core/assertions.js';
 
 export type LegacyToolAlias = 'Task';
 export type Tool = CanonicalTool | LegacyToolAlias;
@@ -136,6 +137,7 @@ export interface PoliciesConfig {
   sandbox?: SandboxConfig;
   hooks?: HooksConfig;
   network?: NetworkConfig;
+  assertions?: PolicyAssertion[];
 }
 
 export interface GenerationSettings {

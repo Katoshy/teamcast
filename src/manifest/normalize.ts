@@ -164,6 +164,7 @@ function mapPolicies(policies: PoliciesConfig | undefined): TeamPolicies | undef
         allowedDomains: cloneArray(policies.network.allowed_domains),
       }
     : undefined,
+    assertions: policies.assertions ? [...policies.assertions] : undefined,
   };
 
   return composePoliciesFromFragments(policies.fragments, explicitPolicies);
@@ -361,6 +362,7 @@ function denormalizePolicies(policies: CoreTeam['policies']): PoliciesConfig | u
           allowed_domains: cloneArray(policies.network.allowedDomains),
         }
       : undefined,
+    assertions: policies.assertions ? [...policies.assertions] : undefined,
   };
 }
 

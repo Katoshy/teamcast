@@ -8,6 +8,7 @@ import { checkToolConflicts } from './checks/tool-conflicts.js';
 import { checkRoleWarnings } from './checks/role-warnings.js';
 import { checkSecurityBaseline } from './checks/security-baseline.js';
 import { checkInstructionBlocks } from './checks/instruction-blocks.js';
+import { evaluatePolicyAssertions } from '../core/policy-evaluator.js';
 
 const CHECKERS: Checker[] = [
   checkHandoffGraph,
@@ -15,6 +16,7 @@ const CHECKERS: Checker[] = [
   checkRoleWarnings,
   checkSecurityBaseline,
   checkInstructionBlocks,
+  evaluatePolicyAssertions,
 ];
 
 export function runValidation(

@@ -9,7 +9,8 @@ export function registerValidateCommand(program: Command): void {
     .command('validate')
     .description('Validate the agent team configuration for conflicts and security issues')
     .option('--strict', 'Exit with error code on warnings too')
-    .action((options: { strict?: boolean }) => {
+    .option('--format <format>', 'output format: text or json', 'text')
+    .action((options: { strict?: boolean; format?: string }) => {
       const cwd = process.cwd();
 
       let manifest;
@@ -17,9 +18,13 @@ export function registerValidateCommand(program: Command): void {
         manifest = readManifest(cwd);
       } catch (err) {
         if (err instanceof ManifestError) {
-          console.error(chalk.red(`\nError: ${err.message}`));
-          if (err.details?.length) {
-            for (const d of err.details) console.error(chalk.dim(`  ${d}`));
+          if (options.format === 'json') {
+            process.stdout.write(JSON.stringify({ error: err.message, details: err.details ?? [] }, null, 2) + '\n');
+          } else {
+            console.error(chalk.red(`\nError: ${err.message}`));
+            if (err.details?.length) {
+              for (const d of err.details) console.error(chalk.dim(`  ${d}`));
+            }
           }
           process.exit(1);
         }
@@ -27,7 +32,12 @@ export function registerValidateCommand(program: Command): void {
       }
 
       const results = runValidation(manifest);
-      printValidationReport(results);
+
+      if (options.format === 'json') {
+        process.stdout.write(JSON.stringify(results, null, 2) + '\n');
+      } else {
+        printValidationReport(results);
+      }
 
       const shouldFail =
         hasErrors(results) ||

@@ -84,7 +84,19 @@
     },
     "InstructionBlockKind": {
       "type": "string",
-      "enum": ["behavior", "workflow", "safety", "style", "delegation"]
+      "enum": ["behavior", "workflow", "safety", "style", "delegation", "context", "custom"]
+    },
+    "PolicyAssertion": {
+      "oneOf": [
+        { "type": "object", "required": ["rule"], "properties": { "rule": { "const": "require_sandbox_with_execute" } }, "additionalProperties": false },
+        { "type": "object", "required": ["rule", "skills"], "properties": { "rule": { "const": "forbid_skill_combination" }, "skills": { "type": "array", "items": { "$ref": "#/definitions/AgentSkill" }, "minItems": 2 } }, "additionalProperties": false },
+        { "type": "object", "required": ["rule", "skill"], "properties": { "rule": { "const": "require_skill" }, "skill": { "$ref": "#/definitions/AgentSkill" } }, "additionalProperties": false },
+        { "type": "object", "required": ["rule", "agent", "skill"], "properties": { "rule": { "const": "deny_skill_for_role" }, "agent": { "type": "string" }, "skill": { "$ref": "#/definitions/AgentSkill" } }, "additionalProperties": false },
+        { "type": "object", "required": ["rule", "count"], "properties": { "rule": { "const": "max_agents" }, "count": { "type": "integer", "minimum": 1 } }, "additionalProperties": false },
+        { "type": "object", "required": ["rule", "kind"], "properties": { "rule": { "const": "require_instruction_block" }, "kind": { "type": "string" } }, "additionalProperties": false },
+        { "type": "object", "required": ["rule"], "properties": { "rule": { "const": "require_delegation_chain" } }, "additionalProperties": false },
+        { "type": "object", "required": ["rule"], "properties": { "rule": { "const": "no_unrestricted_execute" } }, "additionalProperties": false }
+      ]
     },
     "CapabilityTraitName": {
       "type": "string",
@@ -536,7 +548,11 @@
         "permissions": { "$ref": "#/definitions/PermissionsConfig" },
         "sandbox": { "$ref": "#/definitions/SandboxConfig" },
         "hooks": { "$ref": "#/definitions/HooksConfig" },
-        "network": { "$ref": "#/definitions/NetworkConfig" }
+        "network": { "$ref": "#/definitions/NetworkConfig" },
+        "assertions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/PolicyAssertion" }
+        }
       }
     },
     "GenerationSettings": {

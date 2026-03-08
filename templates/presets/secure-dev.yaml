@@ -81,3 +81,13 @@ policies:
     - deny-dynamic-exec
     - deny-env-files
     - sandbox-default
+  assertions:
+    - rule: require_sandbox_with_execute
+    - rule: no_unrestricted_execute
+    - rule: deny_skill_for_role
+      agent: reviewer
+      skill: write_files
+    - rule: require_instruction_block
+      kind: behavior
+    - rule: max_agents
+      count: 8
