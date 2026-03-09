@@ -1,17 +1,19 @@
+import { agentHasSkill, type SkillToolMap } from '../../core/skill-resolver.js';
 import type { CoreTeam } from '../../core/types.js';
-import type { Checker, ValidationResult } from '../types.js';
+import type { ValidationResult } from '../types.js';
 
-export const checkRoleWarnings: Checker = (
+export function checkRoleWarnings(
   team: CoreTeam,
-): ValidationResult[] => {
+  skillMap: SkillToolMap,
+): ValidationResult[] {
   const results: ValidationResult[] = [];
 
   for (const [agentId, agent] of Object.entries(team.agents)) {
-    const allow = new Set(agent.runtime.tools ?? []);
+    const tools = agent.runtime.tools ?? [];
     const id = agentId.toLowerCase();
 
     if (id === 'orchestrator' || id.includes('coordinator')) {
-      if (allow.has('Write') || allow.has('Edit') || allow.has('MultiEdit')) {
+      if (agentHasSkill(tools, 'write_files', skillMap)) {
         results.push({
           severity: 'warning',
           category: 'Role separation',
@@ -22,7 +24,7 @@ export const checkRoleWarnings: Checker = (
     }
 
     if (id === 'developer' || id.includes('coder') || id.includes('implementer')) {
-      if (allow.has('WebFetch') || allow.has('WebSearch')) {
+      if (agentHasSkill(tools, 'web', skillMap)) {
         results.push({
           severity: 'warning',
           category: 'Role separation',
@@ -33,7 +35,7 @@ export const checkRoleWarnings: Checker = (
     }
 
     if (id === 'reviewer' || id.includes('review') || id.includes('auditor')) {
-      if (allow.has('Write') || allow.has('Edit') || allow.has('MultiEdit')) {
+      if (agentHasSkill(tools, 'write_files', skillMap)) {
         results.push({
           severity: 'warning',
           category: 'Role separation',
@@ -44,7 +46,7 @@ export const checkRoleWarnings: Checker = (
     }
 
     if (id === 'planner' || id === 'analyzer') {
-      if (allow.has('Bash')) {
+      if (agentHasSkill(tools, 'execute', skillMap)) {
         results.push({
           severity: 'warning',
           category: 'Role separation',
@@ -56,4 +58,4 @@ export const checkRoleWarnings: Checker = (
   }
 
   return results;
-};
+}

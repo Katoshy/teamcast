@@ -1,4 +1,3 @@
-import type { CoreTeam } from '../core/types.js';
 import type { AgentForgeManifest } from '../manifest/types.js';
 import { isCoreTeam } from '../core/guards.js';
 import { applyDefaults } from '../manifest/defaults.js';
@@ -12,16 +11,15 @@ import { evaluatePolicyAssertions } from '../core/policy-evaluator.js';
 import { CLAUDE_SKILL_MAP } from '../renderers/claude/skill-map.js';
 import type { SkillToolMap } from '../core/skill-resolver.js';
 
-const policyChecker: Checker = (team: CoreTeam) =>
-  evaluatePolicyAssertions(team, CLAUDE_SKILL_MAP as SkillToolMap);
+const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
 
 const CHECKERS: Checker[] = [
-  checkHandoffGraph,
-  checkToolConflicts,
-  checkRoleWarnings,
+  (team) => checkHandoffGraph(team, skillMap),
+  (team) => checkToolConflicts(team, skillMap),
+  (team) => checkRoleWarnings(team, skillMap),
   checkSecurityBaseline,
-  checkInstructionBlocks,
-  policyChecker,
+  (team) => checkInstructionBlocks(team, skillMap),
+  (team) => evaluatePolicyAssertions(team, skillMap),
 ];
 
 export function runValidation(

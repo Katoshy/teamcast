@@ -1,8 +1,9 @@
 import { INSTRUCTION_BLOCK_KINDS } from '../../core/instructions.js';
+import { agentHasSkill, type SkillToolMap } from '../../core/skill-resolver.js';
 import type { CoreTeam } from '../../core/types.js';
-import type { Checker, ValidationResult } from '../types.js';
+import type { ValidationResult } from '../types.js';
 
-export const checkInstructionBlocks: Checker = (team: CoreTeam): ValidationResult[] => {
+export function checkInstructionBlocks(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
 
   for (const [agentId, agent] of Object.entries(team.agents)) {
@@ -38,10 +39,7 @@ export const checkInstructionBlocks: Checker = (team: CoreTeam): ValidationResul
       seenKinds.add(block.kind);
     }
 
-    // runtime.tools is already expanded: AgentSkill values (e.g. 'delegate') are
-    // resolved to their CanonicalTool equivalents (e.g. 'Agent') during normalization,
-    // so checking for 'Agent' here correctly covers both direct and skill-based tool grants.
-    if (seenKinds.has('delegation') && !agent.runtime.tools?.includes('Agent')) {
+    if (seenKinds.has('delegation') && !agentHasSkill(agent.runtime.tools ?? [], 'delegate', skillMap)) {
       results.push({
         severity: 'warning',
         category: 'Instruction blocks',
@@ -52,4 +50,4 @@ export const checkInstructionBlocks: Checker = (team: CoreTeam): ValidationResul
   }
 
   return results;
-};
+}

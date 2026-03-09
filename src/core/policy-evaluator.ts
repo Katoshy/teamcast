@@ -3,7 +3,7 @@ import type { ValidationResult } from '../validator/types.js';
 import type { PolicyAssertion } from './assertions.js';
 import type { AgentSkill } from './skills.js';
 import type { InstructionBlockKind } from './instructions.js';
-import { expandSkills, type SkillToolMap } from './skill-resolver.js';
+import { agentHasSkill, expandSkills, type SkillToolMap } from './skill-resolver.js';
 
 export function evaluatePolicyAssertions(team: CoreTeam, skillMap: SkillToolMap = {}): ValidationResult[] {
   const assertions = team.policies?.assertions ?? [];
@@ -19,7 +19,7 @@ export function evaluatePolicyAssertions(team: CoreTeam, skillMap: SkillToolMap 
 function evaluateOne(assertion: PolicyAssertion, team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   switch (assertion.rule) {
     case 'require_sandbox_with_execute':
-      return checkRequireSandboxWithExecute(team);
+      return checkRequireSandboxWithExecute(team, skillMap);
     case 'forbid_skill_combination':
       return checkForbidSkillCombination(assertion.skills, team, skillMap);
     case 'require_skill':
@@ -31,16 +31,16 @@ function evaluateOne(assertion: PolicyAssertion, team: CoreTeam, skillMap: Skill
     case 'require_instruction_block':
       return checkRequireInstructionBlock(assertion.kind, team);
     case 'require_delegation_chain':
-      return checkRequireDelegationChain(team);
+      return checkRequireDelegationChain(team, skillMap);
     case 'no_unrestricted_execute':
-      return checkNoUnrestrictedExecute(team);
+      return checkNoUnrestrictedExecute(team, skillMap);
   }
 }
 
-function checkRequireSandboxWithExecute(team: CoreTeam): ValidationResult[] {
+function checkRequireSandboxWithExecute(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
   for (const agent of Object.values(team.agents)) {
-    if (agent.runtime.tools?.includes('Bash')) {
+    if (agentHasSkill(agent.runtime.tools ?? [], 'execute', skillMap)) {
       if (team.policies?.sandbox?.enabled !== true) {
         results.push({
           severity: 'error',
@@ -143,10 +143,10 @@ function checkRequireInstructionBlock(kind: InstructionBlockKind, team: CoreTeam
   return results;
 }
 
-function checkRequireDelegationChain(team: CoreTeam): ValidationResult[] {
+function checkRequireDelegationChain(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
   for (const agent of Object.values(team.agents)) {
-    if (agent.runtime.tools?.includes('Agent')) {
+    if (agentHasSkill(agent.runtime.tools ?? [], 'delegate', skillMap)) {
       const hasHandoffs = (agent.metadata?.handoffs?.length ?? 0) > 0;
       if (!hasHandoffs) {
         results.push({
@@ -161,12 +161,12 @@ function checkRequireDelegationChain(team: CoreTeam): ValidationResult[] {
   return results;
 }
 
-function checkNoUnrestrictedExecute(team: CoreTeam): ValidationResult[] {
+function checkNoUnrestrictedExecute(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
   const sandboxEnabled = team.policies?.sandbox?.enabled === true;
 
   for (const agent of Object.values(team.agents)) {
-    if (agent.runtime.tools?.includes('Bash')) {
+    if (agentHasSkill(agent.runtime.tools ?? [], 'execute', skillMap)) {
       const hasDisallowedTools = (agent.runtime.disallowedTools?.length ?? 0) > 0;
       if (!sandboxEnabled && !hasDisallowedTools) {
         results.push({

@@ -1,9 +1,11 @@
+import { agentHasSkill, type SkillToolMap } from '../../core/skill-resolver.js';
 import type { CoreTeam } from '../../core/types.js';
-import type { Checker, ValidationResult } from '../types.js';
+import type { ValidationResult } from '../types.js';
 
-export const checkToolConflicts: Checker = (
+export function checkToolConflicts(
   team: CoreTeam,
-): ValidationResult[] => {
+  skillMap: SkillToolMap,
+): ValidationResult[] {
   const results: ValidationResult[] = [];
 
   for (const [agentId, agent] of Object.entries(team.agents)) {
@@ -27,7 +29,7 @@ export const checkToolConflicts: Checker = (
     const desc = agent.description.toLowerCase();
     if (
       (desc.includes('read-only') || desc.includes('cannot modify') || desc.includes('does not write')) &&
-      (allow.has('Write') || allow.has('Edit') || allow.has('MultiEdit'))
+      agentHasSkill(agent.runtime.tools ?? [], 'write_files', skillMap)
     ) {
       results.push({
         severity: 'warning',
@@ -39,4 +41,4 @@ export const checkToolConflicts: Checker = (
   }
 
   return results;
-};
+}

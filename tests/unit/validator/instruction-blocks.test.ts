@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { checkInstructionBlocks } from '../../../src/validator/checks/instruction-blocks.js';
 import type { CoreTeam } from '../../../src/core/types.js';
+import { CLAUDE_SKILL_MAP } from '../../../src/renderers/claude/skill-map.js';
+import type { SkillToolMap } from '../../../src/core/skill-resolver.js';
+
+const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
 
 function makeTeam(agents: CoreTeam['agents']): CoreTeam {
   return {
@@ -24,7 +28,7 @@ describe('checkInstructionBlocks', () => {
       },
     });
 
-    const results = checkInstructionBlocks(team);
+    const results = checkInstructionBlocks(team, skillMap);
     expect(results).toHaveLength(0);
   });
 
@@ -41,7 +45,7 @@ describe('checkInstructionBlocks', () => {
       },
     });
 
-    const errors = checkInstructionBlocks(team).filter((r) => r.severity === 'error');
+    const errors = checkInstructionBlocks(team, skillMap).filter((r) => r.severity === 'error');
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('"unknown-kind"');
     expect(errors[0].agent).toBe('writer');
@@ -59,7 +63,7 @@ describe('checkInstructionBlocks', () => {
       },
     });
 
-    const errors = checkInstructionBlocks(team).filter((r) => r.severity === 'error');
+    const errors = checkInstructionBlocks(team, skillMap).filter((r) => r.severity === 'error');
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('empty');
     expect(errors[0].agent).toBe('writer');
@@ -78,7 +82,7 @@ describe('checkInstructionBlocks', () => {
       },
     });
 
-    const warnings = checkInstructionBlocks(team).filter((r) => r.severity === 'warning');
+    const warnings = checkInstructionBlocks(team, skillMap).filter((r) => r.severity === 'warning');
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('"behavior"');
     expect(warnings[0].agent).toBe('writer');
@@ -96,7 +100,7 @@ describe('checkInstructionBlocks', () => {
       },
     });
 
-    const warnings = checkInstructionBlocks(team).filter((r) => r.severity === 'warning');
+    const warnings = checkInstructionBlocks(team, skillMap).filter((r) => r.severity === 'warning');
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('delegation');
     expect(warnings[0].agent).toBe('coordinator');
@@ -114,7 +118,7 @@ describe('checkInstructionBlocks', () => {
       },
     });
 
-    const results = checkInstructionBlocks(team);
+    const results = checkInstructionBlocks(team, skillMap);
     expect(results).toHaveLength(0);
   });
 
@@ -139,7 +143,7 @@ describe('checkInstructionBlocks', () => {
       },
     });
 
-    const results = checkInstructionBlocks(team);
+    const results = checkInstructionBlocks(team, skillMap);
     const alphaErrors = results.filter((r) => r.agent === 'alpha');
     const betaWarnings = results.filter((r) => r.agent === 'beta' && r.severity === 'warning');
 

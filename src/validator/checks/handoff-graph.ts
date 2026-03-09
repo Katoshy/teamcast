@@ -1,5 +1,6 @@
+import { agentHasSkill, type SkillToolMap } from '../../core/skill-resolver.js';
 import type { CoreTeam } from '../../core/types.js';
-import type { Checker, ValidationResult } from '../types.js';
+import type { ValidationResult } from '../types.js';
 
 function detectCycles(graph: Map<string, string[]>): string[][] {
   const visited = new Set<string>();
@@ -31,9 +32,10 @@ function detectCycles(graph: Map<string, string[]>): string[][] {
   return cycles;
 }
 
-export const checkHandoffGraph: Checker = (
+export function checkHandoffGraph(
   team: CoreTeam,
-): ValidationResult[] => {
+  skillMap: SkillToolMap,
+): ValidationResult[] {
   const results: ValidationResult[] = [];
   const agentIds = new Set(Object.keys(team.agents));
 
@@ -56,7 +58,10 @@ export const checkHandoffGraph: Checker = (
   }
 
   for (const [agentId, agent] of Object.entries(team.agents)) {
-    if ((agent.metadata?.handoffs?.length ?? 0) > 0 && !agent.runtime.tools?.includes('Agent')) {
+    if (
+      (agent.metadata?.handoffs?.length ?? 0) > 0 &&
+      !agentHasSkill(agent.runtime.tools ?? [], 'delegate', skillMap)
+    ) {
       results.push({
         severity: 'error',
         category: 'Handoff graph',
@@ -75,4 +80,4 @@ export const checkHandoffGraph: Checker = (
   }
 
   return results;
-};
+}
