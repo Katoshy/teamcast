@@ -1,7 +1,7 @@
 {
   "name": "teamcast",
   "version": "0.6.0",
-  "description": "CLI to design, generate, and validate Claude Code agent teams from a single manifest",
+  "description": "YAML-driven CLI to design, validate, and generate multi-agent team configs from a single manifest",
   "type": "module",
   "bin": {
     "teamcast": "./dist/index.js"
