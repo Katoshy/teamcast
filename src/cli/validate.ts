@@ -32,11 +32,12 @@ export function registerValidateCommand(program: Command): void {
       }
 
       const results = runValidation(manifest);
+      const policyAssertionCount = manifest.policies?.assertions?.length ?? 0;
 
       if (options.format === 'json') {
         process.stdout.write(JSON.stringify(results, null, 2) + '\n');
       } else {
-        printValidationReport(results);
+        printValidationReport(results, policyAssertionCount);
       }
 
       const shouldFail =

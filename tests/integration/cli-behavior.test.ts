@@ -126,7 +126,7 @@ describe('CLI behavior', () => {
       const result = runCli(['validate'], cwd);
 
       expect(result.status).toBe(0);
-      expect(result.stdout).toContain('Validation passed');
+      expect(result.stdout).toContain('All checks passed.');
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

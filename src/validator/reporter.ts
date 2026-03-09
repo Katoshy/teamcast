@@ -1,63 +1,94 @@
 import chalk from 'chalk';
 import type { ValidationResult } from './types.js';
 
-export function printValidationReport(results: ValidationResult[]): void {
-  if (results.length === 0) {
-    console.log('');
-    console.log(chalk.green('  [ok] Validation passed'));
-    console.log('');
-    return;
+interface CategoryMeta {
+  label: string;
+  okDescription: string;
+}
+
+const CATEGORY_ORDER: CategoryMeta[] = [
+  { label: 'Handoff graph', okDescription: 'delegation paths verified' },
+  { label: 'Tool conflicts', okDescription: 'no allow/deny overlaps' },
+  { label: 'Role separation', okDescription: 'roles match capabilities' },
+  { label: 'Security', okDescription: 'sandbox and permissions checked' },
+  { label: 'Instruction blocks', okDescription: 'all blocks valid' },
+  { label: 'policy', okDescription: 'Policy assertions' },
+];
+
+function renderCategoryRow(
+  icon: string,
+  label: string,
+  description: string,
+  items: ValidationResult[],
+): void {
+  console.log(`  ${icon} ${chalk.bold(label)} ${chalk.dim('—')} ${description}`);
+  for (const r of items) {
+    const prefix = r.severity === 'error' ? chalk.red('  [error]') : chalk.yellow('  [warn]');
+    console.log(`    ${prefix} ${r.message}`);
   }
+}
 
-  const errors = results.filter((r) => r.severity === 'error');
-  const warnings = results.filter((r) => r.severity === 'warning');
-
-  // Group by category
-  const categories = new Map<string, ValidationResult[]>();
+export function printValidationReport(
+  results: ValidationResult[],
+  policyAssertionCount?: number,
+): void {
+  // Group results by category
+  const byCategory = new Map<string, ValidationResult[]>();
   for (const r of results) {
-    const existing = categories.get(r.category) ?? [];
-    categories.set(r.category, [...existing, r]);
+    const existing = byCategory.get(r.category) ?? [];
+    byCategory.set(r.category, [...existing, r]);
+  }
+
+  console.log('');
+  console.log(chalk.bold('Validation results:'));
+
+  for (const meta of CATEGORY_ORDER) {
+    const categoryResults = byCategory.get(meta.label) ?? [];
+    const errors = categoryResults.filter((r) => r.severity === 'error');
+    const warnings = categoryResults.filter((r) => r.severity === 'warning');
+
+    const displayLabel = meta.label === 'policy' ? 'Policy assertions' : meta.label;
+
+    if (errors.length > 0) {
+      const desc = chalk.red(`${errors.length} error${errors.length !== 1 ? 's' : ''}`);
+      const extra =
+        warnings.length > 0
+          ? `, ${chalk.yellow(`${warnings.length} warning${warnings.length !== 1 ? 's' : ''}`)}`
+          : '';
+      renderCategoryRow(chalk.red('[!!]'), displayLabel, desc + extra, [...errors, ...warnings]);
+    } else if (warnings.length > 0) {
+      const desc = chalk.yellow(`${warnings.length} warning${warnings.length !== 1 ? 's' : ''}`);
+      renderCategoryRow(chalk.yellow('[--]'), displayLabel, desc, warnings);
+    } else {
+      // Determine ok description
+      let okDesc: string;
+      if (meta.label === 'policy' && policyAssertionCount !== undefined) {
+        okDesc =
+          policyAssertionCount === 0
+            ? chalk.dim('no assertions defined')
+            : chalk.dim(`${policyAssertionCount} rule${policyAssertionCount !== 1 ? 's' : ''} passed`);
+      } else {
+        okDesc = chalk.dim(meta.okDescription);
+      }
+      console.log(`  ${chalk.green('[ok]')} ${chalk.bold(displayLabel)} ${chalk.dim('—')} ${okDesc}`);
+    }
   }
 
   console.log('');
 
-  for (const [category, categoryResults] of categories) {
-    const categoryErrors = categoryResults.filter((r) => r.severity === 'error');
-    const categoryWarnings = categoryResults.filter((r) => r.severity === 'warning');
+  const totalErrors = results.filter((r) => r.severity === 'error').length;
+  const totalWarnings = results.filter((r) => r.severity === 'warning').length;
 
-    if (categoryErrors.length === 0 && categoryWarnings.length === 0) {
-      const icon = chalk.green('[ok]');
-      const label = chalk.bold(category.padEnd(28));
-      const detail = chalk.dim(`${categoryResults.length} check${categoryResults.length !== 1 ? 's' : ''} passed`);
-      console.log(`  ${icon} ${label} ${detail}`);
-      continue;
-    }
-
-    for (const r of categoryErrors) {
-      const icon = chalk.red('[x]');
-      const label = chalk.bold(category.padEnd(28));
-      console.log(`  ${icon} ${label} ${r.message}`);
-    }
-
-    for (const r of categoryWarnings) {
-      const icon = chalk.yellow('[!]');
-      const label = chalk.bold(category.padEnd(28));
-      console.log(`  ${icon} ${label} ${r.message}`);
-    }
+  if (totalErrors === 0 && totalWarnings === 0) {
+    console.log(chalk.green('All checks passed.'));
+  } else {
+    const parts: string[] = [];
+    if (totalErrors > 0) parts.push(chalk.red(`${totalErrors} error${totalErrors !== 1 ? 's' : ''}`));
+    if (totalWarnings > 0)
+      parts.push(chalk.yellow(`${totalWarnings} warning${totalWarnings !== 1 ? 's' : ''}`));
+    console.log(`${parts.join(', ')} found.`);
   }
 
-  console.log('');
-
-  const parts: string[] = [];
-  const passCount = [...categories.entries()].filter(
-    ([, v]) => !v.some((r) => r.severity === 'error' || r.severity === 'warning'),
-  ).length;
-
-  if (passCount > 0) parts.push(chalk.green(`${passCount} passed`));
-  if (errors.length > 0) parts.push(chalk.red(`${errors.length} error${errors.length !== 1 ? 's' : ''}`));
-  if (warnings.length > 0) parts.push(chalk.yellow(`${warnings.length} warning${warnings.length !== 1 ? 's' : ''}`));
-
-  console.log(`  ${parts.join(chalk.dim(' | '))}`);
   console.log('');
 }
 
