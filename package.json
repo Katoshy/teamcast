@@ -10,17 +10,36 @@
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "dist/",
     "templates/",
     "schema/",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
-  "keywords": ["claude", "claude-code", "agents", "multi-agent", "cli"],
-  "author": "",
+  "keywords": ["claude", "claude-code", "agents", "multi-agent", "cli", "team", "codegen"],
+  "author": "Nickolas Voznyuk",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Katoshy/teamcast.git"
+  },
+  "homepage": "https://github.com/Katoshy/teamcast#readme",
+  "bugs": {
+    "url": "https://github.com/Katoshy/teamcast/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "dependencies": {
     "ajv": "^8.17.1",
     "chalk": "^5.3.0",

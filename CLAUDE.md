@@ -31,4 +31,4 @@ This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
 
 ---
 
-*Agent configuration managed by [TeamCast](https://github.com/teamcast/teamcast). Edit `teamcast.yaml` and run `teamcast generate` to update.*
+*Agent configuration managed by [TeamCast](https://github.com/Katoshy/teamcast). Edit `teamcast.yaml` and run `teamcast generate` to update.*
