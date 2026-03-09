@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://agentforge.dev/schema/v2.json",
-  "title": "AgentForge Manifest",
-  "description": "Schema for agentforge.yaml and built-in preset manifests",
+  "$id": "https://teamcast.dev/schema/v2.json",
+  "title": "TeamCast Manifest",
+  "description": "Schema for teamcast.yaml and built-in preset manifests",
   "type": "object",
   "required": ["version", "project", "agents"],
   "additionalProperties": false,

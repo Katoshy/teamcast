@@ -1,4 +1,4 @@
-# AgentForge — Sprints
+# TeamCast — Sprints
 
 ## Status
 v0.1 ✅ Generator · v0.2 ✅ Validator · v0.3 ✅ Core UX · v0.4 ✅ Import + Hooks · v0.5 ✅ Custom presets · v0.6 ✅ Modular core
@@ -19,7 +19,7 @@ v0.1 ✅ Generator · v0.2 ✅ Validator · v0.3 ✅ Core UX · v0.4 ✅ Import 
 ## v0.4 — Import + Hooks ✅
 > Goal: round-trip support and hooks in settings.json
 
-- [x] `import` — scan `.claude/` → write `agentforge.yaml`
+- [x] `import` — scan `.claude/` → write `teamcast.yaml`
 - [x] Hooks renderer — complete `settings.json` hooks section
 
 ---
@@ -81,7 +81,7 @@ v0.1 ✅ Generator · v0.2 ✅ Validator · v0.3 ✅ Core UX · v0.4 ✅ Import 
 ---
 
 ## v0.9 — Policy engine + conformance
-> Goal: make AgentForge useful as a safety and governance layer, not only as a renderer
+> Goal: make TeamCast useful as a safety and governance layer, not only as a renderer
 
 - [ ] Cross-target policy engine for filesystem, shell, network, approval, and delegation constraints
 - [ ] Conformance checks for role separation, unsafe tool combinations, and policy conflicts
@@ -100,7 +100,7 @@ v0.1 ✅ Generator · v0.2 ✅ Validator · v0.3 ✅ Core UX · v0.4 ✅ Import 
 - [ ] Portable preset format built on the canonical manifest, not on Claude-only defaults
 - [ ] Reference examples for common team topologies across multiple targets
 - [ ] Import/generate/validate workflow documented as the primary product story
-- [ ] Position AgentForge as compiler + validator for coding-agent architectures
+- [ ] Position TeamCast as compiler + validator for coding-agent architectures
 
 ---
 

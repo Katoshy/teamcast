@@ -4,9 +4,9 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { generate } from '../../src/generator/index.js';
 import { diffManifest } from '../../src/diff/index.js';
-import type { AgentForgeManifest } from '../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../src/types/manifest.js';
 
-const manifest: AgentForgeManifest = {
+const manifest: TeamCastManifest = {
   version: '1',
   project: { name: 'integration-diff' },
   agents: {
@@ -27,7 +27,7 @@ const manifest: AgentForgeManifest = {
 
 describe('diff behavior', () => {
   it('does not flag user-edited skill stubs as modified', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'agentforge-diff-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'teamcast-diff-'));
 
     try {
       generate(manifest, { cwd });

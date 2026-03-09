@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { checkToolConflicts } from '../../../src/validator/checks/tool-conflicts.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 import { normalizeManifest } from '../../../src/types/manifest.js';
 import { CLAUDE_SKILL_MAP } from '../../../src/renderers/claude/skill-map.js';
 import type { SkillToolMap } from '../../../src/core/skill-resolver.js';
 
 const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
 
-const base: AgentForgeManifest = {
+const base: TeamCastManifest = {
   version: '1',
   project: { name: 'test' },
   agents: {},
@@ -15,7 +15,7 @@ const base: AgentForgeManifest = {
 
 describe('checkToolConflicts', () => {
   it('returns no results for agents with no tool overlap', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         developer: {
@@ -28,7 +28,7 @@ describe('checkToolConflicts', () => {
   });
 
   it('errors when a tool appears in both allow and deny', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         broken: {
@@ -44,7 +44,7 @@ describe('checkToolConflicts', () => {
   });
 
   it('reports each conflicting tool separately', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         messy: {
@@ -58,7 +58,7 @@ describe('checkToolConflicts', () => {
   });
 
   it('warns when description says read-only but has Write in allow', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         reader: {
@@ -73,7 +73,7 @@ describe('checkToolConflicts', () => {
   });
 
   it('warns on "does not write" description with Edit tool', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         checker: {
@@ -87,7 +87,7 @@ describe('checkToolConflicts', () => {
   });
 
   it('skips agents with deny-only tools (no allow list)', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         simple: {

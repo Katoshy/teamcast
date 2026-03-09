@@ -19,7 +19,7 @@ import {
 export function registerGenerateCommand(program: Command): void {
   program
     .command('generate')
-    .description('Generate Claude Code config files from agentforge.yaml')
+    .description('Generate Claude Code config files from teamcast.yaml')
     .option('--dry-run', 'Preview files without writing to disk')
     .action(async (options: { dryRun?: boolean }) => {
       const cwd = process.cwd();

@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { checkRoleWarnings } from '../../../src/validator/checks/role-warnings.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 import { normalizeManifest } from '../../../src/types/manifest.js';
 import { CLAUDE_SKILL_MAP } from '../../../src/renderers/claude/skill-map.js';
 import type { SkillToolMap } from '../../../src/core/skill-resolver.js';
 
 const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
 
-const base: AgentForgeManifest = {
+const base: TeamCastManifest = {
   version: '1',
   project: { name: 'test' },
   agents: {},
@@ -15,7 +15,7 @@ const base: AgentForgeManifest = {
 
 describe('checkRoleWarnings', () => {
   it('returns no warnings for a well-configured team', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         orchestrator: {
@@ -36,7 +36,7 @@ describe('checkRoleWarnings', () => {
   });
 
   it('warns when orchestrator has Write tool', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         orchestrator: {
@@ -52,7 +52,7 @@ describe('checkRoleWarnings', () => {
   });
 
   it('warns when developer has WebFetch', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         developer: {
@@ -67,7 +67,7 @@ describe('checkRoleWarnings', () => {
   });
 
   it('warns when reviewer has Edit tool', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         reviewer: {
@@ -82,7 +82,7 @@ describe('checkRoleWarnings', () => {
   });
 
   it('warns when planner has Bash', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         planner: {
@@ -97,7 +97,7 @@ describe('checkRoleWarnings', () => {
   });
 
   it('matches coordinator pattern in agent name', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         'team-coordinator': {
@@ -111,7 +111,7 @@ describe('checkRoleWarnings', () => {
   });
 
   it('matches auditor pattern as reviewer-like role', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         'security-auditor': {

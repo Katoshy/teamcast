@@ -18,7 +18,7 @@ skills:
   - clean-code
 ---
 
-You are the developer for the AgentForge TypeScript project.
+You are the developer for the TeamCast TypeScript project.
 
 Rules:
 - Use TypeScript strict mode. All files are ESM (.js imports in source).

@@ -23,7 +23,7 @@ import { promptConfirm } from '../utils/prompts.js';
 export function registerImportCommand(program: Command): void {
   program
     .command('import')
-    .description('Import existing .claude/ configuration into agentforge.yaml')
+    .description('Import existing .claude/ configuration into teamcast.yaml')
     .option('--yes', 'Skip confirmation prompt')
     .action(async (options: { yes?: boolean }) => {
       const cwd = process.cwd();
@@ -36,9 +36,9 @@ export function registerImportCommand(program: Command): void {
         process.exit(1);
       }
 
-      const manifestPath = join(cwd, 'agentforge.yaml');
+      const manifestPath = join(cwd, 'teamcast.yaml');
       if (existsSync(manifestPath)) {
-        printError('agentforge.yaml already exists', 'Use "agentforge generate" to update from existing manifest.');
+        printError('teamcast.yaml already exists', 'Use "teamcast generate" to update from existing manifest.');
         process.exit(1);
       }
 
@@ -86,7 +86,7 @@ export function registerImportCommand(program: Command): void {
 
       if (!options.yes) {
         const confirmed = await promptConfirm({
-          message: 'Write agentforge.yaml with imported configuration?',
+          message: 'Write teamcast.yaml with imported configuration?',
           default: true,
         });
         if (!confirmed) {
@@ -98,17 +98,17 @@ export function registerImportCommand(program: Command): void {
       try {
         writeManifest(result.team, cwd);
       } catch (err) {
-        printError('Failed to write agentforge.yaml', String(err));
+        printError('Failed to write teamcast.yaml', String(err));
         process.exit(1);
       }
 
-      printSuccess('agentforge.yaml');
+      printSuccess('teamcast.yaml');
       printManifestValidation(validation);
       printCommandSuccess(`Imported ${agentNames.length} agent${agentNames.length !== 1 ? 's' : ''} from .claude/`);
       printNextSteps([
-        `Run ${chalk.bold('agentforge validate')} to check the configuration`,
-        `Run ${chalk.bold('agentforge explain')} to see the team structure`,
-        `Edit ${chalk.bold('agentforge.yaml')} to customize, then run ${chalk.bold('agentforge generate')}`,
+        `Run ${chalk.bold('teamcast validate')} to check the configuration`,
+        `Run ${chalk.bold('teamcast explain')} to see the team structure`,
+        `Edit ${chalk.bold('teamcast.yaml')} to customize, then run ${chalk.bold('teamcast generate')}`,
       ]);
     });
 }

@@ -1,4 +1,4 @@
-// Core domain types for AgentForge.
+// Core domain types for TeamCast.
 // These represent normalized, fully-resolved structures used internally
 // after all legacy-format coercion and default application has been done.
 // This module must not import from manifest/ to avoid circular dependencies.
@@ -155,7 +155,7 @@ export interface ProjectConfig {
  * A fully-normalized team manifest used internally after all
  * legacy-format coercion, default application, and preset resolution.
  * Agents carry a `runtime` block, which distinguishes this type from
- * the raw `AgentForgeManifest` loaded directly from YAML.
+ * the raw `TeamCastManifest` loaded directly from YAML.
  */
 export interface CoreTeam {
   version: '1' | '2';

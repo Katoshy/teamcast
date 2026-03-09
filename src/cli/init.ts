@@ -85,7 +85,7 @@ async function initWithPreset(
   try {
     writeManifest(team, cwd);
   } catch (err) {
-    printError('Failed to write agentforge.yaml', String(err));
+    printError('Failed to write teamcast.yaml', String(err));
     process.exit(1);
   }
 
@@ -106,8 +106,8 @@ async function initWithPreset(
   printCommandSuccess(`Initialized "${presetName}" for project "${projectName}"`);
   printManifestValidation(validation);
   printNextSteps([
-    `Run ${chalk.bold('agentforge explain')} to see the team structure`,
-    `Open ${chalk.bold('agentforge.yaml')} to customize the team`,
+    `Run ${chalk.bold('teamcast explain')} to see the team structure`,
+    `Open ${chalk.bold('teamcast.yaml')} to customize the team`,
   ]);
 }
 
@@ -165,7 +165,7 @@ async function initFromFile(
   try {
     writeManifest(team, cwd);
   } catch (err) {
-    printError('Failed to write agentforge.yaml', String(err));
+    printError('Failed to write teamcast.yaml', String(err));
     process.exit(1);
   }
 
@@ -186,7 +186,7 @@ async function initFromFile(
   printCommandSuccess(`Initialized from ${filePath}`);
   printManifestValidation(validation);
   printNextSteps([
-    `Run ${chalk.bold('agentforge explain')} to see the team structure`,
-    `Open ${chalk.bold('agentforge.yaml')} to customize`,
+    `Run ${chalk.bold('teamcast explain')} to see the team structure`,
+    `Open ${chalk.bold('teamcast.yaml')} to customize`,
   ]);
 }

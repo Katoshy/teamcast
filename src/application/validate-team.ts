@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import type { AgentForgeManifest } from '../types/manifest.js';
+import type { TeamCastManifest } from '../types/manifest.js';
 import type { CoreTeam } from '../core/types.js';
 import { isCoreTeam } from '../core/guards.js';
 import { validateSchema } from '../manifest/schema-validator.js';
@@ -19,10 +19,10 @@ export interface TeamValidationSummary {
  *
  * When called with a CoreTeam (already normalized), schema validation is
  * skipped — it was already performed when the manifest was first read from
- * YAML.  Only raw AgentForgeManifest values are sent through the JSON schema
+ * YAML.  Only raw TeamCastManifest values are sent through the JSON schema
  * validator.
  */
-export function evaluateTeam(manifest: AgentForgeManifest | CoreTeam): TeamValidationSummary {
+export function evaluateTeam(manifest: TeamCastManifest | CoreTeam): TeamValidationSummary {
   if (isCoreTeam(manifest)) {
     return {
       schemaErrors: [],
@@ -44,7 +44,7 @@ export function evaluateTeam(manifest: AgentForgeManifest | CoreTeam): TeamValid
   return {
     schemaErrors: [],
     validationResults: runValidation(team),
-    policyAssertionCount: (team as AgentForgeManifest & { policies?: { assertions?: unknown[] } })
+    policyAssertionCount: (team as TeamCastManifest & { policies?: { assertions?: unknown[] } })
       .policies?.assertions?.length ?? 0,
   };
 }

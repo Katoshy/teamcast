@@ -24,7 +24,7 @@ function setupSettings(settings: object) {
 
 describe('importFromClaudeDir', () => {
   beforeEach(() => {
-    TMP = mkdtempSync(join(tmpdir(), 'agentforge-import-'));
+    TMP = mkdtempSync(join(tmpdir(), 'teamcast-import-'));
   });
 
   afterEach(() => {

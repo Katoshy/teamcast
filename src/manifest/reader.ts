@@ -16,15 +16,15 @@ export class ManifestError extends Error {
 }
 
 export function readManifest(cwd: string): CoreTeam {
-  const manifestPath = join(cwd, 'agentforge.yaml');
+  const manifestPath = join(cwd, 'teamcast.yaml');
 
   let raw: string;
   try {
     raw = readFileSync(manifestPath, 'utf-8');
   } catch {
     throw new ManifestError(
-      `No agentforge.yaml found in ${cwd}`,
-      ['Run "agentforge init" to create one.'],
+      `No teamcast.yaml found in ${cwd}`,
+      ['Run "teamcast init" to create one.'],
     );
   }
 
@@ -33,7 +33,7 @@ export function readManifest(cwd: string): CoreTeam {
     parsed = parse(raw);
   } catch (err) {
     throw new ManifestError(
-      'Failed to parse agentforge.yaml',
+      'Failed to parse teamcast.yaml',
       [String(err)],
     );
   }
@@ -41,7 +41,7 @@ export function readManifest(cwd: string): CoreTeam {
   const schemaResult = validateSchema(parsed);
   if (!schemaResult.valid) {
     throw new ManifestError(
-      'agentforge.yaml failed schema validation',
+      'teamcast.yaml failed schema validation',
       schemaResult.errors.map((e) => `  ${e.path}: ${e.message}`),
     );
   }

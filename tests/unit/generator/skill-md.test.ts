@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderSkillMd } from '../../../src/renderers/claude/skill-md.js';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 
-const base: AgentForgeManifest = {
+const base: TeamCastManifest = {
   version: '1',
   project: { name: 'test' },
   agents: {},
@@ -11,7 +11,7 @@ const base: AgentForgeManifest = {
 
 describe('renderSkillMd', () => {
   it('returns empty array when no agents have skills', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         developer: { description: 'Dev' },
@@ -21,7 +21,7 @@ describe('renderSkillMd', () => {
   });
 
   it('generates one stub per unique skill name', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         dev: { description: 'Dev', skills: ['test-first', 'clean-code'] },
@@ -38,7 +38,7 @@ describe('renderSkillMd', () => {
   });
 
   it('generates title from kebab-case skill name', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         dev: { description: 'Dev', skills: ['test-first'] },
@@ -49,7 +49,7 @@ describe('renderSkillMd', () => {
   });
 
   it('includes standard stub sections', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         dev: { description: 'Dev', skills: ['my-skill'] },

@@ -54,7 +54,7 @@ function deleteFiles(cwd: string, paths: string[]): void {
 export function registerResetCommand(program: Command): void {
   program
     .command('reset')
-    .description('Delete generated files, keep agentforge.yaml')
+    .description('Delete generated files, keep teamcast.yaml')
     .option('--yes', 'Skip confirmation')
     .action(async (options: { yes?: boolean }) => {
       const cwd = process.cwd();
@@ -86,24 +86,24 @@ export function registerResetCommand(program: Command): void {
 
       console.log('');
       deleteFiles(cwd, existing);
-      printCommandSuccess('Reset complete. agentforge.yaml preserved.');
-      printDim('  Run "agentforge generate" to regenerate files.');
+      printCommandSuccess('Reset complete. teamcast.yaml preserved.');
+      printDim('  Run "teamcast generate" to regenerate files.');
       console.log('');
     });
 
   program
     .command('clean')
-    .description('Delete all generated files and agentforge.yaml')
+    .description('Delete all generated files and teamcast.yaml')
     .option('--yes', 'Skip confirmation')
     .action(async (options: { yes?: boolean }) => {
       const cwd = process.cwd();
       const allPaths = [...collectExisting(cwd)];
-      if (existsSync(join(cwd, 'agentforge.yaml'))) {
-        allPaths.push('agentforge.yaml');
+      if (existsSync(join(cwd, 'teamcast.yaml'))) {
+        allPaths.push('teamcast.yaml');
       }
 
       if (allPaths.length === 0) {
-        console.log(chalk.dim('\nNo AgentForge files found. Nothing to clean.'));
+        console.log(chalk.dim('\nNo TeamCast files found. Nothing to clean.'));
         return;
       }
 
@@ -117,7 +117,7 @@ export function registerResetCommand(program: Command): void {
       const confirmed = options.yes
         ? true
         : await promptConfirm({
-            message: chalk.yellow('Delete everything including agentforge.yaml?'),
+            message: chalk.yellow('Delete everything including teamcast.yaml?'),
             default: false,
           });
 
@@ -128,7 +128,7 @@ export function registerResetCommand(program: Command): void {
 
       console.log('');
       deleteFiles(cwd, allPaths);
-      printCommandSuccess('Clean complete. All AgentForge files removed.');
+      printCommandSuccess('Clean complete. All TeamCast files removed.');
       console.log('');
     });
 }

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderClaudeMd } from '../../../src/renderers/claude/docs.js';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 
-const base: AgentForgeManifest = {
+const base: TeamCastManifest = {
   version: '1',
   project: { name: 'my-app' },
   agents: {},
@@ -19,7 +19,7 @@ describe('renderClaudeMd', () => {
   });
 
   it('includes project description when provided', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       project: { name: 'my-app', description: 'A TypeScript web app' },
     };
@@ -27,7 +27,7 @@ describe('renderClaudeMd', () => {
   });
 
   it('lists agents in a markdown table', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         developer: { claude: { description: 'Implements features' } },
@@ -40,7 +40,7 @@ describe('renderClaudeMd', () => {
   });
 
   it('renders workflow chain for orchestrator with handoffs', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         orchestrator: {
@@ -62,7 +62,7 @@ describe('renderClaudeMd', () => {
   });
 
   it('does not render workflow section for agents without handoffs', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         developer: {
@@ -77,7 +77,7 @@ describe('renderClaudeMd', () => {
   });
 
   it('includes security boundaries from policies', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: { dev: { claude: { description: 'Dev' } } },
       policies: {

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
 import { createRoleAgent } from '../../../src/team-templates/roles.js';
-import type { AgentForgeManifest } from '../../../src/manifest/types.js';
+import type { TeamCastManifest } from '../../../src/manifest/types.js';
 
 describe('component composition', () => {
   it('composes runtime, instructions, and policies from manifest component refs', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       version: '2',
       project: { name: 'component-app' },
       agents: {

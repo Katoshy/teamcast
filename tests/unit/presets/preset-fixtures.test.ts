@@ -4,7 +4,7 @@ import { join } from 'path';
 import { parse } from 'yaml';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
 import { loadPreset, listPresets } from '../../../src/presets/index.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 
 function normalizeValue(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -33,7 +33,7 @@ describe('preset fixtures', () => {
   it('keeps YAML fixtures aligned with TypeScript preset builders', () => {
     for (const preset of listPresets()) {
       const fixturePath = join(process.cwd(), 'templates', 'presets', `${preset.name}.yaml`);
-      const fixtureManifest = applyDefaults(parse(readFileSync(fixturePath, 'utf-8')) as AgentForgeManifest);
+      const fixtureManifest = applyDefaults(parse(readFileSync(fixturePath, 'utf-8')) as TeamCastManifest);
 
       expect(
         normalizeValue(loadPreset(preset.name).team),

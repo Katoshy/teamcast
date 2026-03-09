@@ -1,35 +1,35 @@
-# AgentForge
+# TeamCast
 
 CLI to design, generate, and validate Claude Code subagents from a single manifest.
 
-Define your subagents in one `agentforge.yaml` file. AgentForge generates Claude Code config files, validates the configuration, and keeps generated output in sync with the manifest.
+Define your subagents in one `teamcast.yaml` file. TeamCast generates Claude Code config files, validates the configuration, and keeps generated output in sync with the manifest.
 
 ## Install
 
 ```bash
-npm install -g agentforge
+npm install -g teamcast
 ```
 
 Or run without installing:
 
 ```bash
-npx agentforge <command>
+npx teamcast <command>
 ```
 
 ## Quick Start
 
 ```bash
 # Initialize a new team with the interactive wizard
-agentforge init
+teamcast init
 
 # Or skip the wizard and use a preset directly
-agentforge init --preset feature-team
+teamcast init --preset feature-team
 
-# Generate Claude Code config files from agentforge.yaml
-agentforge generate
+# Generate Claude Code config files from teamcast.yaml
+teamcast generate
 
 # Validate the manifest
-agentforge validate
+teamcast validate
 ```
 
 After `generate`, your project will have:
@@ -42,10 +42,10 @@ After `generate`, your project will have:
 
 ## Native Claude Code Model
 
-AgentForge now uses a canonical agent shape that separates:
+TeamCast now uses a canonical agent shape that separates:
 
 - `agents.<name>.claude` - native Claude Code subagent runtime fields
-- `agents.<name>.forge` - AgentForge-only metadata such as delegation graph
+- `agents.<name>.forge` - TeamCast-only metadata such as delegation graph
 
 Legacy flat manifests are still accepted and normalized automatically, but new writes use the canonical shape.
 
@@ -53,8 +53,8 @@ Legacy flat manifests are still accepted and normalized automatically, but new w
 
 | Command | Description |
 |---------|-------------|
-| `init` | Initialize `agentforge.yaml` and generate files |
-| `generate` | Generate Claude Code files from `agentforge.yaml` |
+| `init` | Initialize `teamcast.yaml` and generate files |
+| `generate` | Generate Claude Code files from `teamcast.yaml` |
 | `validate` | Validate the team configuration |
 | `validate --format json` | Machine-readable validation output for CI pipelines |
 | `explain` | Print a human-readable view of the team architecture |
@@ -64,22 +64,22 @@ Legacy flat manifests are still accepted and normalized automatically, but new w
 | `remove agent <name>` | Remove an agent and clean up handoffs |
 | `create skill <name>` | Create a new skill and assign it to one agent |
 | `assign skill <name>` | Assign an existing skill to more agents |
-| `import` | Import an existing `.claude/` setup into `agentforge.yaml` |
-| `reset` | Delete generated files, keep `agentforge.yaml` |
-| `clean` | Delete generated files and `agentforge.yaml` |
+| `import` | Import an existing `.claude/` setup into `teamcast.yaml` |
+| `reset` | Delete generated files, keep `teamcast.yaml` |
+| `clean` | Delete generated files and `teamcast.yaml` |
 
 Useful options:
 
 ```bash
-agentforge init --preset <name>   # skip wizard and use a preset
-agentforge init --from <path>     # initialize from an existing YAML file
-agentforge init --yes             # non-interactive init, uses defaults
-agentforge generate --dry-run     # preview generated files without writing
-agentforge validate --strict      # fail on warnings as well as errors
-agentforge validate --format json # JSON output, useful in CI scripts
-agentforge import --yes           # skip import confirmation
-agentforge reset --yes            # skip reset confirmation
-agentforge clean --yes            # skip clean confirmation
+teamcast init --preset <name>   # skip wizard and use a preset
+teamcast init --from <path>     # initialize from an existing YAML file
+teamcast init --yes             # non-interactive init, uses defaults
+teamcast generate --dry-run     # preview generated files without writing
+teamcast validate --strict      # fail on warnings as well as errors
+teamcast validate --format json # JSON output, useful in CI scripts
+teamcast import --yes           # skip import confirmation
+teamcast reset --yes            # skip reset confirmation
+teamcast clean --yes            # skip clean confirmation
 ```
 
 ## Presets
@@ -91,18 +91,18 @@ agentforge clean --yes            # skip clean confirmation
 | `research-and-build` | orchestrator -> researcher -> planner -> developer |
 | `secure-dev` | orchestrator -> planner -> developer -> security-auditor -> reviewer |
 
-The built-in preset files live in `templates/presets/` and are valid AgentForge YAML. Use them as a reference when creating custom presets, or copy one as a starting point:
+The built-in preset files live in `templates/presets/` and are valid TeamCast YAML. Use them as a reference when creating custom presets, or copy one as a starting point:
 
 ```bash
-cp node_modules/agentforge/templates/presets/feature-team.yaml ./my-team.yaml
-agentforge init --from ./my-team.yaml
+cp node_modules/teamcast/templates/presets/feature-team.yaml ./my-team.yaml
+teamcast init --from ./my-team.yaml
 ```
 
 ## Flows
 
 ### `init`
 
-`agentforge init` creates a fresh `agentforge.yaml`, validates it, and generates all output files.
+`teamcast init` creates a fresh `teamcast.yaml`, validates it, and generates all output files.
 
 Interactive wizard flow:
 
@@ -132,22 +132,22 @@ Important limitations of the wizard:
 - It does not ask for custom `claude.instructions`.
 - It does not ask for custom `claude.skills`, `forge.handoffs`, `claude.max_turns`, or exact tool lists.
 - Those values come from built-in presets or role templates.
-- If you want deeper customization, edit `agentforge.yaml` after init and run `agentforge generate`.
+- If you want deeper customization, edit `teamcast.yaml` after init and run `teamcast generate`.
 
 Non-interactive `init` flows:
 
-- `agentforge init --preset <name>`
+- `teamcast init --preset <name>`
   - skips the wizard
   - loads the preset
   - uses the detected directory name as `project.name`
-  - writes `agentforge.yaml`
+  - writes `teamcast.yaml`
   - generates files immediately
-- `agentforge init --from ./my-team.yaml`
+- `teamcast init --from ./my-team.yaml`
   - loads a custom YAML file
   - validates schema and manifest rules
-  - writes `agentforge.yaml`
+  - writes `teamcast.yaml`
   - generates files immediately
-- `agentforge init --yes`
+- `teamcast init --yes`
   - runs wizard defaults without prompts
   - uses detected project name
   - uses the `feature-team` preset
@@ -155,13 +155,13 @@ Non-interactive `init` flows:
 
 ### `add agent <name>`
 
-`agentforge add agent <name>` adds a new agent to an existing manifest, writes `agentforge.yaml`, then regenerates all files.
+`teamcast add agent <name>` adds a new agent to an existing manifest, writes `teamcast.yaml`, then regenerates all files.
 
 Two modes are supported:
 
-- `agentforge add agent <name>`
+- `teamcast add agent <name>`
   - creates a custom agent from a short interactive flow
-- `agentforge add agent <name> --template <role>`
+- `teamcast add agent <name> --template <role>`
   - creates an agent from a built-in role template
 
 Interactive questions for `add agent <name>`:
@@ -179,10 +179,10 @@ Interactive questions for `add agent <name>`:
 How those answers map into the manifest:
 
 - Every custom agent gets `Read`, `Grep`, and `Glob`.
-- If write access is enabled, AgentForge adds `Write`, `Edit`, `MultiEdit`.
-- If bash access is enabled, AgentForge adds `Bash`.
-- If internet access is enabled, AgentForge adds `WebFetch`, `WebSearch`.
-- If delegation is enabled, AgentForge adds `Agent`.
+- If write access is enabled, TeamCast adds `Write`, `Edit`, `MultiEdit`.
+- If bash access is enabled, TeamCast adds `Bash`.
+- If internet access is enabled, TeamCast adds `WebFetch`, `WebSearch`.
+- If delegation is enabled, TeamCast adds `Agent`.
 - For disabled write/bash/web capabilities, the matching tools are written into `claude.disallowed_tools`.
 
 What `add agent` does not ask for:
@@ -195,26 +195,26 @@ What `add agent` does not ask for:
 - `claude.mcp_servers`
 - a fully custom `claude.tools` / `claude.disallowed_tools` list
 
-That means a custom agent added this way starts with a minimal prompt. To make it useful, edit `agentforge.yaml` and add fields such as `claude.instructions`, `claude.skills`, and `forge.handoffs`.
+That means a custom agent added this way starts with a minimal prompt. To make it useful, edit `teamcast.yaml` and add fields such as `claude.instructions`, `claude.skills`, and `forge.handoffs`.
 
 ### `edit agent <name>`
 
-`agentforge edit agent <name>` updates an existing agent, writes `agentforge.yaml`, then regenerates all files.
+`teamcast edit agent <name>` updates an existing agent, writes `teamcast.yaml`, then regenerates all files.
 
 Two modes are supported:
 
 - Non-interactive:
 
 ```bash
-agentforge edit agent reviewer --description "Reviews backend changes"
-agentforge edit agent reviewer --model opus
-agentforge edit agent reviewer --max-turns 40
+teamcast edit agent reviewer --description "Reviews backend changes"
+teamcast edit agent reviewer --model opus
+teamcast edit agent reviewer --max-turns 40
 ```
 
 - Interactive:
 
 ```bash
-agentforge edit agent reviewer
+teamcast edit agent reviewer
 ```
 
 Interactive questions:
@@ -238,7 +238,7 @@ Important limitations:
 
 ### `remove agent <name>`
 
-`agentforge remove agent <name>` removes an agent from the manifest, removes that agent from any `forge.handoffs`, deletes the orphaned `.claude/agents/<name>.md` file, and regenerates the rest.
+`teamcast remove agent <name>` removes an agent from the manifest, removes that agent from any `forge.handoffs`, deletes the orphaned `.claude/agents/<name>.md` file, and regenerates the rest.
 
 Interactive flow:
 
@@ -250,21 +250,21 @@ Use `--yes` to skip confirmation.
 
 ### `create skill <name>`
 
-`agentforge create skill <name>` registers a new skill name on one agent, writes `agentforge.yaml`, and generates `.claude/skills/<name>/SKILL.md`.
+`teamcast create skill <name>` registers a new skill name on one agent, writes `teamcast.yaml`, and generates `.claude/skills/<name>/SKILL.md`.
 
 Rules and prompts:
 
 - skill names must start with a letter and use lowercase letters, numbers, and hyphens only
 - if the skill already exists anywhere in the manifest, the command fails
 - existing skill names are shown for context
-- then AgentForge asks:
+- then TeamCast asks:
   - `Which agent should own this skill?`
 
-The generated `SKILL.md` file is a stub intended for manual editing. AgentForge will not overwrite an existing skill stub on later `generate` runs.
+The generated `SKILL.md` file is a stub intended for manual editing. TeamCast will not overwrite an existing skill stub on later `generate` runs.
 
 ### `assign skill <name>`
 
-`agentforge assign skill <name>` adds an existing skill to one or more additional agents, writes `agentforge.yaml`, and regenerates files.
+`teamcast assign skill <name>` adds an existing skill to one or more additional agents, writes `teamcast.yaml`, and regenerates files.
 
 Interactive flow:
 
@@ -277,11 +277,11 @@ The prompt is a multi-select list and requires at least one target agent.
 
 ### `generate`
 
-`agentforge generate` reads `agentforge.yaml`, validates it for blocking issues, and writes generated files.
+`teamcast generate` reads `teamcast.yaml`, validates it for blocking issues, and writes generated files.
 
 ```bash
-agentforge generate
-agentforge generate --dry-run
+teamcast generate
+teamcast generate --dry-run
 ```
 
 Behavior:
@@ -292,7 +292,7 @@ Behavior:
 
 ### `diff`
 
-`agentforge diff` compares the current manifest to generated files already on disk.
+`teamcast diff` compares the current manifest to generated files already on disk.
 
 It reports:
 
@@ -300,16 +300,16 @@ It reports:
 - modified files with added or removed line counts when available
 - unchanged files
 
-Use it to preview drift before running `agentforge generate`.
+Use it to preview drift before running `teamcast generate`.
 
 ### `validate`
 
-`agentforge validate` runs the validator against `agentforge.yaml`.
+`teamcast validate` runs the validator against `teamcast.yaml`.
 
 ```bash
-agentforge validate
-agentforge validate --strict
-agentforge validate --format json
+teamcast validate
+teamcast validate --strict
+teamcast validate --format json
 ```
 
 Behavior:
@@ -358,7 +358,7 @@ The `secure-dev` preset includes several security assertions by default.
 
 ### `explain`
 
-`agentforge explain` prints a human-readable summary of the team:
+`teamcast explain` prints a human-readable summary of the team:
 
 - project metadata
 - agents
@@ -371,12 +371,12 @@ Use this after `init`, `import`, or larger manifest edits to sanity-check the ar
 
 ### `import`
 
-`agentforge import` converts an existing `.claude/` setup into `agentforge.yaml`.
+`teamcast import` converts an existing `.claude/` setup into `teamcast.yaml`.
 
 Preconditions:
 
 - `.claude/` must exist
-- `agentforge.yaml` must not already exist
+- `teamcast.yaml` must not already exist
 
 Flow:
 
@@ -387,20 +387,20 @@ Flow:
 5. Prints discovered agents and policy categories
 6. Validates the imported manifest
 7. Asks:
-   - `Write agentforge.yaml with imported configuration?`
+   - `Write teamcast.yaml with imported configuration?`
 
 Use `--yes` to skip confirmation.
 
 Important note:
 
-- `import` writes `agentforge.yaml`
+- `import` writes `teamcast.yaml`
 - it does not run `generate`
 - imported instructions are extracted from the agent markdown body text
-- legacy AgentForge markdown is still supported, and old generated `Skills`, `Delegation`, and `Constraints` sections are stripped during import
+- legacy TeamCast markdown is still supported, and old generated `Skills`, `Delegation`, and `Constraints` sections are stripped during import
 
 ### `reset`
 
-`agentforge reset` deletes generated output but keeps `agentforge.yaml`.
+`teamcast reset` deletes generated output but keeps `teamcast.yaml`.
 
 It targets:
 
@@ -421,26 +421,26 @@ Use `--yes` to skip confirmation.
 
 ### `clean`
 
-`agentforge clean` is the destructive version of `reset`.
+`teamcast clean` is the destructive version of `reset`.
 
 It deletes:
 
 - everything removed by `reset`
-- `agentforge.yaml`
+- `teamcast.yaml`
 
 Flow:
 
 1. Shows the files that will be deleted
 2. Asks:
-   - `Delete everything including agentforge.yaml?`
+   - `Delete everything including teamcast.yaml?`
 
 Use `--yes` to skip confirmation.
 
 ## Prompt Generation
 
-Everything is defined in `agentforge.yaml` at the root of your project.
+Everything is defined in `teamcast.yaml` at the root of your project.
 
-For each agent, AgentForge renders `.claude/agents/<name>.md` from `agents.<name>.claude`.
+For each agent, TeamCast renders `.claude/agents/<name>.md` from `agents.<name>.claude`.
 
 Native Claude Code fields are rendered into frontmatter:
 
@@ -456,17 +456,17 @@ Native Claude Code fields are rendered into frontmatter:
 
 `claude.instructions` becomes the markdown body.
 
-`forge` metadata is not rendered into the agent markdown. It is used by AgentForge for validation, workflow docs, and delegation modeling.
+`forge` metadata is not rendered into the agent markdown. It is used by TeamCast for validation, workflow docs, and delegation modeling.
 
 This is important for custom agents:
 
 - role templates and presets come with built-in `claude.instructions`
 - `add agent <name>` without `--template` does not ask for `claude.instructions`
-- a custom agent created from `add agent` therefore starts with a very minimal prompt until you edit `agentforge.yaml`
+- a custom agent created from `add agent` therefore starts with a very minimal prompt until you edit `teamcast.yaml`
 
 ## Configuration
 
-Everything is defined in `agentforge.yaml` at the root of your project.
+Everything is defined in `teamcast.yaml` at the root of your project.
 
 ### Minimal Example
 
@@ -585,7 +585,7 @@ Available Claude Code tools:
 
 ### Abstract Skills
 
-Instead of listing raw tool names, you can specify platform-agnostic skills in `claude.tools`. AgentForge expands each skill to the appropriate Claude Code tools automatically.
+Instead of listing raw tool names, you can specify platform-agnostic skills in `claude.tools`. TeamCast expands each skill to the appropriate Claude Code tools automatically.
 
 | Skill | Expands to |
 |-------|-----------|
@@ -624,13 +624,13 @@ policies:
 
 ## Custom Templates
 
-Use `--from` to initialize from any valid AgentForge YAML file:
+Use `--from` to initialize from any valid TeamCast YAML file:
 
 ```bash
-agentforge init --from ./my-team-template.yaml
+teamcast init --from ./my-team-template.yaml
 ```
 
-This validates the file against the schema, writes `agentforge.yaml`, and generates all config files.
+This validates the file against the schema, writes `teamcast.yaml`, and generates all config files.
 
 ## Preset Metadata
 
@@ -645,7 +645,7 @@ preset_meta:
 
 ## Validation
 
-`agentforge validate` checks:
+`teamcast validate` checks:
 
 - handoff graph correctness
 - tool allow or deny conflicts

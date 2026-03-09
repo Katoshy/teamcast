@@ -1,4 +1,4 @@
-import type { AgentForgeManifest } from '../manifest/types.js';
+import type { TeamCastManifest } from '../manifest/types.js';
 import { isCoreTeam } from '../core/guards.js';
 import { applyDefaults } from '../manifest/defaults.js';
 import type { ValidationResult, Checker } from './types.js';
@@ -23,10 +23,10 @@ const CHECKERS: Checker[] = [
 ];
 
 export function runValidation(
-  input: AgentForgeManifest | CoreTeam,
+  input: TeamCastManifest | CoreTeam,
   extraCheckers?: Checker[],
 ): ValidationResult[] {
-  const team = isCoreTeam(input) ? input : applyDefaults(input as AgentForgeManifest);
+  const team = isCoreTeam(input) ? input : applyDefaults(input as TeamCastManifest);
   const results: ValidationResult[] = [];
 
   const checkers = extraCheckers ? [...CHECKERS, ...extraCheckers] : CHECKERS;

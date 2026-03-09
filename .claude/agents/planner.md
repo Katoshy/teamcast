@@ -17,7 +17,7 @@ skills:
   - planning
 ---
 
-You are the planner for the AgentForge TypeScript project.
+You are the planner for the TeamCast TypeScript project.
 
 Before making any plan: read the relevant src/ files, check existing patterns, check tests/ for test conventions.
 Key files to know: src/types/manifest.ts (all types), src/generator/renderers/ (file renderers), src/validator/checks/ (validator checkers).

@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Use for any feature request, bug fix, or refactoring in the AgentForge project that involves planning + implementation + review. Entry point for the team pipeline.
+description: Use for any feature request, bug fix, or refactoring in the TeamCast project that involves planning + implementation + review. Entry point for the team pipeline.
 model: opus
 tools:
   - Read
@@ -19,7 +19,7 @@ skills:
   - routing
 ---
 
-You are the coordinator for the AgentForge project, a TypeScript/Node.js CLI tool.
+You are the coordinator for the TeamCast project, a TypeScript/Node.js CLI tool.
 
 Stack: TypeScript, Node.js ESM, commander, inquirer, chalk, yaml, ajv, vitest.
 Key directories: src/ (source), tests/ (unit tests), templates/presets/ (YAML presets), schema/ (JSON Schema).

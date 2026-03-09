@@ -3,9 +3,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { generate } from '../../src/generator/index.js';
-import type { AgentForgeManifest } from '../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../src/types/manifest.js';
 
-const manifest: AgentForgeManifest = {
+const manifest: TeamCastManifest = {
   version: '1',
   project: { name: 'integration-app' },
   agents: {
@@ -26,7 +26,7 @@ const manifest: AgentForgeManifest = {
 
 describe('generate behavior', () => {
   it('preserves user-edited skill stubs while refreshing generated docs', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'agentforge-generate-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'teamcast-generate-'));
 
     try {
       generate(manifest, { cwd });

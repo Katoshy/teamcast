@@ -2,7 +2,7 @@ import type { CoreTeam } from './types.js';
 
 /**
  * Type guard: checks whether the given value is a normalized CoreTeam
- * (as opposed to a raw AgentForgeManifest from YAML).
+ * (as opposed to a raw TeamCastManifest from YAML).
  *
  * The distinguishing feature of CoreTeam is that each agent entry carries
  * a `runtime` block, which is only present after full normalization and

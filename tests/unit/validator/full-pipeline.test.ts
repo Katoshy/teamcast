@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { runValidation } from '../../../src/validator/index.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 import type { CoreTeam } from '../../../src/core/types.js';
 
 describe('runValidation (full pipeline)', () => {
   it('returns no issues for a well-configured feature-team', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       version: '1',
       project: { name: 'good-project' },
       agents: {
@@ -34,7 +34,7 @@ describe('runValidation (full pipeline)', () => {
   });
 
   it('catches multiple issues across different checkers', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       version: '1',
       project: { name: 'bad-project' },
       agents: {
@@ -88,7 +88,7 @@ describe('runValidation (full pipeline)', () => {
   });
 
   it('detects three-node cycle A→B→C→A', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       version: '1',
       project: { name: 'cyclic' },
       agents: {

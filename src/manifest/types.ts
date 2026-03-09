@@ -158,7 +158,7 @@ export interface PresetMeta {
   min_version?: string;
 }
 
-export interface AgentForgeManifestV2 {
+export interface TeamCastManifestV2 {
   version: '2';
   project: ProjectConfig;
   agents: Record<string, AgentConfigV2>;
@@ -167,7 +167,7 @@ export interface AgentForgeManifestV2 {
   preset_meta?: PresetMeta;
 }
 
-export interface AgentForgeManifestV1 {
+export interface TeamCastManifestV1 {
   version: '1';
   project: ProjectConfig;
   agents: Record<string, AgentDefinitionV1>;
@@ -176,7 +176,7 @@ export interface AgentForgeManifestV1 {
   preset_meta?: PresetMeta;
 }
 
-export type AgentForgeManifest = AgentForgeManifestV1 | AgentForgeManifestV2;
+export type TeamCastManifest = TeamCastManifestV1 | TeamCastManifestV2;
 
 export function isInstructionBlock(value: InstructionBlock | ManifestInstructionBlock): value is ManifestInstructionBlock {
   return typeof value.kind === 'string' && typeof value.content === 'string';

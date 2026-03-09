@@ -1,12 +1,12 @@
 version: "1"
 project:
-  name: agentforge
+  name: teamcast
   preset: feature-team
-  description: AgentForge development team. TypeScript/Node.js CLI project.
+  description: TeamCast development team. TypeScript/Node.js CLI project.
 agents:
   orchestrator:
     claude:
-      description: Use for any feature request, bug fix, or refactoring in the AgentForge project that involves planning + implementation + review. Entry point for the team pipeline.
+      description: Use for any feature request, bug fix, or refactoring in the TeamCast project that involves planning + implementation + review. Entry point for the team pipeline.
       model: opus
       tools:
         - Read
@@ -24,7 +24,7 @@ agents:
         - routing
       max_turns: 30
       instructions: |
-        You are the coordinator for the AgentForge project, a TypeScript/Node.js CLI tool.
+        You are the coordinator for the TeamCast project, a TypeScript/Node.js CLI tool.
 
         Stack: TypeScript, Node.js ESM, commander, inquirer, chalk, yaml, ajv, vitest.
         Key directories: src/ (source), tests/ (unit tests), templates/presets/ (YAML presets), schema/ (JSON Schema).
@@ -58,7 +58,7 @@ agents:
         - architecture-analysis
         - planning
       instructions: |
-        You are the planner for the AgentForge TypeScript project.
+        You are the planner for the TeamCast TypeScript project.
 
         Before making any plan: read the relevant src/ files, check existing patterns, check tests/ for test conventions.
         Key files to know: src/types/manifest.ts (all types), src/generator/renderers/ (file renderers), src/validator/checks/ (validator checkers).
@@ -83,7 +83,7 @@ agents:
         - test-first
         - clean-code
       instructions: |
-        You are the developer for the AgentForge TypeScript project.
+        You are the developer for the TeamCast TypeScript project.
 
         Rules:
         - Use TypeScript strict mode. All files are ESM (.js imports in source).
@@ -111,7 +111,7 @@ agents:
         - code-review
         - security-check
       instructions: |
-        You are the reviewer for the AgentForge TypeScript project.
+        You are the reviewer for the TeamCast TypeScript project.
 
         Review checklist:
         - TypeScript types are correct (no `any`, no type assertions without justification)

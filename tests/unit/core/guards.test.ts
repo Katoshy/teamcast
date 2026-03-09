@@ -31,7 +31,7 @@ describe('isCoreTeam', () => {
     expect(isCoreTeam(value)).toBe(true);
   });
 
-  it('returns false for a raw AgentForgeManifest (no runtime on agents)', () => {
+  it('returns false for a raw TeamCastManifest (no runtime on agents)', () => {
     const rawManifest = {
       version: '1',
       project: { name: 'raw' },
@@ -42,7 +42,7 @@ describe('isCoreTeam', () => {
     expect(isCoreTeam(rawManifest)).toBe(false);
   });
 
-  it('returns false for a NormalizedAgentForgeManifest (no runtime on agents)', () => {
+  it('returns false for a NormalizedTeamCastManifest (no runtime on agents)', () => {
     const normalized = {
       version: '1',
       project: { name: 'normalized' },

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { checkSecurityBaseline } from '../../../src/validator/checks/security-baseline.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 import { normalizeManifest } from '../../../src/types/manifest.js';
 
-const base: AgentForgeManifest = {
+const base: TeamCastManifest = {
   version: '1',
   project: { name: 'test' },
   agents: { developer: { description: 'Dev' } },
@@ -16,7 +16,7 @@ describe('checkSecurityBaseline', () => {
   });
 
   it('does not warn when .env deny rule exists', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       policies: {
         permissions: { deny: ['Write(.env*)', 'Edit(.env*)'] },
@@ -28,7 +28,7 @@ describe('checkSecurityBaseline', () => {
   });
 
   it('warns when sandbox is disabled', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       policies: { sandbox: { enabled: false } },
     };
@@ -37,7 +37,7 @@ describe('checkSecurityBaseline', () => {
   });
 
   it('warns on bypassPermissions agent', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         risky: { description: 'Risky agent', permission_mode: 'bypassPermissions' },
@@ -48,7 +48,7 @@ describe('checkSecurityBaseline', () => {
   });
 
   it('errors on dangerously-skip-permissions in allow rules', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       policies: {
         permissions: { allow: ['Bash(--dangerously-skip-permissions)'] },

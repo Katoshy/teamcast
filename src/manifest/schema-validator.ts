@@ -2,7 +2,7 @@ import Ajv from 'ajv';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import type { AgentForgeManifest } from './types.js';
+import type { TeamCastManifest } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,21 +19,21 @@ function getValidator(): ReturnType<Ajv['compile']> {
     _ajv.addFormat('uri', { validate: () => true });
   }
 
-  const schemaPath = join(__dirname, '../../schema/agentforge.schema.json');
+  const schemaPath = join(__dirname, '../../schema/teamcast.schema.json');
   const schema = JSON.parse(readFileSync(schemaPath, 'utf-8'));
   _validate = _ajv.compile(schema);
   return _validate;
 }
 
 export type SchemaValidationResult =
-  | { valid: true; data: AgentForgeManifest }
+  | { valid: true; data: TeamCastManifest }
   | { valid: false; errors: Array<{ path: string; message: string }> };
 
 export function validateSchema(raw: unknown): SchemaValidationResult {
   const validate = getValidator();
   const valid = validate(raw) as boolean;
 
-  if (valid) return { valid: true, data: raw as AgentForgeManifest };
+  if (valid) return { valid: true, data: raw as TeamCastManifest };
 
   const errors = (validate.errors ?? []).map((err) => ({
     path: err.instancePath || '(root)',

@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { checkHandoffGraph } from '../../../src/validator/checks/handoff-graph.js';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 import { CLAUDE_SKILL_MAP } from '../../../src/renderers/claude/skill-map.js';
 import type { SkillToolMap } from '../../../src/core/skill-resolver.js';
 
 const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
 
-const base: AgentForgeManifest = {
+const base: TeamCastManifest = {
   version: '1',
   project: { name: 'test' },
   agents: {},
@@ -15,7 +15,7 @@ const base: AgentForgeManifest = {
 
 describe('checkHandoffGraph', () => {
   it('passes for a valid linear chain', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         orchestrator: {
@@ -41,7 +41,7 @@ describe('checkHandoffGraph', () => {
   });
 
   it('errors on undefined handoff target', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         orchestrator: {
@@ -62,7 +62,7 @@ describe('checkHandoffGraph', () => {
   });
 
   it('errors on A->B->A cycle', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         a: {
@@ -92,7 +92,7 @@ describe('checkHandoffGraph', () => {
   });
 
   it('errors when agent has handoffs but Agent not in allow', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...base,
       agents: {
         orchestrator: {

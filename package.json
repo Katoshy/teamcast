@@ -1,10 +1,10 @@
 {
-  "name": "agentforge",
+  "name": "teamcast",
   "version": "0.6.0",
   "description": "CLI to design, generate, and validate Claude Code agent teams from a single manifest",
   "type": "module",
   "bin": {
-    "agentforge": "./dist/index.js"
+    "teamcast": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

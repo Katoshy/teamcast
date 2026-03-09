@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderSettingsJson } from '../../../src/renderers/claude/settings.js';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 
-const baseManifest: AgentForgeManifest = {
+const baseManifest: TeamCastManifest = {
   version: '1',
   project: { name: 'test-project' },
   agents: {},
@@ -18,7 +18,7 @@ describe('renderSettingsJson', () => {
   });
 
   it('includes allow/ask/deny rules from permissions', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...baseManifest,
       policies: {
         permissions: {
@@ -38,7 +38,7 @@ describe('renderSettingsJson', () => {
   });
 
   it('maps abstract permissions to Claude-specific rules', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...baseManifest,
       version: '2',
       policies: {
@@ -64,7 +64,7 @@ describe('renderSettingsJson', () => {
   });
 
   it('converts network.allowed_domains to WebFetch rules', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...baseManifest,
       policies: {
         network: {
@@ -82,7 +82,7 @@ describe('renderSettingsJson', () => {
   });
 
   it('maps sandbox fields with camelCase renaming', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...baseManifest,
       policies: {
         sandbox: {
@@ -101,7 +101,7 @@ describe('renderSettingsJson', () => {
   });
 
   it('maps hooks to PascalCase keys', () => {
-    const manifest: AgentForgeManifest = {
+    const manifest: TeamCastManifest = {
       ...baseManifest,
       policies: {
         hooks: {

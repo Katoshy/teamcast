@@ -101,7 +101,7 @@ function applyTeamChanges(
   try {
     writeManifest(team, cwd);
   } catch (err) {
-    printError('Failed to write agentforge.yaml', String(err));
+    printError('Failed to write teamcast.yaml', String(err));
     process.exit(1);
   }
 

@@ -7,7 +7,7 @@ import { printHeader, printCommandSuccess, printDim } from '../utils/chalk-helpe
 export function registerDiffCommand(program: Command): void {
   program
     .command('diff')
-    .description('Show differences between agentforge.yaml and generated files on disk')
+    .description('Show differences between teamcast.yaml and generated files on disk')
     .action(() => {
       const cwd = process.cwd();
 
@@ -59,7 +59,7 @@ export function registerDiffCommand(program: Command): void {
       console.log(`  ${parts.join(chalk.dim(' | '))}`);
 
       console.log('');
-      printDim('  Run "agentforge generate" to apply changes');
+      printDim('  Run "teamcast generate" to apply changes');
       console.log('');
     });
 }

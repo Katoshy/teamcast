@@ -21,8 +21,8 @@ import { expandSkillsToTools, CLAUDE_SKILL_MAP } from '../renderers/claude/skill
 import type { SkillToolMap } from '../core/skill-resolver.js';
 import type {
   AgentDefinition,
-  AgentForgeManifest,
-  AgentForgeManifestV2,
+  TeamCastManifest,
+  TeamCastManifestV2,
   AgentConfigV2,
   CanonicalAgentConfigV1,
   GenerationSettings,
@@ -310,7 +310,7 @@ function normalizeAgent(agentId: string, agent: AgentDefinition): CoreAgent {
   };
 }
 
-export function normalizeManifest(manifest: AgentForgeManifest): CoreTeam {
+export function normalizeManifest(manifest: TeamCastManifest): CoreTeam {
   return {
     version: '2',
     project: mapProject(manifest.project),
@@ -382,7 +382,7 @@ function getRawToolsForYaml(runtime: AgentRuntime): CanonicalTool[] | undefined 
   return runtime.tools as CanonicalTool[];
 }
 
-export function denormalizeManifest(team: CoreTeam): AgentForgeManifestV2 {
+export function denormalizeManifest(team: CoreTeam): TeamCastManifestV2 {
   return {
     version: '2',
     project: {

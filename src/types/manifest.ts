@@ -1,4 +1,4 @@
-// Public barrel file for AgentForge types and utilities.
+// Public barrel file for TeamCast types and utilities.
 // Consumers should import from this path rather than from internal modules.
 
 // ── Core types (platform-agnostic) ──────────────────────────────────────────
@@ -11,7 +11,7 @@ export type {
   ModelAlias,
   PermissionMode,
   CoreAgent,
-  CoreTeam as NormalizedAgentForgeManifest,
+  CoreTeam as NormalizedTeamCastManifest,
   TeamPolicies,
   TeamSettings,
   ProjectConfig as CoreProjectConfig,
@@ -39,14 +39,14 @@ export type { CanonicalTool } from '../renderers/claude/tools.js';
 export { CLAUDE_CODE_TOOLS, COMPAT_CLAUDE_CODE_TOOLS } from '../renderers/claude/tools.js';
 
 // ── Manifest types (YAML schema) ─────────────────────────────────────────────
-// Raw types matching the agentforge.yaml structure, including both current (V2)
+// Raw types matching the teamcast.yaml structure, including both current (V2)
 // and legacy (V1) agent config shapes.
 export type {
   AgentConfigV2 as AgentConfig,
   AgentDefinition,
-  AgentForgeManifest,
-  AgentForgeManifestV1,
-  AgentForgeManifestV2,
+  TeamCastManifest,
+  TeamCastManifestV1,
+  TeamCastManifestV2,
   ClaudeAgentConfigV2 as ClaudeAgentConfig,
   ForgeAgentMetadataV2 as ForgeAgentMetadata,
   GenerationSettings,
@@ -66,7 +66,7 @@ export type {
 } from '../manifest/types.js';
 
 // ── Normalization utilities ──────────────────────────────────────────────────
-// Functions to convert a raw AgentForgeManifest into a fully-resolved CoreTeam,
+// Functions to convert a raw TeamCastManifest into a fully-resolved CoreTeam,
 // and back again for serialization.
 export { normalizeManifest, denormalizeManifest } from '../manifest/normalize.js';
 

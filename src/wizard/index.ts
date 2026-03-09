@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import type { AgentForgeManifest, NormalizedAgentForgeManifest } from '../types/manifest.js';
+import type { TeamCastManifest, NormalizedTeamCastManifest } from '../types/manifest.js';
 import { detectProjectContext } from '../detector/index.js';
 import { writeManifest } from '../manifest/writer.js';
 import { generate } from '../generator/index.js';
@@ -31,10 +31,10 @@ export async function runWizard(options: WizardOptions): Promise<void> {
 
   const ctx = detectProjectContext(cwd);
 
-  let partial: Partial<AgentForgeManifest> = {};
+  let partial: Partial<TeamCastManifest> = {};
   partial = await stepProjectContext(ctx, partial, { nonInteractive });
 
-  let manifest = (await stepTeamSelection(partial, { nonInteractive })) as NormalizedAgentForgeManifest;
+  let manifest = (await stepTeamSelection(partial, { nonInteractive })) as NormalizedTeamCastManifest;
   manifest.version = '1';
   manifest = await stepAgentCustomization(manifest, { nonInteractive });
 
@@ -53,7 +53,7 @@ export async function runWizard(options: WizardOptions): Promise<void> {
   try {
     writeManifest(manifest, cwd);
   } catch (err) {
-    printError('Failed to write agentforge.yaml', String(err));
+    printError('Failed to write teamcast.yaml', String(err));
     process.exit(1);
   }
 
@@ -73,7 +73,7 @@ export async function runWizard(options: WizardOptions): Promise<void> {
   printCommandSuccess(`Agent team initialized for project "${manifest.project.name}"`);
   printManifestValidation(validation);
   printNextSteps([
-    `${chalk.bold('agentforge explain')} - view the team structure`,
-    `Edit ${chalk.bold('agentforge.yaml')} and run ${chalk.bold('agentforge generate')} to apply changes`,
+    `${chalk.bold('teamcast explain')} - view the team structure`,
+    `Edit ${chalk.bold('teamcast.yaml')} and run ${chalk.bold('teamcast generate')} to apply changes`,
   ]);
 }

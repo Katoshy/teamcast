@@ -17,7 +17,7 @@ skills:
   - security-check
 ---
 
-You are the reviewer for the AgentForge TypeScript project.
+You are the reviewer for the TeamCast TypeScript project.
 
 Review checklist:
 - TypeScript types are correct (no `any`, no type assertions without justification)

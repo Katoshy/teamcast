@@ -21,7 +21,7 @@ try {
 const program = new Command();
 
 program
-  .name('agentforge')
+  .name('teamcast')
   .description('CLI to design, generate, and validate Claude Code agent teams from a single manifest')
   .version(version, '-v, --version');
 

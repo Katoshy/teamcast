@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
-import type { AgentForgeManifest } from '../../../src/types/manifest.js';
+import type { TeamCastManifest } from '../../../src/types/manifest.js';
 
 describe('applyDefaults', () => {
   it('sets default settings when none provided', () => {
-    const input: AgentForgeManifest = {
+    const input: TeamCastManifest = {
       version: '1',
       project: { name: 'test' },
       agents: { dev: { description: 'Dev' } },
@@ -16,7 +16,7 @@ describe('applyDefaults', () => {
   });
 
   it('preserves user-specified settings', () => {
-    const input: AgentForgeManifest = {
+    const input: TeamCastManifest = {
       version: '1',
       project: { name: 'test' },
       agents: {},
@@ -30,7 +30,7 @@ describe('applyDefaults', () => {
   });
 
   it('sets sandbox defaults when sandbox section exists', () => {
-    const input: AgentForgeManifest = {
+    const input: TeamCastManifest = {
       version: '1',
       project: { name: 'test' },
       agents: {},
@@ -42,7 +42,7 @@ describe('applyDefaults', () => {
   });
 
   it('does not add sandbox section when policies exist but sandbox is missing', () => {
-    const input: AgentForgeManifest = {
+    const input: TeamCastManifest = {
       version: '1',
       project: { name: 'test' },
       agents: {},
@@ -53,7 +53,7 @@ describe('applyDefaults', () => {
   });
 
   it('does not mutate the original manifest', () => {
-    const input: AgentForgeManifest = {
+    const input: TeamCastManifest = {
       version: '1',
       project: { name: 'test' },
       agents: {},
