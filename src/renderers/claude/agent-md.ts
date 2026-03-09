@@ -24,8 +24,8 @@ function buildFrontmatter(agentId: string, agent: CoreAgent): string {
   if (agent.runtime.maxTurns) {
     frontmatter.maxTurns = agent.runtime.maxTurns;
   }
-  if (agent.runtime.skills?.length) {
-    frontmatter.skills = [...agent.runtime.skills];
+  if (agent.runtime.skillDocs?.length) {
+    frontmatter.skills = [...agent.runtime.skillDocs];
   }
   if (agent.runtime.mcpServers?.length) {
     frontmatter.mcpServers = agent.runtime.mcpServers.map((server) => ({ ...server }));

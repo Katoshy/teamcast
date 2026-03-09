@@ -3,10 +3,10 @@ import chalk from 'chalk';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { generate } from '../generator/index.js';
 import {
-  evaluateManifest,
-  manifestHasBlockingIssues,
+  evaluateTeam,
+  teamHasBlockingIssues,
   printManifestValidation,
-} from './manifest-validation.js';
+} from '../application/validate-team.js';
 import {
   printHeader,
   printSuccess,
@@ -41,8 +41,8 @@ export function registerGenerateCommand(program: Command): void {
         throw err;
       }
 
-      const validation = evaluateManifest(manifest);
-      if (manifestHasBlockingIssues(validation)) {
+      const validation = evaluateTeam(manifest);
+      if (teamHasBlockingIssues(validation)) {
         printManifestValidation(validation);
         process.exit(1);
       }

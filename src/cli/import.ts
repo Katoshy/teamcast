@@ -6,10 +6,10 @@ import { importFromClaudeDir } from '../importer/index.js';
 import { writeManifest } from '../manifest/writer.js';
 import { detectProjectContext } from '../detector/index.js';
 import {
-  evaluateManifest,
-  manifestHasBlockingIssues,
+  evaluateTeam,
+  teamHasBlockingIssues,
   printManifestValidation,
-} from './manifest-validation.js';
+} from '../application/validate-team.js';
 import {
   printHeader,
   printSuccess,
@@ -76,9 +76,9 @@ export function registerImportCommand(program: Command): void {
       }
       console.log('');
 
-      const validation = evaluateManifest(result.team);
+      const validation = evaluateTeam(result.team);
 
-      if (manifestHasBlockingIssues(validation)) {
+      if (teamHasBlockingIssues(validation)) {
         printManifestValidation(validation);
         printError('Imported configuration has errors', 'Fix the issues above and try again.');
         process.exit(1);

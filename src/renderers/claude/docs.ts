@@ -129,8 +129,8 @@ export function renderAgentsMd(team: CoreTeam): RenderedFile {
     if (agent.metadata?.handoffs?.length) {
       lines.push(`**Can delegate to:** ${agent.metadata.handoffs.join(', ')}`);
     }
-    if (agent.runtime.skills?.length) {
-      lines.push(`**Skills:** ${agent.runtime.skills.join(', ')}`);
+    if (agent.runtime.skillDocs?.length) {
+      lines.push(`**Skill docs:** ${agent.runtime.skillDocs.join(', ')}`);
     }
 
     const capabilities = describeCapabilities(agent.runtime.tools);

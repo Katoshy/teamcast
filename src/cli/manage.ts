@@ -18,10 +18,10 @@ import type {
 } from '../core/types.js';
 import { CLAUDE_CODE_TOOLS } from '../renderers/claude/tools.js';
 import {
-  evaluateManifest,
-  manifestHasBlockingIssues,
+  evaluateTeam,
+  teamHasBlockingIssues,
   printManifestValidation,
-} from './manifest-validation.js';
+} from '../application/validate-team.js';
 import {
   promptCheckbox,
   promptConfirm,
@@ -75,8 +75,8 @@ function loadTeamOrExit(cwd: string): CoreTeam {
 }
 
 function validateTeamOrExit(team: CoreTeam) {
-  const validation = evaluateManifest(team);
-  if (manifestHasBlockingIssues(validation)) {
+  const validation = evaluateTeam(team);
+  if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
     process.exit(1);
   }
@@ -124,7 +124,7 @@ function applyTeamChanges(
 function collectSkills(team: CoreTeam): Set<string> {
   const skills = new Set<string>();
   for (const agent of Object.values(team.agents)) {
-    for (const skill of agent.runtime.skills ?? []) {
+    for (const skill of agent.runtime.skillDocs ?? []) {
       skills.add(skill);
     }
   }
@@ -164,7 +164,7 @@ function applyEditOptions(current: CoreAgent, options: EditAgentOptions): CoreAg
 }
 
 export function registerManageCommands(program: Command): void {
-  const addCmd = program.command('add').description('Add a resource to the team');
+  const addCmd = program.command('add').description('Add a resource to the team (subcommands: agent)');
 
   addCmd
     .command('agent <name>')
@@ -210,7 +210,7 @@ export function registerManageCommands(program: Command): void {
       const allSkills = collectSkills(team);
       if (allSkills.has(name)) {
         const owners = Object.entries(team.agents)
-          .filter(([, agent]) => agent.runtime.skills?.includes(name))
+          .filter(([, agent]) => agent.runtime.skillDocs?.includes(name))
           .map(([agentName]) => agentName);
         printError(
           `Skill "${name}" already exists`,
@@ -259,8 +259,8 @@ export function registerManageCommands(program: Command): void {
         process.exit(1);
       }
 
-      const alreadyAssigned = agentNames.filter((agentName) => team.agents[agentName].runtime.skills?.includes(name));
-      const available = agentNames.filter((agentName) => !team.agents[agentName].runtime.skills?.includes(name));
+      const alreadyAssigned = agentNames.filter((agentName) => team.agents[agentName].runtime.skillDocs?.includes(name));
+      const available = agentNames.filter((agentName) => !team.agents[agentName].runtime.skillDocs?.includes(name));
 
       if (available.length === 0) {
         printError(`Skill "${name}" is already assigned to all agents`, alreadyAssigned.join(', '));
@@ -288,7 +288,7 @@ export function registerManageCommands(program: Command): void {
       printCommandSuccess(`Skill "${name}" assigned to ${selectedAgents.join(', ')}`);
     });
 
-  const removeCmd = program.command('remove').description('Remove a resource from the team');
+  const removeCmd = program.command('remove').description('Remove a resource from the team (subcommands: agent)');
 
   removeCmd
     .command('agent <name>')
@@ -324,7 +324,7 @@ export function registerManageCommands(program: Command): void {
       printCommandSuccess(`Agent "${name}" removed and configuration regenerated`);
     });
 
-  const editCmd = program.command('edit').description('Edit a resource in the team');
+  const editCmd = program.command('edit').description('Edit a resource in the team (subcommands: agent)');
 
   editCmd
     .command('agent <name>')

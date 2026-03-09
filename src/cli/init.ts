@@ -8,12 +8,11 @@ import { generate } from '../generator/index.js';
 import { detectProjectContext } from '../detector/index.js';
 import { validateSchema } from '../manifest/schema-validator.js';
 import { applyDefaults } from '../manifest/defaults.js';
-import type { AgentForgeManifest } from '../manifest/types.js';
 import {
-  evaluateManifest,
-  manifestHasBlockingIssues,
+  evaluateTeam,
+  teamHasBlockingIssues,
   printManifestValidation,
-} from './manifest-validation.js';
+} from '../application/validate-team.js';
 import {
   printHeader,
   printSuccess,
@@ -76,9 +75,9 @@ async function initWithPreset(
 
   const projectName = detectedName ?? 'my-project';
   const team = applyPreset(preset, projectName);
-  const validation = evaluateManifest(team);
+  const validation = evaluateTeam(team);
 
-  if (manifestHasBlockingIssues(validation)) {
+  if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
     process.exit(1);
   }
@@ -142,23 +141,23 @@ async function initFromFile(
     process.exit(1);
   }
 
-  const { valid, errors } = validateSchema(parsed);
-  if (!valid) {
+  const schemaResult = validateSchema(parsed);
+  if (!schemaResult.valid) {
     printError('Schema validation failed', '');
-    for (const error of errors) {
+    for (const error of schemaResult.errors) {
       console.error(chalk.dim(`  ${error.path}: ${error.message}`));
     }
     process.exit(1);
   }
 
-  const team = applyDefaults(parsed as AgentForgeManifest);
+  const team = applyDefaults(schemaResult.data);
   if (detectedName && team.project.name === 'my-project') {
     team.project.name = detectedName;
   }
 
-  const validation = evaluateManifest(team);
+  const validation = evaluateTeam(team);
 
-  if (manifestHasBlockingIssues(validation)) {
+  if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
     process.exit(1);
   }

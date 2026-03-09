@@ -17,7 +17,8 @@ import type {
   TeamPolicies,
 } from '../core/types.js';
 import { CLAUDE_CODE_TOOLS, type CanonicalTool } from '../renderers/claude/tools.js';
-import { expandSkillsToTools } from '../renderers/claude/skill-map.js';
+import { expandSkillsToTools, CLAUDE_SKILL_MAP } from '../renderers/claude/skill-map.js';
+import type { SkillToolMap } from '../core/skill-resolver.js';
 import type {
   AgentDefinition,
   AgentForgeManifest,
@@ -63,18 +64,18 @@ function dedupeTools(tools: Tool[] | undefined): AgentRuntime['tools'] {
  *
  * The expanded tools are computed from skills and merged with rawTools.
  */
-function separateSkillsAndTools(items: Array<AgentSkill | CanonicalTool> | undefined): {
+function separateSkillsAndTools(items: Array<AgentSkill | string> | undefined): {
   skills: AgentSkill[];
-  rawTools: CanonicalTool[];
+  rawTools: string[];
 } {
   const skills: AgentSkill[] = [];
-  const rawTools: CanonicalTool[] = [];
+  const rawTools: string[] = [];
 
   for (const item of items ?? []) {
     if (isAgentSkill(item)) {
       skills.push(item);
     } else {
-      rawTools.push(item as CanonicalTool);
+      rawTools.push(item);
     }
   }
 
@@ -87,10 +88,10 @@ function separateSkillsAndTools(items: Array<AgentSkill | CanonicalTool> | undef
  */
 function resolveToolsFromSkillsAndRaw(
   skills: AgentSkill[],
-  rawTools: CanonicalTool[],
+  rawTools: string[],
 ): { tools: CanonicalTool[] | undefined } {
   const expandedTools = skills.length > 0 ? expandSkillsToTools(skills) : [];
-  const allTools = [...new Set([...expandedTools, ...rawTools])];
+  const allTools = [...new Set([...expandedTools, ...(rawTools as CanonicalTool[])])];
 
   return {
     tools: allTools.length > 0 ? allTools : undefined,
@@ -195,6 +196,23 @@ function mapSettings(settings: GenerationSettings | undefined): CoreTeam['settin
   };
 }
 
+function buildAgentRuntime(
+  agent: AgentConfigV2['claude'],
+  resolvedTools: CanonicalTool[] | undefined,
+  resolvedDisallowedTools: CanonicalTool[] | undefined,
+): AgentRuntime {
+  return {
+    model: agent.model,
+    tools: resolvedTools ? [...resolvedTools] : undefined,
+    disallowedTools: resolvedDisallowedTools ? [...resolvedDisallowedTools] : undefined,
+    skillDocs: cloneArray(agent.skills),
+    maxTurns: agent.max_turns,
+    mcpServers: agent.mcp_servers?.map((server) => ({ ...server })),
+    permissionMode: agent.permission_mode,
+    background: agent.background,
+  };
+}
+
 function stringToBlocks(value: string | undefined): InstructionBlock[] {
   if (!value?.trim()) return [];
   return [{ kind: 'behavior', content: value.trim() }];
@@ -213,7 +231,7 @@ function mapRuntimeFromLegacy(agent: LegacyAgentConfigV1): AgentRuntime {
     model: agent.model,
     tools: allowTools,
     disallowedTools: deniedTools,
-    skills: cloneArray(agent.skills),
+    skillDocs: cloneArray(agent.skills),
     maxTurns: agent.max_turns,
     mcpServers: agent.mcp_servers ? agent.mcp_servers.map((server) => ({ ...server })) : undefined,
     permissionMode: agent.permission_mode,
@@ -231,10 +249,10 @@ function normalizeAgent(agentId: string, agent: AgentDefinition): CoreAgent {
 
     // Separate skills from raw tool names in the tools arrays.
     const { skills: toolsSkills, rawTools } = separateSkillsAndTools(
-      agent.claude.tools as Array<AgentSkill | CanonicalTool> | undefined,
+      agent.claude.tools as Array<AgentSkill | string> | undefined,
     );
     const { skills: disallowedSkills, rawTools: rawDisallowedTools } = separateSkillsAndTools(
-      agent.claude.disallowed_tools as Array<AgentSkill | CanonicalTool> | undefined,
+      agent.claude.disallowed_tools as Array<AgentSkill | string> | undefined,
     );
 
     // Expand AgentSkill values found in tools[] into CanonicalTool[].
@@ -249,29 +267,16 @@ function normalizeAgent(agentId: string, agent: AgentDefinition): CoreAgent {
       rawDisallowedTools,
     );
 
+    const baseRuntime = buildAgentRuntime(agent.claude, resolvedTools, resolvedDisallowedTools);
     const runtime = usesStructuredComposition
-      ? mergeRuntimeWithTraits({
-          model: agent.claude.model,
-          tools: resolvedTools ? [...resolvedTools] : undefined,
-          disallowedTools: resolvedDisallowedTools ? [...resolvedDisallowedTools] : undefined,
+      ? mergeRuntimeWithTraits(
           // agent.claude.skills holds free-form skill doc references (e.g. 'test-first').
           // AgentSkill abstract values from tools[] are already expanded into resolvedTools.
-          skills: cloneArray(agent.claude.skills),
-          maxTurns: agent.claude.max_turns,
-          mcpServers: agent.claude.mcp_servers?.map((server) => ({ ...server })),
-          permissionMode: agent.claude.permission_mode,
-          background: agent.claude.background,
-        }, v2Agent.claude.capability_traits)
-      : {
-          model: agent.claude.model,
-          tools: resolvedTools ? [...resolvedTools] : undefined,
-          disallowedTools: resolvedDisallowedTools ? [...resolvedDisallowedTools] : undefined,
-          skills: cloneArray(agent.claude.skills),
-          maxTurns: agent.claude.max_turns,
-          mcpServers: agent.claude.mcp_servers?.map((server) => ({ ...server })),
-          permissionMode: agent.claude.permission_mode,
-          background: agent.claude.background,
-        };
+          baseRuntime,
+          v2Agent.claude.capability_traits,
+          CLAUDE_SKILL_MAP as SkillToolMap,
+        )
+      : baseRuntime;
     const instructionBlocks = usesStructuredComposition
       ? normalizeInstructionBlocks(
           resolveInstructionFragments(
@@ -369,7 +374,7 @@ function denormalizePolicies(policies: CoreTeam['policies']): PoliciesConfig | u
 /**
  * Returns the tools from runtime for writing back to YAML.
  * runtime.tools contains the fully-expanded CanonicalTool[] (from both traits and explicit tools).
- * runtime.skills contains free-form skill doc references (not AgentSkill abstract capabilities).
+ * runtime.skillDocs contains free-form skill doc references (not AgentSkill abstract capabilities).
  * Since capability_traits are written back separately via the YAML structure, we write all tools as-is.
  */
 function getRawToolsForYaml(runtime: AgentRuntime): CanonicalTool[] | undefined {
@@ -395,7 +400,7 @@ export function denormalizeManifest(team: CoreTeam): AgentForgeManifestV2 {
             // Write only non-skill-expanded tools back. Skills are written in the skills field.
             tools: getRawToolsForYaml(agent.runtime),
             disallowed_tools: cloneArray(agent.runtime.disallowedTools) as CanonicalTool[] | undefined,
-            skills: cloneArray(agent.runtime.skills),
+            skills: cloneArray(agent.runtime.skillDocs),
             max_turns: agent.runtime.maxTurns,
             mcp_servers: agent.runtime.mcpServers?.map((server) => ({ ...server })),
             permission_mode: agent.runtime.permissionMode,
@@ -432,7 +437,7 @@ export function buildRuntimeFromCapabilities(capabilities: {
   model?: AgentRuntime['model'];
   tools?: AgentRuntime['tools'];
   disallowedTools?: AgentRuntime['disallowedTools'];
-  skills?: AgentRuntime['skills'];
+  skillDocs?: AgentRuntime['skillDocs'];
   maxTurns?: AgentRuntime['maxTurns'];
   permissionMode?: AgentRuntime['permissionMode'];
 }): AgentRuntime {
@@ -440,7 +445,7 @@ export function buildRuntimeFromCapabilities(capabilities: {
     model: capabilities.model,
     tools: cloneArray(capabilities.tools),
     disallowedTools: cloneArray(capabilities.disallowedTools),
-    skills: cloneArray(capabilities.skills),
+    skillDocs: cloneArray(capabilities.skillDocs),
     maxTurns: capabilities.maxTurns,
     permissionMode: capabilities.permissionMode,
   };

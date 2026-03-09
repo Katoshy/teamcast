@@ -7,8 +7,7 @@ import { stepProjectContext } from './steps/project-context.js';
 import { stepTeamSelection } from './steps/team-selection.js';
 import { stepConfirmGenerate } from './steps/confirm-generate.js';
 import { stepAgentCustomization } from './steps/agent-customization.js';
-import { evaluateTeam, teamHasBlockingIssues } from '../application/validate-team.js';
-import { printManifestValidation } from '../cli/manifest-validation.js';
+import { evaluateTeam, teamHasBlockingIssues, printManifestValidation } from '../application/validate-team.js';
 import {
   printSuccess,
   printError,

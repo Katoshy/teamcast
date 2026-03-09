@@ -3,7 +3,6 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { parse } from 'yaml';
 import type { CoreTeam } from '../core/types.js';
-import type { AgentForgeManifest } from '../manifest/types.js';
 import { applyDefaults } from '../manifest/defaults.js';
 import { validateSchema } from '../manifest/schema-validator.js';
 import type { Preset, PresetMeta } from './types.js';
@@ -43,14 +42,14 @@ export function loadPreset(name: string): Preset {
   }
 
   const parsed = parse(readFileSync(presetPath, 'utf-8'));
-  const { valid, errors } = validateSchema(parsed);
-  if (!valid) {
+  const schemaResult = validateSchema(parsed);
+  if (!schemaResult.valid) {
     throw new Error(
-      `Preset "${name}" failed schema validation:\n${errors.map((error) => `  ${error.path}: ${error.message}`).join('\n')}`,
+      `Preset "${name}" failed schema validation:\n${schemaResult.errors.map((error) => `  ${error.path}: ${error.message}`).join('\n')}`,
     );
   }
 
-  const team = applyDefaults(parsed as AgentForgeManifest);
+  const team = applyDefaults(schemaResult.data);
   return {
     meta: buildPresetMeta(name, team),
     team,

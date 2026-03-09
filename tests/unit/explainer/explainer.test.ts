@@ -120,7 +120,7 @@ describe('buildExplanation', () => {
     expect(out).not.toContain('Permission mode:');
   });
 
-  it('shows runtime.skills (doc references) when present', () => {
+  it('shows runtime.skillDocs (doc references) when present', () => {
     const team: CoreTeam = {
       ...baseTeam,
       agents: {
@@ -128,7 +128,7 @@ describe('buildExplanation', () => {
           ...baseTeam.agents.developer,
           runtime: {
             ...baseTeam.agents.developer.runtime,
-            skills: ['test-first', 'clean-code'],
+            skillDocs: ['test-first', 'clean-code'],
           },
         },
       },

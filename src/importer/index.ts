@@ -164,7 +164,7 @@ function parseAgentFile(filePath: string): { name: string; agent: CoreAgent; war
   const permissionMode = parsePermissionMode(fields.permissionMode);
   const maxTurns = typeof fields.maxTurns === 'number' ? fields.maxTurns : undefined;
   const background = typeof fields.background === 'boolean' ? fields.background : undefined;
-  const skills = parseSkillList(fields.skills);
+  const skillDocs = parseSkillList(fields.skills);
   const mcpServers = parseMcpServers(fields.mcpServers);
 
   if (fields.model && !model) {
@@ -195,7 +195,7 @@ function parseAgentFile(filePath: string): { name: string; agent: CoreAgent; war
         disallowedTools,
         permissionMode,
         maxTurns,
-        skills,
+        skillDocs,
         mcpServers,
         background,
       },

@@ -1,5 +1,7 @@
 import { AGENT_SKILLS } from '../../core/skills.js';
 import type { AgentSkill } from '../../core/skills.js';
+import { expandSkills } from '../../core/skill-resolver.js';
+import type { SkillToolMap } from '../../core/skill-resolver.js';
 import type { CanonicalTool } from './tools.js';
 
 export const CLAUDE_SKILL_MAP: Record<AgentSkill, CanonicalTool[]> = {
@@ -14,13 +16,7 @@ export const CLAUDE_SKILL_MAP: Record<AgentSkill, CanonicalTool[]> = {
 };
 
 export function expandSkillsToTools(skills: AgentSkill[]): CanonicalTool[] {
-  const toolSet = new Set<CanonicalTool>();
-  for (const skill of skills) {
-    for (const tool of CLAUDE_SKILL_MAP[skill]) {
-      toolSet.add(tool);
-    }
-  }
-  return [...toolSet];
+  return expandSkills(skills, CLAUDE_SKILL_MAP as SkillToolMap) as CanonicalTool[];
 }
 
 /**
@@ -32,7 +28,7 @@ export function expandSkillsToTools(skills: AgentSkill[]): CanonicalTool[] {
  */
 export function reverseMapToolsToSkills(tools: string[]): { skills: AgentSkill[]; remainingTools: string[] } {
   // Sort skills by tool-set size descending for greedy matching
-  const skillsBySize = ([...AGENT_SKILLS] as AgentSkill[]).sort(
+  const skillsBySize = ([...AGENT_SKILLS]).sort(
     (a, b) => CLAUDE_SKILL_MAP[b].length - CLAUDE_SKILL_MAP[a].length,
   );
 

@@ -26,7 +26,7 @@ function _normalizeViaTeam(agent: AgentDefinition): AgentConfigV2 {
       disallowed_tools: normalizedAgent.runtime.disallowedTools
         ? ([...normalizedAgent.runtime.disallowedTools] as CanonicalTool[])
         : undefined,
-      skills: normalizedAgent.runtime.skills ? [...normalizedAgent.runtime.skills] : undefined,
+      skills: normalizedAgent.runtime.skillDocs ? [...normalizedAgent.runtime.skillDocs] : undefined,
       max_turns: normalizedAgent.runtime.maxTurns,
       mcp_servers: normalizedAgent.runtime.mcpServers
         ? normalizedAgent.runtime.mcpServers.map((server) => ({ ...server }))

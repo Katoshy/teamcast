@@ -12,7 +12,7 @@ function cloneAgent(agent: CoreAgent): CoreAgent {
       ...agent.runtime,
       tools: agent.runtime.tools ? [...agent.runtime.tools] : undefined,
       disallowedTools: agent.runtime.disallowedTools ? [...agent.runtime.disallowedTools] : undefined,
-      skills: agent.runtime.skills ? [...agent.runtime.skills] : undefined,
+      skillDocs: agent.runtime.skillDocs ? [...agent.runtime.skillDocs] : undefined,
       mcpServers: agent.runtime.mcpServers ? agent.runtime.mcpServers.map((server) => ({ ...server })) : undefined,
     },
     instructions: agent.instructions.map((block) => ({ ...block })),
@@ -69,7 +69,7 @@ export function buildSingleAgentTeam(projectName: string): CoreTeam {
         runtime: {
           model: 'sonnet',
           tools: ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Grep', 'Glob', 'Agent'],
-          skills: ['test-first', 'clean-code'],
+          skillDocs: ['test-first', 'clean-code'],
         },
         instructions: [
           {
@@ -151,7 +151,7 @@ export function assignSkillToAgents(team: CoreTeam, skill: string, agentNames: s
             ...agent,
             runtime: {
               ...agent.runtime,
-              skills: [...(agent.runtime.skills ?? []), skill],
+              skillDocs: [...(agent.runtime.skillDocs ?? []), skill],
             },
           },
         ];

@@ -3,29 +3,29 @@ import type { ValidationResult } from '../validator/types.js';
 import type { PolicyAssertion } from './assertions.js';
 import type { AgentSkill } from './skills.js';
 import type { InstructionBlockKind } from './instructions.js';
-import { expandSkillsToTools } from '../renderers/claude/skill-map.js';
+import { expandSkills, type SkillToolMap } from './skill-resolver.js';
 
-export function evaluatePolicyAssertions(team: CoreTeam): ValidationResult[] {
+export function evaluatePolicyAssertions(team: CoreTeam, skillMap: SkillToolMap = {}): ValidationResult[] {
   const assertions = team.policies?.assertions ?? [];
   const results: ValidationResult[] = [];
 
   for (const assertion of assertions) {
-    results.push(...evaluateOne(assertion, team));
+    results.push(...evaluateOne(assertion, team, skillMap));
   }
 
   return results;
 }
 
-function evaluateOne(assertion: PolicyAssertion, team: CoreTeam): ValidationResult[] {
+function evaluateOne(assertion: PolicyAssertion, team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   switch (assertion.rule) {
     case 'require_sandbox_with_execute':
       return checkRequireSandboxWithExecute(team);
     case 'forbid_skill_combination':
-      return checkForbidSkillCombination(assertion.skills, team);
+      return checkForbidSkillCombination(assertion.skills, team, skillMap);
     case 'require_skill':
-      return checkRequireSkill(assertion.skill, team);
+      return checkRequireSkill(assertion.skill, team, skillMap);
     case 'deny_skill_for_role':
-      return checkDenySkillForRole(assertion.agent, assertion.skill, team);
+      return checkDenySkillForRole(assertion.agent, assertion.skill, team, skillMap);
     case 'max_agents':
       return checkMaxAgents(assertion.count, team);
     case 'require_instruction_block':
@@ -54,9 +54,9 @@ function checkRequireSandboxWithExecute(team: CoreTeam): ValidationResult[] {
   return results;
 }
 
-function checkForbidSkillCombination(skills: AgentSkill[], team: CoreTeam): ValidationResult[] {
+function checkForbidSkillCombination(skills: AgentSkill[], team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
-  const expandedPerSkill = skills.map((skill) => expandSkillsToTools([skill]));
+  const expandedPerSkill = skills.map((skill) => expandSkills([skill], skillMap));
 
   for (const agent of Object.values(team.agents)) {
     const agentTools = agent.runtime.tools ?? [];
@@ -75,9 +75,9 @@ function checkForbidSkillCombination(skills: AgentSkill[], team: CoreTeam): Vali
   return results;
 }
 
-function checkRequireSkill(skill: AgentSkill, team: CoreTeam): ValidationResult[] {
+function checkRequireSkill(skill: AgentSkill, team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
-  const requiredTools = expandSkillsToTools([skill]);
+  const requiredTools = expandSkills([skill], skillMap);
 
   for (const agent of Object.values(team.agents)) {
     const agentTools = agent.runtime.tools ?? [];
@@ -94,12 +94,12 @@ function checkRequireSkill(skill: AgentSkill, team: CoreTeam): ValidationResult[
   return results;
 }
 
-function checkDenySkillForRole(agentName: string, skill: AgentSkill, team: CoreTeam): ValidationResult[] {
+function checkDenySkillForRole(agentName: string, skill: AgentSkill, team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
   const agent: CoreAgent | undefined = team.agents[agentName];
   if (!agent) return results;
 
-  const deniedTools = expandSkillsToTools([skill]);
+  const deniedTools = expandSkills([skill], skillMap);
   const agentTools = agent.runtime.tools ?? [];
   const hasForbidden = deniedTools.some((tool) => agentTools.includes(tool));
   if (hasForbidden) {

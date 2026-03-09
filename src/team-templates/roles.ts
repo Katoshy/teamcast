@@ -1,6 +1,8 @@
 import type { InstructionBlock } from '../core/instructions.js';
 import type { CoreAgent, ModelAlias } from '../core/types.js';
 import type { CanonicalTool } from '../renderers/claude/tools.js';
+import { CLAUDE_SKILL_MAP } from '../renderers/claude/skill-map.js';
+import type { SkillToolMap } from '../core/skill-resolver.js';
 import type {
   CapabilityTraitName,
   InstructionFragmentName,
@@ -29,7 +31,7 @@ export interface RoleTemplate {
   deny?: CanonicalTool[];
   instructionFragments: InstructionFragmentName[];
   blocks?: InstructionBlock[];
-  skills?: string[];
+  skillDocs?: string[];
 }
 
 function block(kind: InstructionBlock['kind'], content: string, title?: string): InstructionBlock {
@@ -130,8 +132,8 @@ export function createRoleAgent(
     model: template.model,
     tools: cloneArray(template.allow),
     disallowedTools: cloneArray(template.deny),
-    skills: cloneArray(template.skills),
-  }, template.capabilityTraits);
+    skillDocs: cloneArray(template.skillDocs),
+  }, template.capabilityTraits, CLAUDE_SKILL_MAP as SkillToolMap);
   const overrideRuntime = overrides.runtime ?? {};
 
   return {
@@ -142,7 +144,7 @@ export function createRoleAgent(
       ...overrideRuntime,
       tools: cloneArray(overrideRuntime.tools ?? runtime.tools),
       disallowedTools: cloneArray(overrideRuntime.disallowedTools ?? runtime.disallowedTools),
-      skills: cloneArray(overrideRuntime.skills ?? runtime.skills),
+      skillDocs: cloneArray(overrideRuntime.skillDocs ?? runtime.skillDocs),
       mcpServers: overrideRuntime.mcpServers?.map((server) => ({ ...server })),
     },
     instructions: overrides.instructions

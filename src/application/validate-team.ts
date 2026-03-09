@@ -1,9 +1,10 @@
+import chalk from 'chalk';
 import type { AgentForgeManifest } from '../types/manifest.js';
 import type { CoreTeam } from '../core/types.js';
 import { isCoreTeam } from '../core/guards.js';
 import { validateSchema } from '../manifest/schema-validator.js';
 import { runValidation } from '../validator/index.js';
-import { hasErrors } from '../validator/reporter.js';
+import { hasErrors, printValidationReport } from '../validator/reporter.js';
 import type { ValidationResult } from '../validator/types.js';
 
 export interface TeamValidationSummary {
@@ -28,18 +29,18 @@ export function evaluateTeam(manifest: AgentForgeManifest | CoreTeam): TeamValid
     };
   }
 
-  const schema = validateSchema(manifest);
+  const schemaResult = validateSchema(manifest);
 
-  if (!schema.valid) {
+  if (!schemaResult.valid) {
     return {
-      schemaErrors: schema.errors,
+      schemaErrors: schemaResult.errors,
       validationResults: [],
     };
   }
 
   return {
     schemaErrors: [],
-    validationResults: runValidation(manifest),
+    validationResults: runValidation(schemaResult.data),
   };
 }
 
@@ -49,4 +50,28 @@ export function evaluateTeam(manifest: AgentForgeManifest | CoreTeam): TeamValid
  */
 export function teamHasBlockingIssues(summary: TeamValidationSummary): boolean {
   return summary.schemaErrors.length > 0 || hasErrors(summary.validationResults);
+}
+
+/**
+ * Prints a human-readable validation summary to stdout.
+ * Displays schema errors if present, otherwise the validation report.
+ */
+export function printManifestValidation(summary: TeamValidationSummary): void {
+  if (summary.schemaErrors.length > 0) {
+    console.log('');
+    console.log(chalk.red('  [x] Manifest failed schema validation'));
+    for (const error of summary.schemaErrors) {
+      console.log(chalk.dim(`    ${error.path}: ${error.message}`));
+    }
+    console.log('');
+    return;
+  }
+
+  if (summary.validationResults.length > 0) {
+    printValidationReport(summary.validationResults);
+    return;
+  }
+
+  console.log(chalk.green('  [ok] Validation passed'));
+  console.log('');
 }

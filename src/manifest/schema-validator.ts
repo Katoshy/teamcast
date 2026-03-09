@@ -2,6 +2,7 @@ import Ajv from 'ajv';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import type { AgentForgeManifest } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,16 +25,15 @@ function getValidator(): ReturnType<Ajv['compile']> {
   return _validate;
 }
 
-export interface SchemaValidationResult {
-  valid: boolean;
-  errors: Array<{ path: string; message: string }>;
-}
+export type SchemaValidationResult =
+  | { valid: true; data: AgentForgeManifest }
+  | { valid: false; errors: Array<{ path: string; message: string }> };
 
 export function validateSchema(raw: unknown): SchemaValidationResult {
   const validate = getValidator();
   const valid = validate(raw) as boolean;
 
-  if (valid) return { valid: true, errors: [] };
+  if (valid) return { valid: true, data: raw as AgentForgeManifest };
 
   const errors = (validate.errors ?? []).map((err) => ({
     path: err.instancePath || '(root)',

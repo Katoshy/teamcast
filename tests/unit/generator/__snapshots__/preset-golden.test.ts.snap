@@ -181,7 +181,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Allowed tools:** Read, Grep, Glob, Agent
 **Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
 **Can delegate to:** planner, developer, reviewer
-**Skills:** triage, routing
+**Skill docs:** triage, routing
 **Capabilities:** read files, delegate tasks
 
 ### planner
@@ -191,7 +191,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
 **Restricted tools:** Write, Edit, MultiEdit, Bash
-**Skills:** architecture-analysis, planning
+**Skill docs:** architecture-analysis, planning
 **Capabilities:** read files, access internet
 
 ### developer
@@ -201,7 +201,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 **Restricted tools:** WebFetch, WebSearch
-**Skills:** test-first, clean-code
+**Skill docs:** test-first, clean-code
 **Capabilities:** read files, write files, run commands
 
 ### reviewer
@@ -211,7 +211,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob, Bash
 **Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
-**Skills:** code-review, security-check
+**Skill docs:** code-review, security-check
 **Capabilities:** read files, run commands
 
 ## Access Control
@@ -450,7 +450,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
 **Restricted tools:** Write, Edit, MultiEdit, Bash
-**Skills:** research-report, source-validation
+**Skill docs:** research-report, source-validation
 **Capabilities:** read files, access internet
 
 ### planner
@@ -460,7 +460,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob
 **Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
-**Skills:** architecture-analysis, planning
+**Skill docs:** architecture-analysis, planning
 **Capabilities:** read files
 
 ### developer
@@ -470,7 +470,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 **Restricted tools:** WebFetch, WebSearch
-**Skills:** test-first, clean-code
+**Skill docs:** test-first, clean-code
 **Capabilities:** read files, write files, run commands
 
 ## Access Control
@@ -748,7 +748,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob
 **Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
-**Skills:** architecture-analysis, planning, threat-modeling
+**Skill docs:** architecture-analysis, planning, threat-modeling
 **Capabilities:** read files
 
 ### developer
@@ -758,7 +758,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 **Restricted tools:** WebFetch, WebSearch
-**Skills:** test-first, clean-code, secure-coding
+**Skill docs:** test-first, clean-code, secure-coding
 **Capabilities:** read files, write files, run commands
 
 ### security-auditor
@@ -768,7 +768,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob, Bash
 **Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
-**Skills:** security-check, vulnerability-scan
+**Skill docs:** security-check, vulnerability-scan
 **Capabilities:** read files, run commands
 
 ### reviewer
@@ -778,7 +778,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 
 **Allowed tools:** Read, Grep, Glob, Bash
 **Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
-**Skills:** code-review
+**Skill docs:** code-review
 **Capabilities:** read files, run commands
 
 ## Access Control
@@ -933,7 +933,7 @@ Agent configuration: \`agentforge.yaml\` (edit this file, then run \`agentforge 
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash, WebFetch, WebSearch, Agent
-**Skills:** test-first, clean-code, planning
+**Skill docs:** test-first, clean-code, planning
 **Capabilities:** read files, write files, run commands, access internet, delegate tasks
 
 ## Access Control

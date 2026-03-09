@@ -2,7 +2,6 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { parse } from 'yaml';
 import type { CoreTeam } from '../core/types.js';
-import type { AgentForgeManifest } from './types.js';
 import { validateSchema } from './schema-validator.js';
 import { applyDefaults } from './defaults.js';
 
@@ -39,13 +38,13 @@ export function readManifest(cwd: string): CoreTeam {
     );
   }
 
-  const { valid, errors } = validateSchema(parsed);
-  if (!valid) {
+  const schemaResult = validateSchema(parsed);
+  if (!schemaResult.valid) {
     throw new ManifestError(
       'agentforge.yaml failed schema validation',
-      errors.map((e) => `  ${e.path}: ${e.message}`),
+      schemaResult.errors.map((e) => `  ${e.path}: ${e.message}`),
     );
   }
 
-  return applyDefaults(parsed as AgentForgeManifest);
+  return applyDefaults(schemaResult.data);
 }

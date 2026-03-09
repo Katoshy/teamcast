@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { evaluatePolicyAssertions } from '../../../src/core/policy-evaluator.js';
+import { CLAUDE_SKILL_MAP } from '../../../src/renderers/claude/skill-map.js';
+import type { SkillToolMap } from '../../../src/core/skill-resolver.js';
 import type { CoreTeam } from '../../../src/core/types.js';
 import type { PolicyAssertion } from '../../../src/core/assertions.js';
+
+const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
 
 function makeTeam(
   agents: CoreTeam['agents'],
@@ -43,7 +47,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Bash']) },
         { assertions: [] },
       );
-      expect(evaluatePolicyAssertions(team)).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap)).toHaveLength(0);
     });
 
     it('returns empty results when policies has no assertions field', () => {
@@ -51,12 +55,12 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Bash']) },
         { sandbox: { enabled: false } },
       );
-      expect(evaluatePolicyAssertions(team)).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap)).toHaveLength(0);
     });
 
     it('returns empty results when policies is undefined', () => {
       const team = makeTeam({ dev: makeAgent('dev', ['Bash']) });
-      expect(evaluatePolicyAssertions(team)).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap)).toHaveLength(0);
     });
   });
 
@@ -68,7 +72,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Bash', 'Read']) },
         { sandbox: { enabled: false }, assertions: [assertion] },
       );
-      const errors = evaluatePolicyAssertions(team).filter((r) => r.severity === 'error');
+      const errors = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error');
       expect(errors.length).toBeGreaterThanOrEqual(1);
       expect(errors[0].category).toBe('policy');
       expect(errors[0].agent).toBe('dev');
@@ -79,7 +83,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Bash']) },
         { assertions: [assertion] },
       );
-      const errors = evaluatePolicyAssertions(team).filter((r) => r.severity === 'error');
+      const errors = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error');
       expect(errors.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -88,7 +92,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Bash', 'Read']) },
         { sandbox: { enabled: true }, assertions: [assertion] },
       );
-      const errors = evaluatePolicyAssertions(team).filter((r) => r.severity === 'error');
+      const errors = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error');
       expect(errors).toHaveLength(0);
     });
 
@@ -97,7 +101,7 @@ describe('evaluatePolicyAssertions', () => {
         { reader: makeAgent('reader', ['Read', 'Grep']) },
         { sandbox: { enabled: false }, assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team)).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap)).toHaveLength(0);
     });
   });
 
@@ -113,7 +117,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Write', 'Edit', 'Bash', 'Read']) },
         { assertions: [assertion] },
       );
-      const errors = evaluatePolicyAssertions(team).filter((r) => r.severity === 'error');
+      const errors = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error');
       expect(errors.length).toBeGreaterThanOrEqual(1);
       expect(errors[0].agent).toBe('dev');
     });
@@ -123,7 +127,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Write', 'Edit', 'Read']) },
         { assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team).filter((r) => r.severity === 'error')).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error')).toHaveLength(0);
     });
 
     it('returns clean when agent has neither skill', () => {
@@ -131,7 +135,7 @@ describe('evaluatePolicyAssertions', () => {
         { reader: makeAgent('reader', ['Read', 'Grep']) },
         { assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team)).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap)).toHaveLength(0);
     });
   });
 
@@ -144,7 +148,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Bash']) },
         { assertions: [assertion] },
       );
-      const errors = evaluatePolicyAssertions(team).filter((r) => r.severity === 'error');
+      const errors = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error');
       expect(errors.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -153,7 +157,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Read', 'Grep', 'Glob', 'Bash']) },
         { assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team).filter((r) => r.severity === 'error')).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error')).toHaveLength(0);
     });
   });
 
@@ -173,7 +177,7 @@ describe('evaluatePolicyAssertions', () => {
         },
         { assertions: [assertion] },
       );
-      const errors = evaluatePolicyAssertions(team).filter((r) => r.severity === 'error');
+      const errors = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error');
       expect(errors.length).toBeGreaterThanOrEqual(1);
       expect(errors[0].agent).toBe('reviewer');
     });
@@ -186,7 +190,7 @@ describe('evaluatePolicyAssertions', () => {
         },
         { assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team).filter((r) => r.severity === 'error')).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error')).toHaveLength(0);
     });
 
     it('returns clean when the named agent does not exist', () => {
@@ -194,7 +198,7 @@ describe('evaluatePolicyAssertions', () => {
         { developer: makeAgent('developer', ['Write', 'Bash']) },
         { assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team).filter((r) => r.severity === 'error')).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error')).toHaveLength(0);
     });
   });
 
@@ -207,7 +211,7 @@ describe('evaluatePolicyAssertions', () => {
       const team = makeTeam(agents, {
         assertions: [{ rule: 'max_agents', count: 6 }],
       });
-      const errors = evaluatePolicyAssertions(team).filter((r) => r.severity === 'error');
+      const errors = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error');
       expect(errors).toHaveLength(1);
       expect(errors[0].category).toBe('policy');
     });
@@ -220,7 +224,7 @@ describe('evaluatePolicyAssertions', () => {
       const team = makeTeam(agents, {
         assertions: [{ rule: 'max_agents', count: 6 }],
       });
-      expect(evaluatePolicyAssertions(team).filter((r) => r.severity === 'error')).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error')).toHaveLength(0);
     });
 
     it('returns clean when agent count is below the limit', () => {
@@ -231,7 +235,7 @@ describe('evaluatePolicyAssertions', () => {
       const team = makeTeam(agents, {
         assertions: [{ rule: 'max_agents', count: 6 }],
       });
-      expect(evaluatePolicyAssertions(team).filter((r) => r.severity === 'error')).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error')).toHaveLength(0);
     });
   });
 
@@ -247,7 +251,7 @@ describe('evaluatePolicyAssertions', () => {
         },
         { assertions: [assertion] },
       );
-      const errors = evaluatePolicyAssertions(team).filter((r) => r.severity === 'error');
+      const errors = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error');
       expect(errors.length).toBeGreaterThanOrEqual(1);
       expect(errors[0].agent).toBe('dev');
     });
@@ -261,7 +265,7 @@ describe('evaluatePolicyAssertions', () => {
         },
         { assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team).filter((r) => r.severity === 'error')).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error')).toHaveLength(0);
     });
   });
 
@@ -273,7 +277,7 @@ describe('evaluatePolicyAssertions', () => {
         { coordinator: makeAgent('coordinator', ['Agent', 'Read']) },
         { assertions: [assertion] },
       );
-      const warnings = evaluatePolicyAssertions(team).filter((r) => r.severity === 'warning');
+      const warnings = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'warning');
       expect(warnings.length).toBeGreaterThanOrEqual(1);
       expect(warnings[0].agent).toBe('coordinator');
     });
@@ -287,7 +291,7 @@ describe('evaluatePolicyAssertions', () => {
         },
         { assertions: [assertion] },
       );
-      const warnings = evaluatePolicyAssertions(team).filter((r) => r.severity === 'warning');
+      const warnings = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'warning');
       expect(warnings).toHaveLength(0);
     });
 
@@ -296,7 +300,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Read', 'Write', 'Bash']) },
         { assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team)).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap)).toHaveLength(0);
     });
   });
 
@@ -308,7 +312,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Bash', 'Read']) },
         { assertions: [assertion] },
       );
-      const errors = evaluatePolicyAssertions(team).filter((r) => r.severity === 'error');
+      const errors = evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error');
       expect(errors.length).toBeGreaterThanOrEqual(1);
       expect(errors[0].agent).toBe('dev');
     });
@@ -318,7 +322,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Bash', 'Read']) },
         { sandbox: { enabled: true }, assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team).filter((r) => r.severity === 'error')).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error')).toHaveLength(0);
     });
 
     it('returns clean when agent has disallowed tools restricting Bash', () => {
@@ -326,7 +330,7 @@ describe('evaluatePolicyAssertions', () => {
         { dev: makeAgent('dev', ['Bash', 'Read'], { disallowedTools: ['Bash'] }) },
         { sandbox: { enabled: false }, assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team).filter((r) => r.severity === 'error')).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap).filter((r) => r.severity === 'error')).toHaveLength(0);
     });
 
     it('returns clean when agent has no Bash tool', () => {
@@ -334,7 +338,7 @@ describe('evaluatePolicyAssertions', () => {
         { reader: makeAgent('reader', ['Read', 'Grep']) },
         { assertions: [assertion] },
       );
-      expect(evaluatePolicyAssertions(team)).toHaveLength(0);
+      expect(evaluatePolicyAssertions(team, skillMap)).toHaveLength(0);
     });
   });
 });

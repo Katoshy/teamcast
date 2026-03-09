@@ -28,7 +28,7 @@ Use this skill when <!-- describe the trigger condition -->.
 export function renderSkillMd(team: CoreTeam): RenderedFile[] {
   const skillNames = new Set<string>();
   for (const agent of Object.values(team.agents)) {
-    for (const skill of agent.runtime.skills ?? []) {
+    for (const skill of agent.runtime.skillDocs ?? []) {
       skillNames.add(skill);
     }
   }

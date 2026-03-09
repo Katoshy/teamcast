@@ -56,6 +56,7 @@ Legacy flat manifests are still accepted and normalized automatically, but new w
 | `init` | Initialize `agentforge.yaml` and generate files |
 | `generate` | Generate Claude Code files from `agentforge.yaml` |
 | `validate` | Validate the team configuration |
+| `validate --format json` | Machine-readable validation output for CI pipelines |
 | `explain` | Print a human-readable view of the team architecture |
 | `diff` | Show what generated files would change |
 | `add agent <name>` | Add a new agent |
@@ -75,6 +76,7 @@ agentforge init --from <path>     # initialize from an existing YAML file
 agentforge init --yes             # non-interactive init, uses defaults
 agentforge generate --dry-run     # preview generated files without writing
 agentforge validate --strict      # fail on warnings as well as errors
+agentforge validate --format json # JSON output, useful in CI scripts
 agentforge import --yes           # skip import confirmation
 agentforge reset --yes            # skip reset confirmation
 agentforge clean --yes            # skip clean confirmation
@@ -88,6 +90,13 @@ agentforge clean --yes            # skip clean confirmation
 | `solo-dev` | single developer agent with broad tool access |
 | `research-and-build` | orchestrator -> researcher -> planner -> developer |
 | `secure-dev` | orchestrator -> planner -> developer -> security-auditor -> reviewer |
+
+The built-in preset files live in `templates/presets/` and are valid AgentForge YAML. Use them as a reference when creating custom presets, or copy one as a starting point:
+
+```bash
+cp node_modules/agentforge/templates/presets/feature-team.yaml ./my-team.yaml
+agentforge init --from ./my-team.yaml
+```
 
 ## Flows
 
@@ -300,12 +309,14 @@ Use it to preview drift before running `agentforge generate`.
 ```bash
 agentforge validate
 agentforge validate --strict
+agentforge validate --format json
 ```
 
 Behavior:
 
 - exits non-zero on validation errors
 - with `--strict`, also exits non-zero on warnings
+- with `--format json`, prints a JSON result object instead of human-readable output; useful for CI scripts that need to parse results programmatically
 
 Validation categories include:
 
@@ -313,6 +324,37 @@ Validation categories include:
 - tool conflicts
 - role-based warnings
 - security baseline checks
+
+#### Policy Assertions
+
+Assertions are declarative rules about your team that `validate` enforces. Define them under `policies.assertions`:
+
+```yaml
+policies:
+  assertions:
+    - rule: require_sandbox_with_execute
+    - rule: no_unrestricted_execute
+    - rule: max_agents
+      count: 6
+    - rule: deny_skill_for_role
+      agent: reviewer
+      skill: write_files
+```
+
+Available rules:
+
+| Rule | Parameters | Description |
+|------|-----------|-------------|
+| `require_sandbox_with_execute` | — | Any agent with `execute` skill must have sandbox enabled |
+| `no_unrestricted_execute` | — | `execute` skill must have a permission scope (e.g. `Bash(npm *)`) |
+| `require_skill` | `skill` | All agents must have the specified skill |
+| `deny_skill_for_role` | `agent`, `skill` | A named agent must not have the specified skill |
+| `forbid_skill_combination` | `skills[]` | No single agent may hold all listed skills at once |
+| `max_agents` | `count` | Team must not exceed the given number of agents |
+| `require_instruction_block` | `kind` | All agents must include an instruction block of the given kind |
+| `require_delegation_chain` | — | At least one agent must have the `delegate` skill |
+
+The `secure-dev` preset includes several security assertions by default.
 
 ### `explain`
 
@@ -541,6 +583,31 @@ Available Claude Code tools:
 
 `Read`, `Write`, `Edit`, `MultiEdit`, `Grep`, `Glob`, `Bash`, `WebFetch`, `WebSearch`, `Agent`
 
+### Abstract Skills
+
+Instead of listing raw tool names, you can specify platform-agnostic skills in `claude.tools`. AgentForge expands each skill to the appropriate Claude Code tools automatically.
+
+| Skill | Expands to |
+|-------|-----------|
+| `read_files` | `Read`, `Grep`, `Glob` |
+| `write_files` | `Write`, `Edit`, `MultiEdit` |
+| `execute` | `Bash` |
+| `search` | `Glob`, `Grep` |
+| `web` | `WebFetch`, `WebSearch` |
+| `delegate` | `Agent` |
+| `interact` | `AskUserQuestion`, `TodoWrite`, `TodoRead` |
+| `notebook` | `NotebookEdit` |
+
+Example:
+
+```yaml
+developer:
+  claude:
+    tools: [read_files, write_files, execute]
+```
+
+Raw tool names and skills can be mixed in the same `tools` array.
+
 ### Policy Fields
 
 ```yaml
@@ -584,3 +651,4 @@ preset_meta:
 - tool allow or deny conflicts
 - role-based warnings
 - security baseline configuration
+- policy assertions (when defined in `policies.assertions`)

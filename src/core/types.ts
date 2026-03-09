@@ -60,8 +60,9 @@ export interface AgentRuntime {
    * Skill documentation references (free-form strings, e.g. 'test-first').
    * These are distinct from AgentSkill abstract capability values, which appear
    * in the tools[] array and get expanded to CanonicalTool[] during normalization.
+   * Named skillDocs to disambiguate from AgentSkill abstract capabilities.
    */
-  skills?: string[];
+  skillDocs?: string[];
   maxTurns?: number;
   mcpServers?: McpServerConfig[];
   permissionMode?: PermissionMode;

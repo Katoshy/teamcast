@@ -1,8 +1,7 @@
 import type { InstructionBlock } from '../core/instructions.js';
 import type { AgentRuntime } from '../core/types.js';
 import type { AgentSkill } from '../core/skills.js';
-import { expandSkillsToTools } from '../renderers/claude/skill-map.js';
-import type { CanonicalTool } from '../renderers/claude/tools.js';
+import { expandSkills, type SkillToolMap } from '../core/skill-resolver.js';
 
 export type CapabilityTraitName =
   | 'base-read'
@@ -304,7 +303,7 @@ const INSTRUCTION_FRAGMENTS: Record<InstructionFragmentName, InstructionBlock> =
   ),
 };
 
-function dedupeTools(tools: CanonicalTool[] | undefined): CanonicalTool[] | undefined {
+function dedupeTools(tools: string[] | undefined): string[] | undefined {
   if (!tools?.length) return undefined;
   return [...new Set(tools)];
 }
@@ -322,9 +321,16 @@ export function listInstructionFragments(): InstructionFragmentName[] {
   return Object.keys(INSTRUCTION_FRAGMENTS) as InstructionFragmentName[];
 }
 
-export function resolveCapabilityTraits(traits: CapabilityTraitName[] | undefined): Pick<AgentRuntime, 'tools' | 'disallowedTools'> {
-  const allowTools: CanonicalTool[] = [];
-  const denyTools: CanonicalTool[] = [];
+/**
+ * Resolve capability traits to allowed/disallowed tool lists using the provided skill mapping.
+ * Pass the platform-specific skill map (e.g. CLAUDE_SKILL_MAP) from the caller layer.
+ */
+export function resolveCapabilityTraits(
+  traits: CapabilityTraitName[] | undefined,
+  skillMap: SkillToolMap,
+): Pick<AgentRuntime, 'tools' | 'disallowedTools'> {
+  const allowTools: string[] = [];
+  const denyTools: string[] = [];
 
   for (const traitName of traits ?? []) {
     const trait = CAPABILITY_TRAITS[traitName];
@@ -333,10 +339,10 @@ export function resolveCapabilityTraits(traits: CapabilityTraitName[] | undefine
     }
 
     if (trait.skills?.length) {
-      allowTools.push(...expandSkillsToTools(trait.skills));
+      allowTools.push(...expandSkills(trait.skills, skillMap));
     }
     if (trait.deny_skills?.length) {
-      denyTools.push(...expandSkillsToTools(trait.deny_skills));
+      denyTools.push(...expandSkills(trait.deny_skills, skillMap));
     }
   }
 
@@ -364,8 +370,9 @@ export function resolveInstructionFragments(
 export function mergeRuntimeWithTraits(
   base: Omit<AgentRuntime, 'tools' | 'disallowedTools'> & Pick<AgentRuntime, 'tools' | 'disallowedTools'>,
   capabilityTraits: CapabilityTraitName[] | undefined,
+  skillMap: SkillToolMap,
 ): AgentRuntime {
-  const composed = resolveCapabilityTraits(capabilityTraits);
+  const composed = resolveCapabilityTraits(capabilityTraits, skillMap);
   return {
     ...base,
     tools: mergeUnique(composed.tools, base.tools),

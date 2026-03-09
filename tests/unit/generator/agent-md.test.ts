@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { renderAgentMd } from '../../../src/renderers/claude/agent-md.js';
 import { normalizeManifest } from '../../../src/manifest/normalize.js';
-import type { AgentConfig, AgentDefinition } from '../../../src/types/manifest.js';
+import type { AgentConfig } from '../../../src/types/manifest.js';
 
 function toRenderAgentMd(agentId: string, agent: AgentConfig): string {
   const team = normalizeManifest({
     version: '1',
     project: { name: 'test' },
-    agents: { [agentId]: agent as unknown as AgentDefinition },
+    agents: { [agentId]: agent },
   });
   return renderAgentMd(agentId, team.agents[agentId]);
 }

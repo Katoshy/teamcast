@@ -9,6 +9,11 @@ import { checkRoleWarnings } from './checks/role-warnings.js';
 import { checkSecurityBaseline } from './checks/security-baseline.js';
 import { checkInstructionBlocks } from './checks/instruction-blocks.js';
 import { evaluatePolicyAssertions } from '../core/policy-evaluator.js';
+import { CLAUDE_SKILL_MAP } from '../renderers/claude/skill-map.js';
+import type { SkillToolMap } from '../core/skill-resolver.js';
+
+const policyChecker: Checker = (team: CoreTeam) =>
+  evaluatePolicyAssertions(team, CLAUDE_SKILL_MAP as SkillToolMap);
 
 const CHECKERS: Checker[] = [
   checkHandoffGraph,
@@ -16,7 +21,7 @@ const CHECKERS: Checker[] = [
   checkRoleWarnings,
   checkSecurityBaseline,
   checkInstructionBlocks,
-  evaluatePolicyAssertions,
+  policyChecker,
 ];
 
 export function runValidation(

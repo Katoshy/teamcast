@@ -63,6 +63,10 @@ describe('isCoreTeam', () => {
     expect(isCoreTeam(undefined)).toBe(false);
   });
 
+  it('returns false for an empty object', () => {
+    expect(isCoreTeam({})).toBe(false);
+  });
+
   it('returns false when agents property is missing', () => {
     expect(isCoreTeam({ version: '1', project: { name: 'x' } })).toBe(false);
   });
