@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import type { TeamCastManifest, NormalizedTeamCastManifest } from '../types/manifest.js';
+import type { NormalizedTeamCastManifest } from '../types/manifest.js';
 import { detectProjectContext } from '../detector/index.js';
 import { writeManifest } from '../manifest/writer.js';
 import { generate } from '../generator/index.js';
@@ -31,10 +31,9 @@ export async function runWizard(options: WizardOptions): Promise<void> {
 
   const ctx = detectProjectContext(cwd);
 
-  let partial: Partial<TeamCastManifest> = {};
-  partial = await stepProjectContext(ctx, partial, { nonInteractive });
+  const projectPartial = await stepProjectContext(ctx, undefined, { nonInteractive });
 
-  let manifest = (await stepTeamSelection(partial, { nonInteractive })) as NormalizedTeamCastManifest;
+  let manifest = (await stepTeamSelection(projectPartial, { nonInteractive })) as NormalizedTeamCastManifest;
   manifest.version = '1';
   manifest = await stepAgentCustomization(manifest, { nonInteractive });
 

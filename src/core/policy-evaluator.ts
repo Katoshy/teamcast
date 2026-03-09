@@ -5,7 +5,7 @@ import type { AgentSkill } from './skills.js';
 import type { InstructionBlockKind } from './instructions.js';
 import { agentHasSkill, expandSkills, type SkillToolMap } from './skill-resolver.js';
 
-export function evaluatePolicyAssertions(team: CoreTeam, skillMap: SkillToolMap = {}): ValidationResult[] {
+export function evaluatePolicyAssertions(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
   const assertions = team.policies?.assertions ?? [];
   const results: ValidationResult[] = [];
 

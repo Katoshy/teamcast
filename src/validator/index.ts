@@ -1,4 +1,5 @@
 import type { TeamCastManifest } from '../manifest/types.js';
+import type { CoreTeam } from '../core/types.js';
 import { isCoreTeam } from '../core/guards.js';
 import { applyDefaults } from '../manifest/defaults.js';
 import type { ValidationResult, Checker } from './types.js';
