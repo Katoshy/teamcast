@@ -2,9 +2,9 @@ import { existsSync, readFileSync, readdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { parse } from 'yaml';
-import type { CoreTeam } from '../core/types.js';
 import { applyDefaults } from '../manifest/defaults.js';
 import { validateSchema } from '../manifest/schema-validator.js';
+import type { TeamCastManifest } from '../manifest/types.js';
 import type { Preset, PresetMeta } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,12 +15,18 @@ function getPresetPath(name: string): string {
   return join(BUILTIN_PRESETS_DIR, `${name}.yaml`);
 }
 
-function buildPresetMeta(name: string, team: CoreTeam): PresetMeta {
+function countAgents(manifest: TeamCastManifest): number {
+  return [manifest.claude, manifest.codex]
+    .filter((target): target is NonNullable<typeof target> => Boolean(target))
+    .reduce((count, target) => count + Object.keys(target.agents).length, 0);
+}
+
+function buildPresetMeta(name: string, team: TeamCastManifest): PresetMeta {
   return {
     name,
     description: team.project.description ?? `Preset ${name}`,
-    agentsCount: Object.keys(team.agents).length,
-    tags: team.presetMeta?.tags ? [...team.presetMeta.tags] : [],
+    agentsCount: countAgents(team),
+    tags: team.preset_meta?.tags ? [...team.preset_meta.tags] : [],
   };
 }
 
@@ -56,7 +62,7 @@ export function loadPreset(name: string): Preset {
   };
 }
 
-export function applyPreset(preset: Preset, projectName: string): CoreTeam {
+export function applyPreset(preset: Preset, projectName: string): TeamCastManifest {
   return {
     ...preset.team,
     project: {

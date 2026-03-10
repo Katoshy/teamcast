@@ -10,19 +10,25 @@ vi.mock('inquirer', () => ({
 import inquirer from 'inquirer';
 import { stepCustomTeam } from '../../../src/wizard/steps/custom-team.js';
 import { runValidation } from '../../../src/validator/index.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
+import { createCodexTarget } from '../../../src/renderers/codex/index.js';
+import { normalizeManifest } from '../../../src/manifest/normalize.js';
 
 const mockedPrompt = vi.mocked(inquirer.prompt);
+const claudeTarget = createClaudeTarget();
+const codexTarget = createCodexTarget();
 
 describe('stepCustomTeam', () => {
   it('builds a manifest with selected roles', async () => {
     mockedPrompt.mockResolvedValueOnce({ value: ['developer', 'reviewer'] });
 
     const result = await stepCustomTeam('test');
+    const team = normalizeManifest(result, claudeTarget);
 
-    expect(result.agents).toBeDefined();
-    expect(Object.keys(result.agents!)).toEqual(['developer', 'reviewer']);
-    expect(result.agents!.developer.runtime.model).toBe('sonnet');
-    expect(result.agents!.reviewer.runtime.model).toBe('sonnet');
+    expect(result.claude?.agents).toBeDefined();
+    expect(Object.keys(team.agents)).toEqual(['developer', 'reviewer']);
+    expect(team.agents.developer.runtime.model).toBe('sonnet');
+    expect(team.agents.reviewer.runtime.model).toBe('sonnet');
   });
 
   it('auto-wires orchestrator handoffs to other selected agents', async () => {
@@ -31,17 +37,19 @@ describe('stepCustomTeam', () => {
     });
 
     const result = await stepCustomTeam('test');
+    const team = normalizeManifest(result, claudeTarget);
 
-    expect(result.agents!.orchestrator.metadata?.handoffs).toEqual(['developer', 'reviewer']);
-    expect(result.agents!.orchestrator.runtime.model).toBe('opus');
+    expect(team.agents.orchestrator.metadata?.handoffs).toEqual(['developer', 'reviewer']);
+    expect(team.agents.orchestrator.runtime.model).toBe('opus');
   });
 
   it('does not add handoffs when orchestrator is the only agent', async () => {
     mockedPrompt.mockResolvedValueOnce({ value: ['orchestrator'] });
 
     const result = await stepCustomTeam('test');
+    const team = normalizeManifest(result, claudeTarget);
 
-    expect(result.agents!.orchestrator.metadata?.handoffs).toBeUndefined();
+    expect(team.agents.orchestrator.metadata?.handoffs).toBeUndefined();
   });
 
   it('includes default policies with sandbox enabled', async () => {
@@ -59,15 +67,16 @@ describe('stepCustomTeam', () => {
 
     const result = await stepCustomTeam('my-cool-project');
 
-    expect(result.project!.name).toBe('my-cool-project');
+    expect(result.project.name).toBe('my-cool-project');
   });
 
   it('sets correct tools for researcher role', async () => {
     mockedPrompt.mockResolvedValueOnce({ value: ['researcher'] });
 
     const result = await stepCustomTeam('test');
+    const team = normalizeManifest(result, claudeTarget);
 
-    const agent = result.agents!.researcher;
+    const agent = team.agents.researcher;
     expect(agent.runtime.tools).toContain('WebFetch');
     expect(agent.runtime.tools).toContain('WebSearch');
     expect(agent.runtime.disallowedTools).toContain('Edit');
@@ -80,8 +89,21 @@ describe('stepCustomTeam', () => {
     });
 
     const result = await stepCustomTeam('test');
-    const validation = runValidation(result);
+    const validation = runValidation(normalizeManifest(result, claudeTarget), claudeTarget);
 
     expect(validation).toEqual([]);
+  });
+
+  it('can build both targets from one role selection', async () => {
+    mockedPrompt.mockResolvedValueOnce({ value: ['developer'] });
+
+    const result = await stepCustomTeam('test', 'both');
+    const claudeTeam = normalizeManifest(result, claudeTarget);
+    const codexTeam = normalizeManifest(result, codexTarget);
+
+    expect(result.claude?.agents.developer).toBeDefined();
+    expect(result.codex?.agents.developer).toBeDefined();
+    expect(claudeTeam.agents.developer.runtime.model).toBe('sonnet');
+    expect(codexTeam.agents.developer.runtime.model).toBeUndefined();
   });
 });

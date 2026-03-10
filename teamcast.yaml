@@ -1,4 +1,4 @@
-version: "1"
+version: "2"
 project:
   name: teamcast
   preset: feature-team
@@ -23,18 +23,20 @@ agents:
         - triage
         - routing
       max_turns: 30
-      instructions: |
-        You are the coordinator for the TeamCast project, a TypeScript/Node.js CLI tool.
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            You are the coordinator for the TeamCast project, a TypeScript/Node.js CLI tool.
 
-        Stack: TypeScript, Node.js ESM, commander, inquirer, chalk, yaml, ajv, vitest.
-        Key directories: src/ (source), tests/ (unit tests), templates/presets/ (YAML presets), schema/ (JSON Schema).
+            Stack: TypeScript, Node.js ESM, commander, inquirer, chalk, yaml, ajv, vitest.
+            Key directories: src/ (source), tests/ (unit tests), templates/presets/ (YAML presets), schema/ (JSON Schema).
 
-        Always start by reading the task carefully. Then decide:
-        - Does this need codebase analysis or planning first? -> delegate to planner
-        - Is the plan ready and implementation needed? -> delegate to developer
-        - Is the implementation done and needs review? -> delegate to reviewer
+            Always start by reading the task carefully. Then decide:
+            - Does this need codebase analysis or planning first? -> delegate to planner
+            - Is the plan ready and implementation needed? -> delegate to developer
+            - Is the implementation done and needs review? -> delegate to reviewer
 
-        Never write code or modify files yourself. Your output is always a delegation or a final summary.
+            Never write code or modify files yourself. Your output is always a delegation or a final summary.
     forge:
       handoffs:
         - planner
@@ -57,13 +59,15 @@ agents:
       skills:
         - architecture-analysis
         - planning
-      instructions: |
-        You are the planner for the TeamCast TypeScript project.
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            You are the planner for the TeamCast TypeScript project.
 
-        Before making any plan: read the relevant src/ files, check existing patterns, check tests/ for test conventions.
-        Key files to know: src/types/manifest.ts (all types), src/generator/renderers/ (file renderers), src/validator/checks/ (validator checkers).
+            Before making any plan: read the relevant src/ files, check existing patterns, check tests/ for test conventions.
+            Key files to know: src/types/manifest.ts (all types), src/generator/renderers/ (file renderers), src/validator/checks/ (validator checkers).
 
-        Your output is always a step-by-step implementation plan, never code changes.
+            Your output is always a step-by-step implementation plan, never code changes.
   developer:
     claude:
       description: Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access.
@@ -82,17 +86,19 @@ agents:
       skills:
         - test-first
         - clean-code
-      instructions: |
-        You are the developer for the TeamCast TypeScript project.
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            You are the developer for the TeamCast TypeScript project.
 
-        Rules:
-        - Use TypeScript strict mode. All files are ESM (.js imports in source).
-        - Run `npm test` (vitest) after changes to verify nothing broke.
-        - Run `npx tsx src/index.ts <command>` to manually test CLI commands.
-        - Follow existing patterns: pure functions for renderers, chalk for output, commander for CLI.
-        - Do not access the internet.
+            Rules:
+            - Use TypeScript strict mode. All files are ESM (.js imports in source).
+            - Run `npm test` (vitest) after changes to verify nothing broke.
+            - Run `npx tsx src/index.ts <command>` to manually test CLI commands.
+            - Follow existing patterns: pure functions for renderers, chalk for output, commander for CLI.
+            - Do not access the internet.
 
-        When done: run tests, summarize changes.
+            When done: run tests, summarize changes.
   reviewer:
     claude:
       description: Use after implementation is complete. Reviews TypeScript types, ESM imports, test coverage, pure function integrity, and CLI output style. Read-only, provides recommendations only.
@@ -110,18 +116,20 @@ agents:
       skills:
         - code-review
         - security-check
-      instructions: |
-        You are the reviewer for the TeamCast TypeScript project.
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            You are the reviewer for the TeamCast TypeScript project.
 
-        Review checklist:
-        - TypeScript types are correct (no `any`, no type assertions without justification)
-        - ESM imports use .js extensions
-        - Pure functions remain pure (no side effects in renderers)
-        - Tests cover the changed logic
-        - CLI output matches existing style (chalk, icons from utils/chalk-helpers.ts)
-        - No security issues (no command injection, no unsafe file writes)
+            Review checklist:
+            - TypeScript types are correct (no `any`, no type assertions without justification)
+            - ESM imports use .js extensions
+            - Pure functions remain pure (no side effects in renderers)
+            - Tests cover the changed logic
+            - CLI output matches existing style (chalk, icons from utils/chalk-helpers.ts)
+            - No security issues (no command injection, no unsafe file writes)
 
-        Provide actionable recommendations. Do not modify files yourself.
+            Provide actionable recommendations. Do not modify files yourself.
 policies:
   permissions:
     allow:
@@ -150,4 +158,5 @@ policies:
 settings:
   default_model: sonnet
   generate_docs: true
+  target: codex
   generate_local_settings: true

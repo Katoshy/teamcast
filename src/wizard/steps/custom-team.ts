@@ -1,13 +1,17 @@
 import chalk from 'chalk';
-import type { CoreTeam } from '../../core/types.js';
+import type { TeamCastManifest } from '../../manifest/types.js';
 import { promptCheckbox } from '../../utils/prompts.js';
 import {
   listRoleTemplates,
   type TeamRoleName,
 } from '../../team-templates/roles.js';
-import { buildTeamFromRoles } from '../../application/team.js';
+import type { InitTargetSelection } from '../../application/team.js';
+import { buildManifestFromRoles } from '../../application/team.js';
 
-export async function stepCustomTeam(projectName: string): Promise<CoreTeam> {
+export async function stepCustomTeam(
+  projectName: string,
+  selection: InitTargetSelection = 'claude',
+): Promise<TeamCastManifest> {
   const roleTemplates = listRoleTemplates();
   const selectedRoles = await promptCheckbox<TeamRoleName>({
     message: 'Select roles for your team:',
@@ -18,5 +22,5 @@ export async function stepCustomTeam(projectName: string): Promise<CoreTeam> {
     validate: (value: TeamRoleName[]) => value.length > 0 || 'Select at least one role',
   });
 
-  return buildTeamFromRoles(projectName, selectedRoles);
+  return buildManifestFromRoles(projectName, selectedRoles, selection);
 }

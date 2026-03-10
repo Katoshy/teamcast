@@ -4,11 +4,11 @@ import { validateSchema } from '../../../src/manifest/schema-validator.js';
 describe('preset_meta schema', () => {
   it('accepts a manifest with preset_meta fields', () => {
     const manifest = {
-      version: '1',
+      version: '2',
       project: { name: 'test' },
-      agents: {
+      claude: { agents: {
         dev: { description: 'Dev' },
-      },
+      } },
       preset_meta: {
         author: 'test-user',
         tags: ['typescript', 'fullstack'],
@@ -22,11 +22,11 @@ describe('preset_meta schema', () => {
 
   it('accepts a manifest without preset_meta', () => {
     const manifest = {
-      version: '1',
+      version: '2',
       project: { name: 'test' },
-      agents: {
+      claude: { agents: {
         dev: { description: 'Dev' },
-      },
+      } },
     };
 
     const result = validateSchema(manifest);
@@ -35,11 +35,11 @@ describe('preset_meta schema', () => {
 
   it('rejects unknown fields inside preset_meta', () => {
     const manifest = {
-      version: '1',
+      version: '2',
       project: { name: 'test' },
-      agents: {
+      claude: { agents: {
         dev: { description: 'Dev' },
-      },
+      } },
       preset_meta: {
         author: 'test-user',
         unknown_field: 'should fail',
@@ -52,11 +52,11 @@ describe('preset_meta schema', () => {
 
   it('accepts empty preset_meta object', () => {
     const manifest = {
-      version: '1',
+      version: '2',
       project: { name: 'test' },
-      agents: {
+      claude: { agents: {
         dev: { description: 'Dev' },
-      },
+      } },
       preset_meta: {},
     };
 

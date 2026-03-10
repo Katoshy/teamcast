@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildExplanation } from '../../../src/explainer/index.js';
 import type { CoreTeam } from '../../../src/core/types.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
+
+const claudeTarget = createClaudeTarget();
 
 // Strip chalk ANSI codes for assertion comparisons
 function strip(text: string): string {
@@ -29,7 +32,7 @@ const baseTeam: CoreTeam = {
 
 describe('buildExplanation', () => {
   it('includes project name in header', () => {
-    const out = strip(buildExplanation(baseTeam));
+    const out = strip(buildExplanation(baseTeam, claudeTarget));
     expect(out).toContain('Project: my-project');
   });
 
@@ -38,23 +41,23 @@ describe('buildExplanation', () => {
       ...baseTeam,
       project: { name: 'my-project', preset: 'feature-team' },
     };
-    const out = strip(buildExplanation(team));
+    const out = strip(buildExplanation(team, claudeTarget));
     expect(out).toContain('preset: feature-team');
   });
 
   it('includes agent id and model', () => {
-    const out = strip(buildExplanation(baseTeam));
+    const out = strip(buildExplanation(baseTeam, claudeTarget));
     expect(out).toContain('developer');
     expect(out).toContain('sonnet');
   });
 
   it('includes agent description', () => {
-    const out = strip(buildExplanation(baseTeam));
+    const out = strip(buildExplanation(baseTeam, claudeTarget));
     expect(out).toContain('Implements features and fixes');
   });
 
   it('shows abstract skills derived from tools via reverse-map', () => {
-    const out = strip(buildExplanation(baseTeam));
+    const out = strip(buildExplanation(baseTeam, claudeTarget));
     // developer has Read, Grep, Glob, Write, Edit, MultiEdit, Bash
     // -> read_files (Read, Grep, Glob) + write_files (Write, Edit, MultiEdit) + execute (Bash)
     expect(out).toContain('read_files');
@@ -63,14 +66,14 @@ describe('buildExplanation', () => {
   });
 
   it('shows expanded tool list', () => {
-    const out = strip(buildExplanation(baseTeam));
+    const out = strip(buildExplanation(baseTeam, claudeTarget));
     expect(out).toContain('Read');
     expect(out).toContain('Write');
     expect(out).toContain('Bash');
   });
 
   it('shows instruction block kinds', () => {
-    const out = strip(buildExplanation(baseTeam));
+    const out = strip(buildExplanation(baseTeam, claudeTarget));
     expect(out).toContain('behavior');
     expect(out).toContain('workflow');
   });
@@ -89,7 +92,7 @@ describe('buildExplanation', () => {
         },
       },
     };
-    const out = strip(buildExplanation(team));
+    const out = strip(buildExplanation(team, claudeTarget));
     // 'behavior' should appear only once in the blocks line
     const blockLine = out.split('\n').find((l) => l.includes('Instruction blocks:'));
     expect(blockLine).toBeDefined();
@@ -111,12 +114,12 @@ describe('buildExplanation', () => {
         },
       },
     };
-    const out = strip(buildExplanation(team));
+    const out = strip(buildExplanation(team, claudeTarget));
     expect(out).toContain('acceptEdits');
   });
 
   it('does not show permission mode line when not set', () => {
-    const out = strip(buildExplanation(baseTeam));
+    const out = strip(buildExplanation(baseTeam, claudeTarget));
     expect(out).not.toContain('Permission mode:');
   });
 
@@ -133,7 +136,7 @@ describe('buildExplanation', () => {
         },
       },
     };
-    const out = strip(buildExplanation(team));
+    const out = strip(buildExplanation(team, claudeTarget));
     expect(out).toContain('test-first');
     expect(out).toContain('clean-code');
   });
@@ -151,7 +154,7 @@ describe('buildExplanation', () => {
         },
       },
     };
-    const out = strip(buildExplanation(team));
+    const out = strip(buildExplanation(team, claudeTarget));
     expect(out).toContain('developer');
     expect(out).toContain('reviewer');
   });
@@ -163,7 +166,7 @@ describe('buildExplanation', () => {
         sandbox: { enabled: true },
       },
     };
-    const out = strip(buildExplanation(team));
+    const out = strip(buildExplanation(team, claudeTarget));
     expect(out).toContain('Security boundaries:');
     expect(out).toContain('enabled');
   });
@@ -178,7 +181,7 @@ describe('buildExplanation', () => {
         },
       },
     };
-    const out = strip(buildExplanation(team));
+    const out = strip(buildExplanation(team, claudeTarget));
     expect(out).toContain('project.commands');
     expect(out).toContain('tests');
     expect(out).toContain('destructive-shell');
@@ -196,7 +199,7 @@ describe('buildExplanation', () => {
         },
       },
     };
-    const out = strip(buildExplanation(team));
+    const out = strip(buildExplanation(team, claudeTarget));
     expect(out).not.toContain('Skills:');
   });
 
@@ -212,28 +215,11 @@ describe('buildExplanation', () => {
         },
       },
     };
-    const out = strip(buildExplanation(team));
+    const out = strip(buildExplanation(team, claudeTarget));
     expect(out).not.toContain('Instruction blocks:');
   });
 
-  it('falls back to default model when agent has no model set', () => {
-    const team: CoreTeam = {
-      ...baseTeam,
-      settings: { defaultModel: 'haiku' },
-      agents: {
-        agent1: {
-          id: 'agent1',
-          description: 'Test agent',
-          runtime: {},
-          instructions: [],
-        },
-      },
-    };
-    const out = strip(buildExplanation(team));
-    expect(out).toContain('haiku');
-  });
-
-  it('falls back to "sonnet" when no model anywhere', () => {
+  it('shows "unspecified" when no model is set', () => {
     const team: CoreTeam = {
       ...baseTeam,
       agents: {
@@ -245,7 +231,7 @@ describe('buildExplanation', () => {
         },
       },
     };
-    const out = strip(buildExplanation(team));
-    expect(out).toContain('sonnet');
+    const out = strip(buildExplanation(team, targetContext));
+    expect(out).toContain('unspecified');
   });
 });

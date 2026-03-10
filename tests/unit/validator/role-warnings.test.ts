@@ -2,50 +2,52 @@ import { describe, it, expect } from 'vitest';
 import { checkRoleWarnings } from '../../../src/validator/checks/role-warnings.js';
 import type { TeamCastManifest } from '../../../src/types/manifest.js';
 import { normalizeManifest } from '../../../src/types/manifest.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
 import { CLAUDE_SKILL_MAP } from '../../../src/renderers/claude/skill-map.js';
 import type { SkillToolMap } from '../../../src/core/skill-resolver.js';
 
 const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
+const claudeTarget = createClaudeTarget();
 
 const base: TeamCastManifest = {
-  version: '1',
+  version: '2',
   project: { name: 'test' },
-  agents: {},
+  claude: { agents: {} },
 };
 
 describe('checkRoleWarnings', () => {
   it('returns no warnings for a well-configured team', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         orchestrator: {
           description: 'Coordinates',
-          tools: { allow: ['Read', 'Grep', 'Glob', 'Task'] },
+          tools: ['Read', 'Grep', 'Glob', 'Agent'],
         },
         developer: {
           description: 'Implements',
-          tools: { allow: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob'] },
+          tools: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob'],
         },
         reviewer: {
           description: 'Reviews',
-          tools: { allow: ['Read', 'Grep', 'Glob'] },
+          tools: ['Read', 'Grep', 'Glob'],
         },
-      },
+      } },
     };
-    expect(checkRoleWarnings(normalizeManifest(manifest), skillMap)).toHaveLength(0);
+    expect(checkRoleWarnings(normalizeManifest(manifest, claudeTarget), skillMap)).toHaveLength(0);
   });
 
   it('warns when orchestrator has Write tool', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         orchestrator: {
           description: 'Coordinates the team',
-          tools: { allow: ['Read', 'Write', 'Task'] },
+          tools: ['Read', 'Write', 'Agent'],
         },
-      },
+      } },
     };
-    const warnings = checkRoleWarnings(normalizeManifest(manifest), skillMap);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest, claudeTarget), skillMap);
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('orchestrator');
     expect(warnings[0].message).toContain('file-write');
@@ -54,14 +56,14 @@ describe('checkRoleWarnings', () => {
   it('warns when developer has WebFetch', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         developer: {
           description: 'Implements features',
-          tools: { allow: ['Read', 'Write', 'Edit', 'WebFetch'] },
+          tools: ['Read', 'Write', 'Edit', 'WebFetch'],
         },
-      },
+      } },
     };
-    const warnings = checkRoleWarnings(normalizeManifest(manifest), skillMap);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest, claudeTarget), skillMap);
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('internet access');
   });
@@ -69,14 +71,14 @@ describe('checkRoleWarnings', () => {
   it('warns when reviewer has Edit tool', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         reviewer: {
           description: 'Reviews code',
-          tools: { allow: ['Read', 'Grep', 'Edit'] },
+          tools: ['Read', 'Grep', 'Edit'],
         },
-      },
+      } },
     };
-    const warnings = checkRoleWarnings(normalizeManifest(manifest), skillMap);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest, claudeTarget), skillMap);
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('reviewer');
   });
@@ -84,14 +86,14 @@ describe('checkRoleWarnings', () => {
   it('warns when planner has Bash', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         planner: {
           description: 'Plans implementation',
-          tools: { allow: ['Read', 'Grep', 'Bash'] },
+          tools: ['Read', 'Grep', 'Bash'],
         },
-      },
+      } },
     };
-    const warnings = checkRoleWarnings(normalizeManifest(manifest), skillMap);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest, claudeTarget), skillMap);
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('planner');
   });
@@ -99,28 +101,28 @@ describe('checkRoleWarnings', () => {
   it('matches coordinator pattern in agent name', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         'team-coordinator': {
           description: 'Manages the team',
-          tools: { allow: ['Read', 'Write'] },
+          tools: ['Read', 'Write'],
         },
-      },
+      } },
     };
-    const warnings = checkRoleWarnings(normalizeManifest(manifest), skillMap);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest, claudeTarget), skillMap);
     expect(warnings).toHaveLength(1);
   });
 
   it('matches auditor pattern as reviewer-like role', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         'security-auditor': {
           description: 'Audits for vulnerabilities',
-          tools: { allow: ['Read', 'Write', 'Grep'] },
+          tools: ['Read', 'Write', 'Grep'],
         },
-      },
+      } },
     };
-    const warnings = checkRoleWarnings(normalizeManifest(manifest), skillMap);
+    const warnings = checkRoleWarnings(normalizeManifest(manifest, claudeTarget), skillMap);
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('reviewer');
   });

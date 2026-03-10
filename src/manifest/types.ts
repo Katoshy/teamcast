@@ -3,10 +3,9 @@ import type {
   AbstractPermission,
   HookEntry,
   McpServerConfig,
-  ModelAlias,
   PermissionMode,
+  ReasoningEffort,
 } from '../core/types.js';
-import type { CanonicalTool } from '../renderers/claude/tools.js';
 import type { AgentSkill } from '../core/skills.js';
 import type {
   CapabilityTraitName,
@@ -15,22 +14,22 @@ import type {
 import type { PolicyFragmentName } from '../components/policy-fragments.js';
 import type { PolicyAssertion } from '../core/assertions.js';
 
-export type LegacyToolAlias = 'Task';
-export type Tool = CanonicalTool | LegacyToolAlias;
-
 export interface ManifestInstructionBlock {
   kind: InstructionBlockKind;
   title?: string;
   content: string;
 }
 
-export interface ClaudeAgentConfigV2 {
+export interface BaseAgentConfig {
   description: string;
-  model?: ModelAlias;
+  /** Target-native model identifier (e.g. Claude alias or Codex model name). */
+  model?: string;
+  /** Target-native reasoning level for renderers that support it. */
+  reasoning_effort?: ReasoningEffort;
   capability_traits?: CapabilityTraitName[];
-  /** Accepts AgentSkill values (e.g. 'read_files') or CanonicalTool values for backward compat. */
-  tools?: Array<AgentSkill | CanonicalTool>;
-  disallowed_tools?: Array<AgentSkill | CanonicalTool>;
+  /** Accepts AgentSkill values (e.g. 'read_files') or specific tool names for the target renderer. */
+  tools?: Array<AgentSkill | string>;
+  disallowed_tools?: Array<AgentSkill | string>;
   /** Free-form skill documentation references (e.g. 'test-first', 'clean-code'). */
   skills?: string[];
   max_turns?: number;
@@ -41,63 +40,19 @@ export interface ClaudeAgentConfigV2 {
   background?: boolean;
 }
 
-export interface ForgeAgentMetadataV2 {
+export interface ForgeAgentMetadata {
   handoffs?: string[];
   role?: string;
   template?: string;
 }
 
-export interface AgentConfigV2 {
-  claude: ClaudeAgentConfigV2;
-  forge?: ForgeAgentMetadataV2;
+export interface AgentConfig extends BaseAgentConfig {
+  forge?: ForgeAgentMetadata;
 }
 
-export interface LegacyToolsConfigWithAllow {
-  allow: Tool[];
-  deny?: Tool[];
+export interface TargetConfig {
+  agents: Record<string, AgentConfig>;
 }
-
-export interface LegacyToolsConfigDenyOnly {
-  deny: Tool[];
-}
-
-export type LegacyToolsConfig = LegacyToolsConfigWithAllow | LegacyToolsConfigDenyOnly;
-
-export interface LegacyAgentConfigV1 {
-  description: string;
-  model?: ModelAlias;
-  tools?: LegacyToolsConfig;
-  skills?: string[];
-  handoffs?: string[];
-  max_turns?: number;
-  mcp_servers?: McpServerConfig[];
-  permission_mode?: PermissionMode;
-  behavior?: string;
-  background?: boolean;
-}
-
-export interface CanonicalAgentConfigV1 {
-  claude: {
-    description: string;
-    model?: ModelAlias;
-    tools?: Array<AgentSkill | CanonicalTool>;
-    disallowed_tools?: Array<AgentSkill | CanonicalTool>;
-    skills?: string[];
-    max_turns?: number;
-    mcp_servers?: McpServerConfig[];
-    permission_mode?: PermissionMode;
-    instructions?: string;
-    background?: boolean;
-  };
-  forge?: {
-    handoffs?: string[];
-    role?: string;
-    template?: string;
-  };
-}
-
-export type AgentDefinitionV1 = LegacyAgentConfigV1 | CanonicalAgentConfigV1;
-export type AgentDefinition = AgentConfigV2 | AgentDefinitionV1;
 
 export interface PermissionsConfig {
   allow?: Array<AbstractPermission | string>;
@@ -141,7 +96,6 @@ export interface PoliciesConfig {
 }
 
 export interface GenerationSettings {
-  default_model?: ModelAlias;
   generate_docs?: boolean;
   generate_local_settings?: boolean;
 }
@@ -158,25 +112,17 @@ export interface PresetMeta {
   min_version?: string;
 }
 
-export interface TeamCastManifestV2 {
+export interface TeamCastManifest {
   version: '2';
   project: ProjectConfig;
-  agents: Record<string, AgentConfigV2>;
   policies?: PoliciesConfig;
   settings?: GenerationSettings;
   preset_meta?: PresetMeta;
+  
+  // Platform Targets
+  claude?: TargetConfig;
+  codex?: TargetConfig;
 }
-
-export interface TeamCastManifestV1 {
-  version: '1';
-  project: ProjectConfig;
-  agents: Record<string, AgentDefinitionV1>;
-  policies?: PoliciesConfig;
-  settings?: GenerationSettings;
-  preset_meta?: PresetMeta;
-}
-
-export type TeamCastManifest = TeamCastManifestV1 | TeamCastManifestV2;
 
 export function isInstructionBlock(value: InstructionBlock | ManifestInstructionBlock): value is ManifestInstructionBlock {
   return typeof value.kind === 'string' && typeof value.content === 'string';

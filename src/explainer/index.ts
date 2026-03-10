@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 import type { CoreTeam } from '../core/types.js';
-import { reverseMapToolsToSkills } from '../renderers/claude/skill-map.js';
+import type { TargetContext } from '../renderers/target-context.js';
 
-function formatAgentSection(agentId: string, agent: CoreTeam['agents'][string], defaultModel?: string): string[] {
+function formatAgentSection(agentId: string, agent: CoreTeam['agents'][string], targetContext: TargetContext): string[] {
   const lines: string[] = [];
-  const model = agent.runtime.model ?? defaultModel ?? 'sonnet';
+  const model = agent.runtime.model ?? 'unspecified';
 
   lines.push(`  ${chalk.cyan(agentId)} ${chalk.dim(`(${model})`)}`);
 
@@ -13,21 +13,30 @@ function formatAgentSection(agentId: string, agent: CoreTeam['agents'][string], 
     lines.push(`    ${chalk.dim('Description:')} ${agent.description}`);
   }
 
+  if (agent.runtime.reasoningEffort) {
+    lines.push(`    ${chalk.dim('Reasoning effort:')} ${agent.runtime.reasoningEffort}`);
+  }
+
   // Skills (abstract) — reverse-mapped from tools, or from runtime.skills if no tools
   const tools = agent.runtime.tools ?? [];
   if (tools.length > 0) {
-    const { skills, remainingTools } = reverseMapToolsToSkills(tools);
+    const reverseMap = targetContext.reverseMapTools;
+    if (reverseMap) {
+      const { skills, remainingTools } = reverseMap(tools);
 
-    if (skills.length > 0) {
-      lines.push(`    ${chalk.dim('Skills:')} ${skills.join(', ')}`);
-    }
+      if (skills.length > 0) {
+        lines.push(`    ${chalk.dim('Skills:')} ${skills.join(', ')}`);
+      }
 
-    // Expanded tools list (all, including unmapped remainders)
-    lines.push(`    ${chalk.dim('Tools:')} ${tools.join(', ')}`);
+      // Expanded tools list (all, including unmapped remainders)
+      lines.push(`    ${chalk.dim('Tools:')} ${tools.join(', ')}`);
 
-    if (remainingTools.length > 0) {
-      // Unmapped tools shown for transparency
-      lines.push(`    ${chalk.dim('Unmapped tools:')} ${remainingTools.join(', ')}`);
+      if (remainingTools.length > 0) {
+        // Unmapped tools shown for transparency
+        lines.push(`    ${chalk.dim('Unmapped tools:')} ${remainingTools.join(', ')}`);
+      }
+    } else {
+      lines.push(`    ${chalk.dim('Tools:')} ${tools.join(', ')}`);
     }
   }
 
@@ -60,7 +69,7 @@ function formatAgentSection(agentId: string, agent: CoreTeam['agents'][string], 
   return lines;
 }
 
-export function buildExplanation(team: CoreTeam): string {
+export function buildExplanation(team: CoreTeam, targetContext: TargetContext): string {
   const lines: string[] = [];
 
   const preset = team.project.preset ? ` (preset: ${team.project.preset})` : '';
@@ -69,7 +78,7 @@ export function buildExplanation(team: CoreTeam): string {
   lines.push(chalk.bold('Team structure:'));
 
   for (const [agentId, agent] of Object.entries(team.agents)) {
-    lines.push(...formatAgentSection(agentId, agent, team.settings?.defaultModel));
+    lines.push(...formatAgentSection(agentId, agent, targetContext));
     lines.push('');
   }
 

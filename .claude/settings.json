@@ -2,14 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(npm run *)",
-      "Bash(npm test)",
       "Bash(npm test *)",
-      "Bash(npx tsx *)",
-      "Bash(npx vitest *)",
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
       "Bash(git commit *)",
+      "Bash(npx tsx *)",
+      "Bash(npx vitest *)",
       "Bash(git log *)"
     ],
     "ask": [

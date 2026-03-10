@@ -1,11 +1,13 @@
 import chalk from 'chalk';
 import type { TeamCastManifest } from '../types/manifest.js';
-import type { CoreTeam } from '../core/types.js';
-import { isCoreTeam } from '../core/guards.js';
+import { applyDefaults } from '../manifest/defaults.js';
 import { validateSchema } from '../manifest/schema-validator.js';
+import { normalizeManifest } from '../manifest/normalize.js';
 import { runValidation } from '../validator/index.js';
 import { hasErrors } from '../validator/reporter.js';
 import type { ValidationResult } from '../validator/types.js';
+import '../renderers/index.js';
+import { getTarget, getRegisteredTargetNames } from '../renderers/registry.js';
 
 export interface TeamValidationSummary {
   schemaErrors: Array<{ path: string; message: string }>;
@@ -13,24 +15,7 @@ export interface TeamValidationSummary {
   policyAssertionCount?: number;
 }
 
-/**
- * Pure validation logic: validates schema + runs all checkers.
- * No side effects, no console output.
- *
- * When called with a CoreTeam (already normalized), schema validation is
- * skipped — it was already performed when the manifest was first read from
- * YAML.  Only raw TeamCastManifest values are sent through the JSON schema
- * validator.
- */
-export function evaluateTeam(manifest: TeamCastManifest | CoreTeam): TeamValidationSummary {
-  if (isCoreTeam(manifest)) {
-    return {
-      schemaErrors: [],
-      validationResults: runValidation(manifest),
-      policyAssertionCount: manifest.policies?.assertions?.length ?? 0,
-    };
-  }
-
+export function evaluateTeam(manifest: TeamCastManifest): TeamValidationSummary {
   const schemaResult = validateSchema(manifest);
 
   if (!schemaResult.valid) {
@@ -40,27 +25,35 @@ export function evaluateTeam(manifest: TeamCastManifest | CoreTeam): TeamValidat
     };
   }
 
-  const team = schemaResult.data;
+  const rawManifest = applyDefaults(schemaResult.data);
+  const rawManifestRecord = rawManifest as unknown as Record<string, unknown>;
+  const activeTargets = getRegisteredTargetNames().filter((targetName) => rawManifestRecord[targetName]);
+  const validationResults: ValidationResult[] = [];
+
+  for (const targetName of activeTargets) {
+    const targetContext = getTarget(targetName);
+    const team = normalizeManifest(rawManifest, targetContext);
+    const targetResults = runValidation(team, targetContext);
+    const prefix = activeTargets.length > 1 ? `[${targetName}] ` : '';
+    validationResults.push(
+      ...targetResults.map((result) => ({
+        ...result,
+        message: prefix + result.message,
+      })),
+    );
+  }
+
   return {
     schemaErrors: [],
-    validationResults: runValidation(team),
-    policyAssertionCount: (team as TeamCastManifest & { policies?: { assertions?: unknown[] } })
-      .policies?.assertions?.length ?? 0,
+    validationResults,
+    policyAssertionCount: rawManifest.policies?.assertions?.length ?? 0,
   };
 }
 
-/**
- * Returns true if the summary contains any blocking issues (schema errors or validation errors).
- * No side effects.
- */
 export function teamHasBlockingIssues(summary: TeamValidationSummary): boolean {
   return summary.schemaErrors.length > 0 || hasErrors(summary.validationResults);
 }
 
-/**
- * Prints a human-readable validation summary to stdout.
- * Displays schema errors if present, otherwise the per-category validation report.
- */
 export function printManifestValidation(summary: TeamValidationSummary): void {
   if (summary.schemaErrors.length > 0) {
     console.log('');
@@ -76,13 +69,11 @@ export function printManifestValidation(summary: TeamValidationSummary): void {
   console.log(chalk.bold('Validation results:'));
   console.log(`  ${chalk.green('[ok]')} ${chalk.bold('Schema')} ${chalk.dim('—')} ${chalk.dim('manifest structure valid')}`);
 
-  _printCategoryRows(summary.validationResults, summary.policyAssertionCount);
+  printCategoryRows(summary.validationResults, summary.policyAssertionCount);
 }
 
-// Internal: prints per-category rows + summary line, without the "Validation results:" header
-// (used by printManifestValidation after it prints schema row itself)
-function _printCategoryRows(results: ValidationResult[], policyAssertionCount?: number): void {
-  const CATEGORY_ORDER = [
+function printCategoryRows(results: ValidationResult[], policyAssertionCount?: number): void {
+  const categoryOrder = [
     { label: 'Handoff graph', okDescription: 'delegation paths verified' },
     { label: 'Tool conflicts', okDescription: 'no allow/deny overlaps' },
     { label: 'Role separation', okDescription: 'roles match capabilities' },
@@ -92,15 +83,15 @@ function _printCategoryRows(results: ValidationResult[], policyAssertionCount?: 
   ];
 
   const byCategory = new Map<string, ValidationResult[]>();
-  for (const r of results) {
-    const existing = byCategory.get(r.category) ?? [];
-    byCategory.set(r.category, [...existing, r]);
+  for (const result of results) {
+    const existing = byCategory.get(result.category) ?? [];
+    byCategory.set(result.category, [...existing, result]);
   }
 
-  for (const meta of CATEGORY_ORDER) {
+  for (const meta of categoryOrder) {
     const categoryResults = byCategory.get(meta.label) ?? [];
-    const errors = categoryResults.filter((r) => r.severity === 'error');
-    const warnings = categoryResults.filter((r) => r.severity === 'warning');
+    const errors = categoryResults.filter((result) => result.severity === 'error');
+    const warnings = categoryResults.filter((result) => result.severity === 'warning');
 
     if (errors.length > 0) {
       const desc = chalk.red(`${errors.length} error${errors.length !== 1 ? 's' : ''}`);
@@ -109,15 +100,15 @@ function _printCategoryRows(results: ValidationResult[], policyAssertionCount?: 
           ? `, ${chalk.yellow(`${warnings.length} warning${warnings.length !== 1 ? 's' : ''}`)}`
           : '';
       console.log(`  ${chalk.red('[!!]')} ${chalk.bold(meta.label)} ${chalk.dim('—')} ${desc}${extra}`);
-      for (const r of [...errors, ...warnings]) {
-        const prefix = r.severity === 'error' ? chalk.red('  [error]') : chalk.yellow('  [warn]');
-        console.log(`    ${prefix} ${r.message}`);
+      for (const result of [...errors, ...warnings]) {
+        const prefix = result.severity === 'error' ? chalk.red('  [error]') : chalk.yellow('  [warn]');
+        console.log(`    ${prefix} ${result.message}`);
       }
     } else if (warnings.length > 0) {
       const desc = chalk.yellow(`${warnings.length} warning${warnings.length !== 1 ? 's' : ''}`);
       console.log(`  ${chalk.yellow('[--]')} ${chalk.bold(meta.label)} ${chalk.dim('—')} ${desc}`);
-      for (const r of warnings) {
-        console.log(`    ${chalk.yellow('  [warn]')} ${r.message}`);
+      for (const result of warnings) {
+        console.log(`    ${chalk.yellow('  [warn]')} ${result.message}`);
       }
     } else {
       let okDesc: string;
@@ -135,16 +126,17 @@ function _printCategoryRows(results: ValidationResult[], policyAssertionCount?: 
 
   console.log('');
 
-  const totalErrors = results.filter((r) => r.severity === 'error').length;
-  const totalWarnings = results.filter((r) => r.severity === 'warning').length;
+  const totalErrors = results.filter((result) => result.severity === 'error').length;
+  const totalWarnings = results.filter((result) => result.severity === 'warning').length;
 
   if (totalErrors === 0 && totalWarnings === 0) {
     console.log(chalk.green('All checks passed.'));
   } else {
     const parts: string[] = [];
     if (totalErrors > 0) parts.push(chalk.red(`${totalErrors} error${totalErrors !== 1 ? 's' : ''}`));
-    if (totalWarnings > 0)
+    if (totalWarnings > 0) {
       parts.push(chalk.yellow(`${totalWarnings} warning${totalWarnings !== 1 ? 's' : ''}`));
+    }
     console.log(`${parts.join(', ')} found.`);
   }
 

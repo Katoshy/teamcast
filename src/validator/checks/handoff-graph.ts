@@ -59,13 +59,14 @@ export function checkHandoffGraph(
 
   for (const [agentId, agent] of Object.entries(team.agents)) {
     if (
+      (skillMap.delegate?.length ?? 0) > 0 &&
       (agent.metadata?.handoffs?.length ?? 0) > 0 &&
       !agentHasSkill(agent.runtime.tools ?? [], 'delegate', skillMap)
     ) {
       results.push({
         severity: 'error',
         category: 'Handoff graph',
-        message: `Agent "${agentId}" has handoffs but "Agent" is not in its tools list`,
+        message: `Agent "${agentId}" has handoffs but "delegate" is not in its tools list`,
         agent: agentId,
       });
     }

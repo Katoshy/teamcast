@@ -1,21 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { renderClaudeMd } from '../../../src/renderers/claude/docs.js';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
+import { normalizeManifest } from '../../../src/manifest/normalize.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
 import type { TeamCastManifest } from '../../../src/types/manifest.js';
 
+const claudeTarget = createClaudeTarget();
 const base: TeamCastManifest = {
-  version: '1',
+  version: '2',
   project: { name: 'my-app' },
-  agents: {},
+  claude: { agents: {} },
 };
 
 describe('renderClaudeMd', () => {
   it('outputs to CLAUDE.md', () => {
-    expect(renderClaudeMd(applyDefaults(base)).path).toBe('CLAUDE.md');
+    expect(renderClaudeMd(normalizeManifest(applyDefaults(base), claudeTarget)).path).toBe('CLAUDE.md');
   });
 
   it('includes project name as heading', () => {
-    expect(renderClaudeMd(applyDefaults(base)).content).toContain('# my-app');
+    expect(renderClaudeMd(normalizeManifest(applyDefaults(base), claudeTarget)).content).toContain('# my-app');
   });
 
   it('includes project description when provided', () => {
@@ -23,18 +26,18 @@ describe('renderClaudeMd', () => {
       ...base,
       project: { name: 'my-app', description: 'A TypeScript web app' },
     };
-    expect(renderClaudeMd(applyDefaults(manifest)).content).toContain('A TypeScript web app');
+    expect(renderClaudeMd(normalizeManifest(applyDefaults(manifest), claudeTarget)).content).toContain('A TypeScript web app');
   });
 
   it('lists agents in a markdown table', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
-        developer: { claude: { description: 'Implements features' } },
-        reviewer: { claude: { description: 'Reviews code' } },
-      },
+      claude: { agents: {
+        developer: { description: 'Implements features' },
+        reviewer: { description: 'Reviews code' },
+      } },
     };
-    const content = renderClaudeMd(applyDefaults(manifest)).content;
+    const content = renderClaudeMd(normalizeManifest(applyDefaults(manifest), claudeTarget)).content;
     expect(content).toContain('| **developer** | Implements features |');
     expect(content).toContain('| **reviewer** | Reviews code |');
   });
@@ -42,21 +45,19 @@ describe('renderClaudeMd', () => {
   it('renders workflow chain for orchestrator with handoffs', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         orchestrator: {
-          claude: {
-            description: 'Coordinates',
-            tools: ['Read', 'Agent'],
-          },
+          description: 'Coordinates',
+          tools: ['Read', 'Agent'],
           forge: {
             handoffs: ['planner', 'developer'],
           },
         },
-        planner: { claude: { description: 'Plans' } },
-        developer: { claude: { description: 'Builds' } },
-      },
+        planner: { description: 'Plans' },
+        developer: { description: 'Builds' },
+      } },
     };
-    const content = renderClaudeMd(applyDefaults(manifest)).content;
+    const content = renderClaudeMd(normalizeManifest(applyDefaults(manifest), claudeTarget)).content;
     expect(content).toContain('### Preferred workflow');
     expect(content).toContain('orchestrator -> planner -> developer');
   });
@@ -64,22 +65,20 @@ describe('renderClaudeMd', () => {
   it('does not render workflow section for agents without handoffs', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         developer: {
-          claude: {
-            description: 'Builds',
-            tools: ['Read', 'Write'],
-          },
+          description: 'Builds',
+          tools: ['Read', 'Write'],
         },
-      },
+      } },
     };
-    expect(renderClaudeMd(applyDefaults(manifest)).content).not.toContain('### Preferred workflow');
+    expect(renderClaudeMd(normalizeManifest(applyDefaults(manifest), claudeTarget)).content).not.toContain('### Preferred workflow');
   });
 
   it('includes security boundaries from policies', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: { dev: { claude: { description: 'Dev' } } },
+      claude: { agents: { dev: { description: 'Dev' } } },
       policies: {
         sandbox: { enabled: true },
         permissions: {
@@ -88,7 +87,7 @@ describe('renderClaudeMd', () => {
         },
       },
     };
-    const content = renderClaudeMd(applyDefaults(manifest)).content;
+    const content = renderClaudeMd(normalizeManifest(applyDefaults(manifest), claudeTarget)).content;
     expect(content).toContain('Sandbox is **enabled**');
     expect(content).toContain('Bash(rm -rf *)');
     expect(content).toContain('Bash(npm test *)');

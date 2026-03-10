@@ -1,20 +1,26 @@
 import chalk from 'chalk';
 import type { CoreTeam } from '../../core/types.js';
+import type { TeamCastManifest } from '../../manifest/types.js';
 import { listPresets } from '../../presets/index.js';
 import { stepCustomTeam } from './custom-team.js';
 import { promptList } from '../../utils/prompts.js';
-import { buildSingleAgentTeam, buildTeamFromPreset } from '../../application/team.js';
+import type { InitTargetSelection } from '../../application/team.js';
+import {
+  buildManifestFromPreset,
+  buildSingleAgentManifest,
+} from '../../application/team.js';
 
 type SelectionMode = 'preset' | 'custom' | 'single';
 
 export async function stepTeamSelection(
   partial: Pick<CoreTeam, 'project'>,
+  selection: InitTargetSelection,
   options?: { nonInteractive?: boolean },
-): Promise<CoreTeam> {
+): Promise<TeamCastManifest> {
   const projectName = partial.project.name;
 
   if (options?.nonInteractive) {
-    return buildTeamFromPreset('feature-team', projectName);
+    return buildManifestFromPreset('feature-team', projectName, selection);
   }
 
   const mode = await promptList<SelectionMode>({
@@ -44,12 +50,12 @@ export async function stepTeamSelection(
         value: preset.name,
       })),
     });
-    return buildTeamFromPreset(presetName, projectName);
+    return buildManifestFromPreset(presetName, projectName, selection);
   }
 
   if (mode === 'custom') {
-    return stepCustomTeam(projectName);
+    return stepCustomTeam(projectName, selection);
   }
 
-  return buildSingleAgentTeam(projectName);
+  return buildSingleAgentManifest(projectName, selection);
 }

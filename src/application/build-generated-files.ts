@@ -1,5 +1,5 @@
 import type { CoreTeam } from '../core/types.js';
-import { ClaudeRenderer } from '../renderers/claude/index.js';
+import { getTarget } from '../renderers/registry.js';
 import type { RenderedFile, TeamRenderSpec } from '../renderers/types.js';
 import { isUserEditableGeneratedFile } from '../generator/file-policies.js';
 import { writeFiles } from '../generator/writer.js';
@@ -9,9 +9,10 @@ export interface BuildGeneratedOutputsOptions {
   dryRun?: boolean;
 }
 
-export function buildGeneratedOutputs(team: CoreTeam, options: BuildGeneratedOutputsOptions): RenderedFile[] {
+export function buildGeneratedOutputs(team: CoreTeam, targetName: string, options: BuildGeneratedOutputsOptions): RenderedFile[] {
   const spec: TeamRenderSpec = { team };
-  const renderer = new ClaudeRenderer();
+  const target = getTarget(targetName);
+  const renderer = target.renderer;
   const files = renderer.render(spec);
 
   if (!options.dryRun) {

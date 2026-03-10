@@ -6,16 +6,16 @@ import type {
   CoreTeam,
   HookEntry,
   McpServerConfig,
-  ModelAlias,
   PermissionMode,
   TeamPolicies,
 } from '../core/types.js';
-import { CLAUDE_CODE_TOOLS } from '../renderers/claude/tools.js';
-import type { CanonicalTool } from '../renderers/claude/tools.js';
-import { reverseMapToolsToSkills } from '../renderers/claude/skill-map.js';
 import { normalizePermissionTokens } from '../core/permissions.js';
+import type { TargetContext } from '../renderers/target-context.js';
+import { createClaudeTarget } from '../renderers/claude/index.js';
+import { createCodexTarget } from '../renderers/codex/index.js';
+import type { ReasoningEffort } from '../core/types.js';
 
-const LEGACY_MODEL_ID_MAP: Record<string, Exclude<ModelAlias, 'inherit'>> = {
+const LEGACY_MODEL_ID_MAP: Record<string, string> = {
   'claude-opus-4-6': 'opus',
   'claude-sonnet-4-6': 'sonnet',
   'claude-haiku-4-5-20251001': 'haiku',
@@ -86,20 +86,20 @@ function inferLegacyHandoffs(body: string | undefined): string[] | undefined {
   return values.length > 0 ? values : undefined;
 }
 
-function resolveModelAlias(modelValue: unknown): ModelAlias | undefined {
+function resolveClaudeModel(modelValue: unknown): string | undefined {
   if (typeof modelValue !== 'string' || modelValue.length === 0) return undefined;
-  if (modelValue === 'inherit' || modelValue === 'opus' || modelValue === 'sonnet' || modelValue === 'haiku') {
+  if (modelValue === 'opus' || modelValue === 'sonnet' || modelValue === 'haiku') {
     return modelValue;
   }
 
   return LEGACY_MODEL_ID_MAP[modelValue];
 }
 
-function isCanonicalTool(value: string): value is CanonicalTool {
-  return CLAUDE_CODE_TOOLS.includes(value as CanonicalTool);
+function isKnownTool(value: string, knownTools: string[]): boolean {
+  return knownTools.includes(value);
 }
 
-function parseToolList(value: unknown): CanonicalTool[] | undefined {
+function parseToolList(value: unknown, knownTools: string[]): string[] | undefined {
   const rawTools = Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
     : typeof value === 'string'
@@ -108,10 +108,10 @@ function parseToolList(value: unknown): CanonicalTool[] | undefined {
 
   if (rawTools.length === 0) return undefined;
 
-  const tools: CanonicalTool[] = [];
+  const tools: string[] = [];
   for (const raw of rawTools) {
     const canonical = raw === 'Task' ? 'Agent' : raw;
-    if (isCanonicalTool(canonical) && !tools.includes(canonical)) {
+    if (isKnownTool(canonical, knownTools) && !tools.includes(canonical)) {
       tools.push(canonical);
     }
   }
@@ -145,22 +145,95 @@ function parseMcpServers(value: unknown): McpServerConfig[] | undefined {
   return servers.length > 0 ? servers : undefined;
 }
 
-function parseAgentFile(filePath: string): { name: string; agent: CoreAgent; warnings: ImportWarning[] } {
+function normalizeLineEndings(value: string): string {
+  return value.replace(/\r\n/g, '\n');
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractTomlString(content: string, key: string): string | undefined {
+  const match = content.match(new RegExp(`^${escapeRegExp(key)}\\s*=\\s*"((?:\\\\.|[^"])*)"`, 'm'));
+  if (!match) return undefined;
+
+  return match[1]
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\');
+}
+
+function extractTomlMultiline(content: string, key: string): string | undefined {
+  const match = content.match(new RegExp(`${escapeRegExp(key)}\\s*=\\s*"""\\n([\\s\\S]*?)\\n"""`));
+  return match ? normalizeLineEndings(match[1]).trim() : undefined;
+}
+
+function extractMarkdownSection(content: string, heading: string): string | undefined {
+  const normalized = normalizeLineEndings(content);
+  const match = normalized.match(
+    new RegExp(`## ${escapeRegExp(heading)}\\n\\n([\\s\\S]*?)(?=\\n## |$)`),
+  );
+  return match?.[1]?.trim() || undefined;
+}
+
+function parseCommaList(value: string | undefined): string[] | undefined {
+  if (!value) return undefined;
+  const items = value
+    .split(',')
+    .map((entry) => entry.trim().replace(/\.$/, ''))
+    .filter(Boolean);
+  return items.length > 0 ? items : undefined;
+}
+
+function stripCodexGeneratedSections(body: string | undefined): string | undefined {
+  if (!body) return undefined;
+
+  let nextBody = normalizeLineEndings(body);
+  if (nextBody.startsWith('You are ')) {
+    const firstBreak = nextBody.indexOf('\n\n');
+    nextBody = firstBreak === -1 ? '' : nextBody.slice(firstBreak + 2);
+  }
+
+  for (const section of ['## Delegation', '## Allowed Tool Intents', '## Restricted Tool Intents', '## Skill Docs']) {
+    const sectionIndex = nextBody.indexOf(section);
+    if (sectionIndex !== -1) {
+      const nextSection = nextBody.indexOf('\n## ', sectionIndex + section.length);
+      nextBody = nextSection !== -1
+        ? nextBody.slice(0, sectionIndex) + nextBody.slice(nextSection)
+        : nextBody.slice(0, sectionIndex);
+    }
+  }
+
+  return nextBody.trim() || undefined;
+}
+
+function parseCodexReasoningEffort(value: string | undefined): ReasoningEffort | undefined {
+  if (!value) return undefined;
+  if (value === 'low' || value === 'medium' || value === 'high') {
+    return value;
+  }
+  return undefined;
+}
+
+function parseAgentFile(filePath: string, targetContext: TargetContext): { name: string; agent: CoreAgent; warnings: ImportWarning[] } {
   const warnings: ImportWarning[] = [];
   const content = readFileSync(filePath, 'utf-8');
   const fields = parseFrontmatter(content);
   const fileName = basename(filePath, '.md');
   const name = typeof fields.name === 'string' && fields.name.length > 0 ? fields.name : fileName;
 
-  const model = resolveModelAlias(fields.model);
-  const rawTools = parseToolList(fields.tools);
+  const model = resolveClaudeModel(fields.model);
+  const rawTools = parseToolList(fields.tools, targetContext.knownTools);
   const tools: string[] | undefined = rawTools
     ? (() => {
-        const { skills, remainingTools } = reverseMapToolsToSkills(rawTools);
-        return [...skills, ...remainingTools];
+        const reverseMap = targetContext.reverseMapTools;
+        if (reverseMap) {
+          const { skills, remainingTools } = reverseMap(rawTools);
+          return [...skills, ...remainingTools];
+        }
+        return rawTools;
       })()
     : undefined;
-  const disallowedTools = parseToolList(fields.disallowedTools);
+  const disallowedTools = parseToolList(fields.disallowedTools, targetContext.knownTools);
   const permissionMode = parsePermissionMode(fields.permissionMode);
   const maxTurns = typeof fields.maxTurns === 'number' ? fields.maxTurns : undefined;
   const background = typeof fields.background === 'boolean' ? fields.background : undefined;
@@ -314,12 +387,14 @@ export function importFromClaudeDir(cwd: string, projectName: string): ImportRes
   const warnings: ImportWarning[] = [];
   const agents: Record<string, CoreAgent> = {};
 
+  const claudeTarget = createClaudeTarget();
+
   const agentsDir = join(cwd, '.claude', 'agents');
   if (existsSync(agentsDir)) {
     const files = readdirSync(agentsDir).filter((file) => file.endsWith('.md'));
     for (const file of files) {
       const filePath = join(agentsDir, file);
-      const result = parseAgentFile(filePath);
+      const result = parseAgentFile(filePath, claudeTarget);
       agents[result.name] = result.agent;
       warnings.push(...result.warnings);
     }
@@ -344,7 +419,132 @@ export function importFromClaudeDir(cwd: string, projectName: string): ImportRes
       agents,
       policies,
       settings: {
-        defaultModel: 'sonnet',
+        generateDocs: true,
+        generateLocalSettings: true,
+      },
+    },
+    warnings,
+  };
+}
+
+interface CodexAgentEntry {
+  name: string;
+  description: string;
+  configPath: string;
+}
+
+function parseCodexConfigEntries(filePath: string): CodexAgentEntry[] {
+  const content = normalizeLineEndings(readFileSync(filePath, 'utf-8'));
+  const sectionRegex = /\[agents\.([^\]]+)\]\n([\s\S]*?)(?=\n\[agents\.|\s*$)/g;
+  const entries: CodexAgentEntry[] = [];
+
+  for (const match of content.matchAll(sectionRegex)) {
+    const name = match[1];
+    const block = match[2];
+    const description = extractTomlString(block, 'description');
+    const configPath = extractTomlString(block, 'config_file');
+    if (description && configPath) {
+      entries.push({ name, description, configPath });
+    }
+  }
+
+  return entries;
+}
+
+function parseCodexToolList(value: string | undefined, knownTools: string[]): string[] | undefined {
+  const items = parseCommaList(value);
+  if (!items) return undefined;
+
+  const tools = items.filter((item) => knownTools.includes(item));
+  return tools.length > 0 ? tools : undefined;
+}
+
+function parseCodexAgentFile(
+  cwd: string,
+  entry: CodexAgentEntry,
+  targetContext: TargetContext,
+): { name: string; agent: CoreAgent; warnings: ImportWarning[] } {
+  const warnings: ImportWarning[] = [];
+  const filePath = join(cwd, '.codex', entry.configPath);
+  const content = normalizeLineEndings(readFileSync(filePath, 'utf-8'));
+  const developerInstructions = extractTomlMultiline(content, 'developer_instructions');
+  const delegation = extractMarkdownSection(developerInstructions ?? '', 'Delegation');
+  const allowedToolIntents = extractMarkdownSection(developerInstructions ?? '', 'Allowed Tool Intents');
+  const restrictedToolIntents = extractMarkdownSection(developerInstructions ?? '', 'Restricted Tool Intents');
+  const skillDocsSection = extractMarkdownSection(developerInstructions ?? '', 'Skill Docs');
+  const reasoningEffort = parseCodexReasoningEffort(extractTomlString(content, 'model_reasoning_effort'));
+
+  if (extractTomlString(content, 'model_reasoning_effort') && !reasoningEffort) {
+    warnings.push({
+      file: filePath,
+      message: `Unknown reasoning effort "${String(extractTomlString(content, 'model_reasoning_effort'))}", skipping`,
+    });
+  }
+
+  const handoffs = parseCommaList(delegation?.replace(/^You may delegate to:\s*/i, ''));
+  const tools = parseCodexToolList(allowedToolIntents, targetContext.knownTools);
+  const disallowedTools = parseCodexToolList(
+    restrictedToolIntents?.replace(/^Avoid using:\s*/i, ''),
+    targetContext.knownTools,
+  );
+  const skillDocs = parseCommaList(
+    skillDocsSection?.replace(/^Follow these local skills when relevant:\s*/i, ''),
+  );
+
+  return {
+    name: entry.name,
+    agent: {
+      id: entry.name,
+      description: entry.description,
+      runtime: {
+        model: extractTomlString(content, 'model'),
+        reasoningEffort,
+        tools,
+        disallowedTools,
+        skillDocs,
+      },
+      instructions: stripCodexGeneratedSections(developerInstructions)
+        ? [{ kind: 'behavior', content: stripCodexGeneratedSections(developerInstructions)! }]
+        : [],
+      metadata: handoffs?.length ? { handoffs } : undefined,
+    },
+    warnings,
+  };
+}
+
+export function importFromCodexDir(cwd: string, projectName: string): ImportResult {
+  const warnings: ImportWarning[] = [];
+  const agents: Record<string, CoreAgent> = {};
+  const codexTarget = createCodexTarget();
+  const configPath = join(cwd, '.codex', 'config.toml');
+
+  if (!existsSync(configPath)) {
+    warnings.push({ file: configPath, message: 'No .codex/config.toml file found' });
+  } else {
+    const entries = parseCodexConfigEntries(configPath);
+    for (const entry of entries) {
+      const agentPath = join(cwd, '.codex', entry.configPath);
+      if (!existsSync(agentPath)) {
+        warnings.push({ file: agentPath, message: `Missing config for agent "${entry.name}"` });
+        continue;
+      }
+
+      const result = parseCodexAgentFile(cwd, entry, codexTarget);
+      agents[result.name] = result.agent;
+      warnings.push(...result.warnings);
+    }
+  }
+
+  if (Object.keys(agents).length === 0) {
+    warnings.push({ file: join(cwd, '.codex', 'agents'), message: 'No agent .toml files found in .codex/agents/' });
+  }
+
+  return {
+    team: {
+      version: '2',
+      project: { name: projectName },
+      agents,
+      settings: {
         generateDocs: true,
         generateLocalSettings: true,
       },

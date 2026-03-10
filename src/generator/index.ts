@@ -1,17 +1,29 @@
-import type { CoreTeam } from '../core/types.js';
 import type { TeamCastManifest } from '../manifest/types.js';
-import { isCoreTeam } from '../core/guards.js';
 import { applyDefaults } from '../manifest/defaults.js';
 import type { BuildGeneratedOutputsOptions } from '../application/build-generated-files.js';
 import { buildGeneratedOutputs } from '../application/build-generated-files.js';
 
+import '../renderers/index.js';
+import { getRegisteredTargetNames, getTarget } from '../renderers/registry.js';
+import { normalizeManifest } from '../manifest/normalize.js';
+
 export function generate(
-  manifest: TeamCastManifest | CoreTeam,
+  manifest: TeamCastManifest,
   options: BuildGeneratedOutputsOptions,
 ) {
-  const team = isCoreTeam(manifest)
-    ? manifest
-    : applyDefaults(manifest);
+  const rawManifest = applyDefaults(manifest);
+  const rawManifestRecord = rawManifest as unknown as Record<string, unknown>;
+  const registeredTargets = getRegisteredTargetNames();
+  const allGeneratedFiles: ReturnType<typeof buildGeneratedOutputs> = [];
 
-  return buildGeneratedOutputs(team, options);
+  for (const targetName of registeredTargets) {
+    if (rawManifestRecord[targetName]) {
+      const targetContext = getTarget(targetName);
+      const coreTeam = normalizeManifest(rawManifest, targetContext);
+      const targetFiles = buildGeneratedOutputs(coreTeam, targetName, options);
+      allGeneratedFiles.push(...targetFiles);
+    }
+  }
+
+  return allGeneratedFiles;
 }

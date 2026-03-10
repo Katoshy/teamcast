@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { applyPreset, loadPreset, listPresets } from '../../../src/presets/index.js';
 import { runValidation } from '../../../src/validator/index.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
+import { normalizeManifest } from '../../../src/manifest/normalize.js';
+
+const claudeTarget = createClaudeTarget();
 
 describe('preset security defaults', () => {
   it('ships presets that do not trigger security baseline warnings', () => {
     for (const preset of listPresets()) {
       const manifest = applyPreset(loadPreset(preset.name), 'test-project');
-      const securityIssues = runValidation(manifest).filter((result) => result.category === 'Security');
+      const securityIssues = runValidation(normalizeManifest(manifest, claudeTarget), claudeTarget)
+        .filter((result) => result.category === 'Security');
 
       expect(
         securityIssues,

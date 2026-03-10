@@ -8,7 +8,7 @@ import type { PolicyAssertion } from './assertions.js';
 
 // --- Primitive aliases ---
 
-export type ModelAlias = 'sonnet' | 'haiku' | 'opus' | 'inherit' | string;
+export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export type PermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk';
 
@@ -45,8 +45,10 @@ export interface HookEntry {
 // --- Resolved runtime (tool-agnostic: string[] not CanonicalTool[]) ---
 
 export interface AgentRuntime {
-  /** Effective model identifier after preset and default resolution. */
-  model?: ModelAlias;
+  /** Target-native model identifier. */
+  model?: string;
+  /** Target-native reasoning level where supported (e.g. Codex). */
+  reasoningEffort?: ReasoningEffort;
   /**
    * Allowed tools. Uses string[] to keep the core platform-agnostic.
    * The Claude renderer layer casts these to CanonicalTool as needed.
@@ -128,7 +130,6 @@ export interface TeamPolicies {
 // --- Resolved settings ---
 
 export interface TeamSettings {
-  defaultModel?: ModelAlias;
   generateDocs?: boolean;
   generateLocalSettings?: boolean;
 }
@@ -152,13 +153,13 @@ export interface ProjectConfig {
 // --- Fully-normalized team manifest ---
 
 /**
- * A fully-normalized team manifest used internally after all
- * legacy-format coercion, default application, and preset resolution.
+ * A fully-normalized, target-specific team view used internally after
+ * raw manifest defaults, target selection, and normalization.
  * Agents carry a `runtime` block, which distinguishes this type from
  * the raw `TeamCastManifest` loaded directly from YAML.
  */
 export interface CoreTeam {
-  version: '1' | '2';
+  version: '2';
   project: ProjectConfig;
   agents: Record<string, CoreAgent>;
   policies?: TeamPolicies;

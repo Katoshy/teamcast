@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import type { CoreTeam } from '../core/types.js';
+import type { TeamCastManifest } from '../manifest/types.js';
 import { generate } from '../generator/index.js';
 import { isUserEditableGeneratedFile } from '../generator/file-policies.js';
 
@@ -13,8 +13,8 @@ export interface DiffEntry {
   removedLines?: number;
 }
 
-export function diffManifest(team: CoreTeam, cwd: string): DiffEntry[] {
-  const expected = generate(team, { cwd, dryRun: true });
+export function diffManifest(manifest: TeamCastManifest, cwd: string): DiffEntry[] {
+  const expected = generate(manifest, { cwd, dryRun: true });
 
   return expected.map((file): DiffEntry => {
     const absPath = join(cwd, file.path);

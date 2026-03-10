@@ -9,7 +9,7 @@ function buildFrontmatter(agentId: string, agent: CoreAgent): string {
     description: agent.description,
   };
 
-  if (agent.runtime.model && agent.runtime.model !== 'inherit') {
+  if (agent.runtime.model) {
     frontmatter.model = agent.runtime.model;
   }
   if (agent.runtime.tools?.length) {

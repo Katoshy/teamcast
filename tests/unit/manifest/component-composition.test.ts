@@ -1,16 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
+import { normalizeManifest } from '../../../src/manifest/normalize.js';
 import { createRoleAgent } from '../../../src/team-templates/roles.js';
 import type { TeamCastManifest } from '../../../src/manifest/types.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
+
+const claudeTarget = createClaudeTarget();
 
 describe('component composition', () => {
   it('composes runtime, instructions, and policies from manifest component refs', () => {
     const manifest: TeamCastManifest = {
       version: '2',
       project: { name: 'component-app' },
-      agents: {
+      claude: { agents: {
         developer: {
-          claude: {
             description: 'Composable developer',
             model: 'sonnet',
             capability_traits: ['base-read', 'file-authoring', 'command-execution', 'no-web'],
@@ -22,15 +25,14 @@ describe('component composition', () => {
               },
             ],
             instruction_fragments: ['development-workflow'],
-          },
         },
-      },
+      } },
       policies: {
         fragments: ['allow-npm-run', 'deny-env-files', 'sandbox-default'],
       },
     };
 
-    const team = applyDefaults(manifest);
+    const team = normalizeManifest(applyDefaults(manifest), claudeTarget);
     const agent = team.agents.developer;
 
     expect(agent.runtime.tools).toEqual(['Read', 'Grep', 'Glob', 'Write', 'Edit', 'MultiEdit', 'Bash']);
@@ -49,7 +51,7 @@ describe('component composition', () => {
   });
 
   it('assembles role agents from reusable traits and fragments', () => {
-    const reviewer = createRoleAgent('reviewer');
+    const reviewer = createRoleAgent('reviewer', claudeTarget);
 
     expect(reviewer.runtime.tools).toEqual(['Read', 'Grep', 'Glob', 'Bash']);
     expect(reviewer.runtime.disallowedTools).toEqual(['Write', 'Edit', 'MultiEdit', 'WebFetch', 'WebSearch']);

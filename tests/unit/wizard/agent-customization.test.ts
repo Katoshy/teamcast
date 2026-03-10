@@ -10,8 +10,12 @@ vi.mock('inquirer', () => ({
 import inquirer from 'inquirer';
 import { stepAgentCustomization } from '../../../src/wizard/steps/agent-customization.js';
 import type { CoreTeam } from '../../../src/core/types.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
+import { createCodexTarget } from '../../../src/renderers/codex/index.js';
 
 const mockedPrompt = vi.mocked(inquirer.prompt);
+const claudeTarget = createClaudeTarget();
+const codexTarget = createCodexTarget();
 
 function makeTeam(overrides?: Partial<CoreTeam['agents']['dev']>): CoreTeam {
   return {
@@ -40,7 +44,7 @@ describe('stepAgentCustomization', () => {
 
   it('returns team unchanged in nonInteractive mode', async () => {
     const team = makeTeam();
-    const result = await stepAgentCustomization(team, { nonInteractive: true });
+    const result = await stepAgentCustomization(team, claudeTarget, { nonInteractive: true });
     expect(result).toBe(team);
     expect(mockedPrompt).not.toHaveBeenCalled();
   });
@@ -50,7 +54,7 @@ describe('stepAgentCustomization', () => {
     // promptConfirm -> false
     mockedPrompt.mockResolvedValueOnce({ value: false });
 
-    const result = await stepAgentCustomization(team);
+    const result = await stepAgentCustomization(team, claudeTarget);
     expect(result).toEqual(team);
   });
 
@@ -63,7 +67,7 @@ describe('stepAgentCustomization', () => {
     // skill selection -> read_files, execute
     mockedPrompt.mockResolvedValueOnce({ value: ['read_files', 'execute'] });
 
-    const result = await stepAgentCustomization(team);
+    const result = await stepAgentCustomization(team, claudeTarget);
 
     expect(result.agents.dev.runtime.model).toBe('opus');
   });
@@ -77,7 +81,7 @@ describe('stepAgentCustomization', () => {
     // skills -> write_files, execute
     mockedPrompt.mockResolvedValueOnce({ value: ['write_files', 'execute'] });
 
-    const result = await stepAgentCustomization(team);
+    const result = await stepAgentCustomization(team, claudeTarget);
     const tools = result.agents.dev.runtime.tools ?? [];
 
     // write_files expands to Write, Edit, MultiEdit; execute expands to Bash
@@ -93,13 +97,14 @@ describe('stepAgentCustomization', () => {
     const team = makeTeam();
     // promptConfirm -> true
     mockedPrompt.mockResolvedValueOnce({ value: true });
-    // model -> inherit
-    mockedPrompt.mockResolvedValueOnce({ value: 'inherit' });
+    // model -> unspecified
+    mockedPrompt.mockResolvedValueOnce({ value: 'unspecified' });
     // skills -> none selected
     mockedPrompt.mockResolvedValueOnce({ value: [] });
 
-    const result = await stepAgentCustomization(team);
+    const result = await stepAgentCustomization(team, claudeTarget);
 
+    expect(result.agents.dev.runtime.model).toBeUndefined();
     expect(result.agents.dev.runtime.tools).toBeUndefined();
   });
 
@@ -118,7 +123,7 @@ describe('stepAgentCustomization', () => {
         return Promise.resolve({ value: ['read_files'] });
       });
 
-    await stepAgentCustomization(team);
+    await stepAgentCustomization(team, claudeTarget);
 
     const readFilesChoice = capturedChoices.find((c) => c.value === 'read_files');
     expect(readFilesChoice?.checked).toBe(true);
@@ -154,7 +159,7 @@ describe('stepAgentCustomization', () => {
       .mockResolvedValueOnce({ value: 'sonnet' }) // developer model
       .mockResolvedValueOnce({ value: ['read_files', 'write_files', 'execute'] }); // developer skills
 
-    const result = await stepAgentCustomization(team);
+    const result = await stepAgentCustomization(team, claudeTarget);
 
     expect(result.agents.planner.runtime.model).toBe('haiku');
     expect(result.agents.developer.runtime.model).toBe('sonnet');
@@ -171,8 +176,25 @@ describe('stepAgentCustomization', () => {
       .mockResolvedValueOnce({ value: 'opus' })
       .mockResolvedValueOnce({ value: ['execute'] });
 
-    await stepAgentCustomization(team);
+    await stepAgentCustomization(team, claudeTarget);
 
     expect(team.agents.dev.runtime.model).toBe(originalModel);
+  });
+
+  it('supports codex-specific model and reasoning prompts', async () => {
+    const team = makeTeam({ runtime: { model: undefined, tools: ['read_file', 'search_codebase'] } });
+
+    mockedPrompt
+      .mockResolvedValueOnce({ value: true })
+      .mockResolvedValueOnce({ value: 'gpt-5-codex' })
+      .mockResolvedValueOnce({ value: 'high' })
+      .mockResolvedValueOnce({ value: ['read_files', 'search'] });
+
+    const result = await stepAgentCustomization(team, codexTarget);
+
+    expect(result.agents.dev.runtime.model).toBe('gpt-5-codex');
+    expect(result.agents.dev.runtime.reasoningEffort).toBe('high');
+    expect(result.agents.dev.runtime.tools).toContain('read_file');
+    expect(result.agents.dev.runtime.tools).toContain('search_codebase');
   });
 });

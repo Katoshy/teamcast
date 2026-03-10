@@ -1,27 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import { renderAgentMd } from '../../../src/renderers/claude/agent-md.js';
 import { normalizeManifest } from '../../../src/manifest/normalize.js';
-import type { AgentConfig } from '../../../src/types/manifest.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
+import type { AgentConfig } from '../../../src/manifest/types.js';
+
+const claudeTarget = createClaudeTarget();
 
 function toRenderAgentMd(agentId: string, agent: AgentConfig): string {
   const team = normalizeManifest({
-    version: '1',
+    version: '2',
     project: { name: 'test' },
-    agents: { [agentId]: agent },
-  });
+    claude: { agents: { [agentId]: agent } },
+  }, claudeTarget);
   return renderAgentMd(agentId, team.agents[agentId]);
 }
 
 describe('renderAgentMd', () => {
   it('renders a simple read-only agent', () => {
     const agent: AgentConfig = {
-      claude: {
-        description: 'Reviews code quality and style. Does not modify files.',
-        model: 'sonnet',
-        tools: ['Read', 'Grep', 'Glob', 'Bash'],
-        disallowed_tools: ['Edit', 'Write', 'WebFetch', 'WebSearch'],
-        instructions: 'You are the reviewer. Read code and provide recommendations.',
-      },
+      description: 'Reviews code quality and style. Does not modify files.',
+      model: 'sonnet',
+      tools: ['Read', 'Grep', 'Glob', 'Bash'],
+      disallowed_tools: ['Edit', 'Write', 'WebFetch', 'WebSearch'],
+      instruction_blocks: [{ kind: 'behavior', content: 'You are the reviewer. Read code and provide recommendations.' }],
     };
 
     const result = toRenderAgentMd('reviewer', agent);
@@ -40,14 +41,12 @@ describe('renderAgentMd', () => {
 
   it('renders an orchestrator with max_turns in frontmatter only', () => {
     const agent: AgentConfig = {
-      claude: {
-        description: 'Coordinates the team. Delegates tasks. Never writes code.',
-        model: 'opus',
-        tools: ['Read', 'Grep', 'Glob', 'Agent'],
-        disallowed_tools: ['Edit', 'Write', 'Bash'],
-        max_turns: 30,
-        instructions: 'You are the coordinator.',
-      },
+      description: 'Coordinates the team. Delegates tasks. Never writes code.',
+      model: 'opus',
+      tools: ['Read', 'Grep', 'Glob', 'Agent'],
+      disallowed_tools: ['Edit', 'Write', 'Bash'],
+      max_turns: 30,
+      instruction_blocks: [{ kind: 'behavior', content: 'You are the coordinator.' }],
       forge: {
         handoffs: ['planner', 'developer', 'reviewer'],
       },
@@ -66,10 +65,8 @@ describe('renderAgentMd', () => {
 
   it('renders an agent with deny-only tools', () => {
     const agent: AgentConfig = {
-      claude: {
-        description: 'A simple agent.',
-        disallowed_tools: ['Bash', 'WebFetch'],
-      },
+      description: 'A simple agent.',
+      disallowed_tools: ['Bash', 'WebFetch'],
     };
 
     const result = toRenderAgentMd('simple', agent);
@@ -81,12 +78,9 @@ describe('renderAgentMd', () => {
     expect(result).toContain('- WebFetch');
   });
 
-  it('renders an agent without model when set to inherit', () => {
+  it('renders an agent without model when model is omitted', () => {
     const agent: AgentConfig = {
-      claude: {
-        description: 'Minimal agent.',
-        model: 'inherit',
-      },
+      description: 'Minimal agent.',
     };
 
     const result = toRenderAgentMd('minimal', agent);
@@ -96,12 +90,10 @@ describe('renderAgentMd', () => {
 
   it('renders skills as native frontmatter', () => {
     const agent: AgentConfig = {
-      claude: {
-        description: 'Developer agent.',
-        model: 'sonnet',
-        tools: ['Read', 'Write', 'Edit'],
-        skills: ['test-first', 'clean-code'],
-      },
+      description: 'Developer agent.',
+      model: 'sonnet',
+      tools: ['Read', 'Write', 'Edit'],
+      skills: ['test-first', 'clean-code'],
     };
 
     const result = toRenderAgentMd('developer', agent);
@@ -113,19 +105,15 @@ describe('renderAgentMd', () => {
 
   it('renders permissionMode only when non-default', () => {
     const agentDefault: AgentConfig = {
-      claude: {
-        description: 'Test.',
-        permission_mode: 'default',
-      },
+      description: 'Test.',
+      permission_mode: 'default',
     };
     const resultDefault = toRenderAgentMd('a', agentDefault);
     expect(resultDefault).not.toContain('permissionMode');
 
     const agentBypass: AgentConfig = {
-      claude: {
-        description: 'Test.',
-        permission_mode: 'bypassPermissions',
-      },
+      description: 'Test.',
+      permission_mode: 'bypassPermissions',
     };
     const resultBypass = toRenderAgentMd('b', agentBypass);
     expect(resultBypass).toContain('permissionMode: bypassPermissions');
@@ -133,18 +121,14 @@ describe('renderAgentMd', () => {
 
   it('renders background field in frontmatter', () => {
     const agent: AgentConfig = {
-      claude: {
-        description: 'Background worker.',
-        background: true,
-      },
+      description: 'Background worker.',
+      background: true,
     };
     const result = toRenderAgentMd('worker', agent);
     expect(result).toContain('background: true');
 
     const agentNoBackground: AgentConfig = {
-      claude: {
-        description: 'Foreground agent.',
-      },
+      description: 'Foreground agent.',
     };
     const resultNo = toRenderAgentMd('fg', agentNoBackground);
     expect(resultNo).not.toContain('background');

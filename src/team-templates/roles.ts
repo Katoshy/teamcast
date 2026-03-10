@@ -1,8 +1,6 @@
 import type { InstructionBlock } from '../core/instructions.js';
-import type { CoreAgent, ModelAlias } from '../core/types.js';
-import type { CanonicalTool } from '../renderers/claude/tools.js';
-import { CLAUDE_SKILL_MAP } from '../renderers/claude/skill-map.js';
-import type { SkillToolMap } from '../core/skill-resolver.js';
+import type { CoreAgent } from '../core/types.js';
+import type { TargetContext } from '../renderers/target-context.js';
 import type {
   CapabilityTraitName,
   InstructionFragmentName,
@@ -25,10 +23,10 @@ export interface RoleTemplate {
   name: TeamRoleName;
   label: string;
   description: string;
-  model: Exclude<ModelAlias, 'inherit'>;
+  model?: string;
   capabilityTraits: CapabilityTraitName[];
-  allow?: CanonicalTool[];
-  deny?: CanonicalTool[];
+  allow?: string[];
+  deny?: string[];
   instructionFragments: InstructionFragmentName[];
   blocks?: InstructionBlock[];
   skillDocs?: string[];
@@ -125,15 +123,16 @@ export function getRoleTemplate(name: TeamRoleName): RoleTemplate {
 
 export function createRoleAgent(
   name: TeamRoleName,
+  targetContext: TargetContext,
   overrides: Partial<CoreAgent> = {},
 ): CoreAgent {
   const template = getRoleTemplate(name);
   const runtime = mergeRuntimeWithTraits({
-    model: template.model,
+    model: targetContext.name === 'claude' ? template.model : undefined,
     tools: cloneArray(template.allow),
     disallowedTools: cloneArray(template.deny),
     skillDocs: cloneArray(template.skillDocs),
-  }, template.capabilityTraits, CLAUDE_SKILL_MAP as SkillToolMap);
+  }, template.capabilityTraits, targetContext.skillMap);
   const overrideRuntime = overrides.runtime ?? {};
 
   return {

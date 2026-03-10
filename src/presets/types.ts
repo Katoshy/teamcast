@@ -1,4 +1,4 @@
-import type { CoreTeam } from '../core/types.js';
+import type { TeamCastManifest } from '../manifest/types.js';
 
 export interface PresetMeta {
   name: string;
@@ -9,5 +9,5 @@ export interface PresetMeta {
 
 export interface Preset {
   meta: PresetMeta;
-  team: CoreTeam;
+  team: TeamCastManifest;
 }
