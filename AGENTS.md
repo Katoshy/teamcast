@@ -15,7 +15,7 @@ Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generat
 **Model:** opus
 
 **Allowed tools:** Read, Grep, Glob, Agent
-**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
 **Can delegate to:** planner, developer, reviewer
 **Skill docs:** triage, routing
 **Capabilities:** read files, delegate tasks
@@ -26,7 +26,7 @@ Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generat
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
-**Restricted tools:** Edit, Write, Bash
+**Restricted tools:** Write, Edit, MultiEdit, Bash
 **Skill docs:** architecture-analysis, planning
 **Capabilities:** read files, access internet
 
@@ -35,7 +35,7 @@ Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generat
 **Role:** Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access.
 **Model:** sonnet
 
-**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 **Restricted tools:** WebFetch, WebSearch
 **Skill docs:** test-first, clean-code
 **Capabilities:** read files, write files, run commands
@@ -46,7 +46,7 @@ Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generat
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, Bash
-**Restricted tools:** Edit, Write, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
 **Skill docs:** code-review, security-check
 **Capabilities:** read files, run commands
 
@@ -59,9 +59,6 @@ Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generat
 - `Bash(git diff *)`
 - `Bash(git add *)`
 - `Bash(git commit *)`
-- `Bash(npx tsx *)`
-- `Bash(npx vitest *)`
-- `Bash(git log *)`
 
 **Prohibited operations:**
 - `Bash(rm -rf *)`
