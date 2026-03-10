@@ -1,7 +1,7 @@
 {
   "name": "teamcast",
-  "version": "0.6.0",
-  "description": "YAML-driven CLI to design, validate, and generate multi-agent team configs from a single manifest",
+  "version": "0.8.0",
+  "description": "YAML-driven CLI to design, validate, and generate multi-target agent teams for Claude Code and Codex",
   "type": "module",
   "bin": {
     "teamcast": "./dist/index.js"
@@ -20,7 +20,20 @@
     "README.md",
     "LICENSE"
   ],
-  "keywords": ["claude", "claude-code", "agents", "multi-agent", "cli", "team", "codegen"],
+  "keywords": [
+    "agents",
+    "claude",
+    "claude-code",
+    "cli",
+    "codegen",
+    "codex",
+    "manifest",
+    "multi-agent",
+    "multi-target",
+    "openai",
+    "team",
+    "yaml"
+  ],
   "author": "Nickolas Voznyuk",
   "license": "MIT",
   "repository": {
