@@ -231,7 +231,7 @@ describe('buildExplanation', () => {
         },
       },
     };
-    const out = strip(buildExplanation(team, targetContext));
+    const out = strip(buildExplanation(team, claudeTarget));
     expect(out).toContain('unspecified');
   });
 });
