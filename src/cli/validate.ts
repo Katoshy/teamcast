@@ -1,8 +1,11 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import { readManifest, ManifestError } from '../manifest/reader.js';
-import { runValidation } from '../validator/index.js';
-import { printValidationReport, hasErrors } from '../validator/reporter.js';
+import {
+  evaluateTeam,
+  teamHasBlockingIssues,
+  printManifestValidation,
+} from '../application/validate-team.js';
 
 export function registerValidateCommand(program: Command): void {
   program
@@ -31,18 +34,17 @@ export function registerValidateCommand(program: Command): void {
         throw err;
       }
 
-      const results = runValidation(manifest);
-      const policyAssertionCount = manifest.policies?.assertions?.length ?? 0;
+      const validation = evaluateTeam(manifest);
 
       if (options.format === 'json') {
-        process.stdout.write(JSON.stringify(results, null, 2) + '\n');
+        process.stdout.write(JSON.stringify(validation.validationResults, null, 2) + '\n');
       } else {
-        printValidationReport(results, policyAssertionCount);
+        printManifestValidation(validation);
       }
 
       const shouldFail =
-        hasErrors(results) ||
-        (options.strict && results.some((r) => r.severity === 'warning'));
+        teamHasBlockingIssues(validation) ||
+        (options.strict && validation.validationResults.some((result) => result.severity === 'warning'));
 
       if (shouldFail) {
         process.exit(1);

@@ -7,14 +7,16 @@ import { diffManifest } from '../../src/diff/index.js';
 import type { TeamCastManifest } from '../../src/types/manifest.js';
 
 const manifest: TeamCastManifest = {
-  version: '1',
+  version: '2',
   project: { name: 'integration-diff' },
-  agents: {
-    developer: {
-      description: 'Builds features',
-      model: 'sonnet',
-      tools: { allow: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob'] },
-      skills: ['test-first'],
+  claude: {
+    agents: {
+      developer: {
+        description: 'Builds features',
+        model: 'sonnet',
+        tools: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob'],
+        skills: ['test-first'],
+      },
     },
   },
   policies: {

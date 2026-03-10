@@ -1,9 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { parse } from 'yaml';
-import type { CoreTeam } from '../core/types.js';
+import type { TeamCastManifest } from './types.js';
 import { validateSchema } from './schema-validator.js';
-import { applyDefaults } from './defaults.js';
 
 export class ManifestError extends Error {
   constructor(
@@ -15,7 +14,7 @@ export class ManifestError extends Error {
   }
 }
 
-export function readManifest(cwd: string): CoreTeam {
+export function readManifest(cwd: string): TeamCastManifest {
   const manifestPath = join(cwd, 'teamcast.yaml');
 
   let raw: string;
@@ -46,5 +45,5 @@ export function readManifest(cwd: string): CoreTeam {
     );
   }
 
-  return applyDefaults(schemaResult.data);
+  return schemaResult.data;
 }

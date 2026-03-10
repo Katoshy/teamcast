@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import chalk from 'chalk';
 import { readFileSync, existsSync } from 'fs';
 import { parse } from 'yaml';
-import { listPresets, loadPreset, applyPreset } from '../presets/index.js';
+import { listPresets } from '../presets/index.js';
 import { writeManifest } from '../manifest/writer.js';
 import { generate } from '../generator/index.js';
 import { detectProjectContext } from '../detector/index.js';
@@ -14,6 +14,10 @@ import {
   printManifestValidation,
 } from '../application/validate-team.js';
 import {
+  buildManifestFromPreset,
+  type InitTargetSelection,
+} from '../application/team.js';
+import {
   printHeader,
   printSuccess,
   printError,
@@ -22,16 +26,32 @@ import {
 } from '../utils/chalk-helpers.js';
 import { runWizard } from '../wizard/index.js';
 
+function parseInitTargetSelection(value: string | undefined): InitTargetSelection {
+  if (!value) {
+    return 'claude';
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'claude' || normalized === 'codex' || normalized === 'both') {
+    return normalized;
+  }
+
+  printError('Invalid --target', 'Use one of: claude, codex, both');
+  process.exit(1);
+}
+
 export function registerInitCommand(program: Command): void {
   program
     .command('init')
     .description('Initialize an agent team configuration in the current project')
     .option('--preset <name>', 'Skip the wizard and use a preset directly')
     .option('--from <path>', 'Initialize from a custom YAML manifest file')
+    .option('--target <name>', 'Generate claude, codex, or both targets')
     .option('--yes', 'Accept all defaults without prompting')
-    .action(async (options: { preset?: string; from?: string; yes?: boolean }) => {
+    .action(async (options: { preset?: string; from?: string; target?: string; yes?: boolean }) => {
       const cwd = process.cwd();
       const ctx = detectProjectContext(cwd);
+      const targetSelection = parseInitTargetSelection(options.target);
 
       if (options.from) {
         await initFromFile(options.from, cwd, ctx.name);
@@ -39,7 +59,7 @@ export function registerInitCommand(program: Command): void {
       }
 
       if (options.preset) {
-        await initWithPreset(options.preset, cwd, ctx.name);
+        await initWithPreset(options.preset, cwd, ctx.name, targetSelection);
         return;
       }
 
@@ -47,6 +67,7 @@ export function registerInitCommand(program: Command): void {
         cwd,
         skipConfirm: options.yes,
         nonInteractive: options.yes,
+        targetSelection,
       });
     });
 }
@@ -55,14 +76,14 @@ async function initWithPreset(
   presetName: string,
   cwd: string,
   detectedName: string | undefined,
+  targetSelection: InitTargetSelection,
 ): Promise<void> {
   printHeader('Init');
-  console.log(chalk.dim(`Using preset ${chalk.bold(presetName)}`));
+  console.log(chalk.dim(`Using preset ${chalk.bold(presetName)} for ${chalk.bold(targetSelection)}`));
   console.log('');
 
-  let preset;
   try {
-    preset = loadPreset(presetName);
+    buildManifestFromPreset(presetName, detectedName ?? 'my-project', targetSelection);
   } catch (err) {
     printError('Unknown preset', String(err));
     console.log('');
@@ -74,8 +95,8 @@ async function initWithPreset(
   }
 
   const projectName = detectedName ?? 'my-project';
-  const team = applyPreset(preset, projectName);
-  const validation = evaluateTeam(team);
+  const manifest = buildManifestFromPreset(presetName, projectName, targetSelection);
+  const validation = evaluateTeam(manifest);
 
   if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
@@ -83,7 +104,7 @@ async function initWithPreset(
   }
 
   try {
-    writeManifest(team, cwd);
+    writeManifest(manifest, cwd);
   } catch (err) {
     printError('Failed to write teamcast.yaml', String(err));
     process.exit(1);
@@ -93,7 +114,7 @@ async function initWithPreset(
 
   let files;
   try {
-    files = generate(team, { cwd });
+    files = generate(manifest, { cwd });
   } catch (err) {
     printError('Generation failed', String(err));
     process.exit(1);
@@ -150,12 +171,12 @@ async function initFromFile(
     process.exit(1);
   }
 
-  const team = applyDefaults(schemaResult.data);
-  if (detectedName && team.project.name === 'my-project') {
-    team.project.name = detectedName;
+  const manifest = applyDefaults(schemaResult.data);
+  if (detectedName && manifest.project.name === 'my-project') {
+    manifest.project.name = detectedName;
   }
 
-  const validation = evaluateTeam(team);
+  const validation = evaluateTeam(manifest);
 
   if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
@@ -163,7 +184,7 @@ async function initFromFile(
   }
 
   try {
-    writeManifest(team, cwd);
+    writeManifest(manifest, cwd);
   } catch (err) {
     printError('Failed to write teamcast.yaml', String(err));
     process.exit(1);
@@ -173,7 +194,7 @@ async function initFromFile(
 
   let files;
   try {
-    files = generate(team, { cwd });
+    files = generate(manifest, { cwd });
   } catch (err) {
     printError('Generation failed', String(err));
     process.exit(1);

@@ -1,61 +1,13 @@
 version: "2"
 preset_meta:
-  tags: [research, team]
+  tags:
+    - research
+    - team
   min_version: "2"
 project:
   name: placeholder
   preset: research-and-build
   description: Research-first team. Researcher has full internet access; developer does not.
-
-agents:
-  orchestrator:
-    claude:
-      description: Coordinates research and implementation. Delegates research tasks to the researcher and coding tasks to the developer.
-      model: opus
-      capability_traits: [base-read, delegation, no-file-edits, no-commands, no-web]
-      max_turns: 30
-      instruction_fragments:
-        - research-orchestrator-core
-        - research-orchestrator-workflow
-        - research-orchestrator-output
-    forge:
-      handoffs: [researcher, planner, developer]
-
-  researcher:
-    claude:
-      description: Finds information in documentation and on the web. Produces research reports and source summaries.
-      model: haiku
-      capability_traits: [base-read, web-research, no-file-edits, no-commands]
-      skills: [research-report, source-validation]
-      instruction_blocks:
-        - kind: behavior
-          content: |
-            You are the researcher. Your job is to find accurate information from documentation and trusted sources.
-      instruction_fragments:
-        - research-citation
-        - research-no-file-edits
-
-  planner:
-    claude:
-      description: Analyzes the codebase and research findings to produce an implementation plan.
-      model: sonnet
-      capability_traits: [base-read, no-file-edits, no-commands, no-web]
-      skills: [architecture-analysis, planning]
-      instruction_fragments:
-        - research-planner-core
-        - research-planner-constraints
-
-  developer:
-    claude:
-      description: Implements code according to the plan. No internet access - all needed information must come from the planner or researcher.
-      model: sonnet
-      capability_traits: [base-read, file-authoring, command-execution, no-web]
-      skills: [test-first, clean-code]
-      instruction_fragments:
-        - research-developer-core
-        - research-handoff
-        - research-developer-tests
-
 policies:
   fragments:
     - allow-npm-run
@@ -67,3 +19,76 @@ policies:
     - deny-network-downloads
     - deny-env-files
     - sandbox-default
+claude:
+  agents:
+    orchestrator:
+      forge:
+        handoffs:
+          - researcher
+          - planner
+          - developer
+      description: Coordinates research and implementation. Delegates research tasks
+        to the researcher and coding tasks to the developer.
+      model: opus
+      capability_traits:
+        - base-read
+        - delegation
+        - no-file-edits
+        - no-commands
+        - no-web
+      max_turns: 30
+      instruction_fragments:
+        - research-orchestrator-core
+        - research-orchestrator-workflow
+        - research-orchestrator-output
+    researcher:
+      description: Finds information in documentation and on the web. Produces
+        research reports and source summaries.
+      model: haiku
+      capability_traits:
+        - base-read
+        - web-research
+        - no-file-edits
+        - no-commands
+      skills:
+        - research-report
+        - source-validation
+      instruction_blocks:
+        - kind: behavior
+          content: >
+            You are the researcher. Your job is to find accurate information
+            from documentation and trusted sources.
+      instruction_fragments:
+        - research-citation
+        - research-no-file-edits
+    planner:
+      description: Analyzes the codebase and research findings to produce an
+        implementation plan.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - no-file-edits
+        - no-commands
+        - no-web
+      skills:
+        - architecture-analysis
+        - planning
+      instruction_fragments:
+        - research-planner-core
+        - research-planner-constraints
+    developer:
+      description: Implements code according to the plan. No internet access - all
+        needed information must come from the planner or researcher.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - file-authoring
+        - command-execution
+        - no-web
+      skills:
+        - test-first
+        - clean-code
+      instruction_fragments:
+        - research-developer-core
+        - research-handoff
+        - research-developer-tests

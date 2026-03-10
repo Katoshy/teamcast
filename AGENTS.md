@@ -15,9 +15,10 @@ Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generat
 **Model:** opus
 
 **Allowed tools:** Read, Grep, Glob, Agent
-**Restricted tools:** Edit, Write, Bash, WebFetch, WebSearch
+**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
 **Can delegate to:** planner, developer, reviewer
-**Skills:** triage, routing
+**Skill docs:** triage, routing
+**Capabilities:** read files, delegate tasks
 
 ### planner
 
@@ -25,17 +26,19 @@ Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generat
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
-**Restricted tools:** Edit, Write, Bash
-**Skills:** architecture-analysis, planning
+**Restricted tools:** Write, Edit, MultiEdit, Bash
+**Skill docs:** architecture-analysis, planning
+**Capabilities:** read files, access internet
 
 ### developer
 
 **Role:** Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access.
 **Model:** sonnet
 
-**Allowed tools:** Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 **Restricted tools:** WebFetch, WebSearch
-**Skills:** test-first, clean-code
+**Skill docs:** test-first, clean-code
+**Capabilities:** read files, write files, run commands
 
 ### reviewer
 
@@ -43,22 +46,19 @@ Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generat
 **Model:** sonnet
 
 **Allowed tools:** Read, Grep, Glob, Bash
-**Restricted tools:** Edit, Write, WebFetch, WebSearch
-**Skills:** code-review, security-check
+**Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
+**Skill docs:** code-review, security-check
+**Capabilities:** read files, run commands
 
 ## Access Control
 
 **Permitted operations:**
 - `Bash(npm run *)`
-- `Bash(npm test)`
 - `Bash(npm test *)`
-- `Bash(npx tsx *)`
-- `Bash(npx vitest *)`
 - `Bash(git status)`
 - `Bash(git diff *)`
 - `Bash(git add *)`
 - `Bash(git commit *)`
-- `Bash(git log *)`
 
 **Prohibited operations:**
 - `Bash(rm -rf *)`

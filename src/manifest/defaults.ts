@@ -1,29 +1,28 @@
-import type { CoreTeam } from '../core/types.js';
 import type { TeamCastManifest } from './types.js';
-import { normalizeManifest } from './normalize.js';
 
-// Apply default values to a partially-defined manifest and normalize it to the core team model.
-export function applyDefaults(manifest: TeamCastManifest): CoreTeam {
-  const normalized = normalizeManifest(manifest);
-  const sandbox = normalized.policies?.sandbox;
+// Apply default values to a raw manifest while preserving all target blocks.
+export function applyDefaults(manifest: TeamCastManifest): TeamCastManifest {
+  const sandbox = manifest.policies?.sandbox;
 
   return {
-    ...normalized,
-    settings: {
-      defaultModel: 'sonnet',
-      generateDocs: true,
-      generateLocalSettings: true,
-      ...normalized.settings,
+    ...manifest,
+    project: {
+      ...manifest.project,
     },
-    policies: normalized.policies
+    settings: {
+      generate_docs: true,
+      generate_local_settings: true,
+      ...manifest.settings,
+    },
+    policies: manifest.policies
       ? {
-          ...normalized.policies,
+          ...manifest.policies,
           sandbox:
             sandbox
             ? {
                 ...sandbox,
                 enabled: sandbox.enabled ?? false,
-                autoAllowBash: sandbox.autoAllowBash ?? true,
+                auto_allow_bash: sandbox.auto_allow_bash ?? true,
               }
             : undefined,
         }

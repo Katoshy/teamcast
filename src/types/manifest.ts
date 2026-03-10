@@ -1,15 +1,14 @@
 // Public barrel file for TeamCast types and utilities.
 // Consumers should import from this path rather than from internal modules.
 
-// ── Core types (platform-agnostic) ──────────────────────────────────────────
-// Fully-normalized structures produced after all legacy coercion and default
-// application. The core layer has no dependency on the manifest/ or renderer/
-// layers.
+// Core types
+// Fully-normalized structures produced after defaults and target-specific
+// normalization. The core layer has no dependency on manifest/ or renderer/.
 export type {
   HookEntry,
   McpServerConfig,
-  ModelAlias,
   PermissionMode,
+  ReasoningEffort,
   CoreAgent,
   CoreTeam as NormalizedTeamCastManifest,
   TeamPolicies,
@@ -28,54 +27,45 @@ export {
   renderInstructionBlocks,
 } from '../core/instructions.js';
 
-// ── Skill types ──────────────────────────────────────────────────────────────
-// Abstract capability skills that map to one or more CanonicalTools.
+// Skill types
+// Abstract capability skills that map to renderer-specific tool tokens.
 export { AGENT_SKILLS, isAgentSkill } from '../core/skills.js';
 export type { AgentSkill } from '../core/skills.js';
 
-// ── Claude renderer types ────────────────────────────────────────────────────
-// Tool types and constants used by the Claude-specific file renderers.
-export type { CanonicalTool } from '../renderers/claude/tools.js';
-export { CLAUDE_CODE_TOOLS, COMPAT_CLAUDE_CODE_TOOLS } from '../renderers/claude/tools.js';
+// Renderers and targets
+export type { TargetContext } from '../renderers/target-context.js';
+export { getTarget, getDefaultTarget } from '../renderers/registry.js';
 
-// ── Manifest types (YAML schema) ─────────────────────────────────────────────
-// Raw types matching the teamcast.yaml structure, including both current (V2)
-// and legacy (V1) agent config shapes.
+// Claude renderer types
+export type { CanonicalTool } from '../renderers/claude/tools.js';
+export { CLAUDE_CODE_TOOLS } from '../renderers/claude/tools.js';
+
+// Codex renderer types
+export type { CodexTool } from '../renderers/codex/tools.js';
+export { CODEX_TOOLS } from '../renderers/codex/tools.js';
+
+// Manifest types
+// Types matching the current teamcast.yaml structure.
 export type {
-  AgentConfigV2 as AgentConfig,
-  AgentDefinition,
-  TeamCastManifest,
-  TeamCastManifestV1,
-  TeamCastManifestV2,
-  ClaudeAgentConfigV2 as ClaudeAgentConfig,
-  ForgeAgentMetadataV2 as ForgeAgentMetadata,
+  AgentConfig,
+  ForgeAgentMetadata,
   GenerationSettings,
   HooksConfig,
-  LegacyAgentConfigV1 as LegacyAgentConfig,
-  LegacyToolAlias,
-  LegacyToolsConfig,
-  LegacyToolsConfigDenyOnly,
-  LegacyToolsConfigWithAllow,
   NetworkConfig,
   PermissionsConfig,
   PoliciesConfig,
   PresetMeta,
   ProjectConfig,
   SandboxConfig,
-  Tool,
+  TeamCastManifest,
 } from '../manifest/types.js';
 
-// ── Normalization utilities ──────────────────────────────────────────────────
+// Normalization utilities
 // Functions to convert a raw TeamCastManifest into a fully-resolved CoreTeam,
 // and back again for serialization.
-export { normalizeManifest, denormalizeManifest } from '../manifest/normalize.js';
-
-// ── Backward compatibility ───────────────────────────────────────────────────
-// Helpers for consuming AgentDefinition values that may still be in legacy
-// (V1) format. Use these when you cannot guarantee the manifest version.
 export {
-  isCanonicalAgentConfig,
-  normalizeLegacyAgentConfig,
-  getClaudeConfig,
-  getForgeConfig,
-} from '../manifest/compat.js';
+  normalizeManifest,
+  denormalizeTarget,
+  createManifestForTarget,
+  replaceManifestTarget,
+} from '../manifest/normalize.js';

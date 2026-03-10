@@ -2,16 +2,19 @@ import { describe, it, expect } from 'vitest';
 import { checkSecurityBaseline } from '../../../src/validator/checks/security-baseline.js';
 import type { TeamCastManifest } from '../../../src/types/manifest.js';
 import { normalizeManifest } from '../../../src/types/manifest.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
+
+const claudeTarget = createClaudeTarget();
 
 const base: TeamCastManifest = {
-  version: '1',
+  version: '2',
   project: { name: 'test' },
-  agents: { developer: { description: 'Dev' } },
+  claude: { agents: { developer: { description: 'Dev' } } },
 };
 
 describe('checkSecurityBaseline', () => {
   it('warns when no .env deny rule', () => {
-    const warnings = checkSecurityBaseline(normalizeManifest(base)).filter((r) => r.severity === 'warning');
+    const warnings = checkSecurityBaseline(normalizeManifest(base, claudeTarget)).filter((r) => r.severity === 'warning');
     expect(warnings.some((w) => w.message.includes('.env'))).toBe(true);
   });
 
@@ -23,7 +26,7 @@ describe('checkSecurityBaseline', () => {
         sandbox: { enabled: true },
       },
     };
-    const results = checkSecurityBaseline(normalizeManifest(manifest));
+    const results = checkSecurityBaseline(normalizeManifest(manifest, claudeTarget));
     expect(results.some((r) => r.message.includes('.env'))).toBe(false);
   });
 
@@ -32,18 +35,18 @@ describe('checkSecurityBaseline', () => {
       ...base,
       policies: { sandbox: { enabled: false } },
     };
-    const warnings = checkSecurityBaseline(normalizeManifest(manifest)).filter((r) => r.severity === 'warning');
+    const warnings = checkSecurityBaseline(normalizeManifest(manifest, claudeTarget)).filter((r) => r.severity === 'warning');
     expect(warnings.some((w) => w.message.toLowerCase().includes('sandbox'))).toBe(true);
   });
 
   it('warns on bypassPermissions agent', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      agents: {
+      claude: { agents: {
         risky: { description: 'Risky agent', permission_mode: 'bypassPermissions' },
-      },
+      } },
     };
-    const warnings = checkSecurityBaseline(normalizeManifest(manifest)).filter((r) => r.severity === 'warning');
+    const warnings = checkSecurityBaseline(normalizeManifest(manifest, claudeTarget)).filter((r) => r.severity === 'warning');
     expect(warnings.some((w) => w.message.includes('bypassPermissions'))).toBe(true);
   });
 
@@ -54,7 +57,7 @@ describe('checkSecurityBaseline', () => {
         permissions: { allow: ['Bash(--dangerously-skip-permissions)'] },
       },
     };
-    const errors = checkSecurityBaseline(normalizeManifest(manifest)).filter((r) => r.severity === 'error');
+    const errors = checkSecurityBaseline(normalizeManifest(manifest, claudeTarget)).filter((r) => r.severity === 'error');
     expect(errors.some((e) => e.message.includes('dangerously-skip-permissions'))).toBe(true);
   });
 });

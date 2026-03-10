@@ -13,21 +13,17 @@ This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
 | **developer** | Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access. |
 | **reviewer** | Use after implementation is complete. Reviews TypeScript types, ESM imports, test coverage, pure function integrity, and CLI output style. Read-only, provides recommendations only. |
 
-### Delegation rules (MANDATORY)
+### Preferred workflow
 
-**ALWAYS delegate code tasks to subagents. NEVER write code, tests, or implementation directly in the main conversation.**
+For complex tasks, start with **orchestrator**: `orchestrator -> planner -> developer -> reviewer`
 
-- Any task that involves writing/editing code, writing tests, or running tests → delegate to **orchestrator** (full pipeline) or **developer** (if plan is already clear).
-- Any task that requires codebase analysis before implementation → delegate to **planner** first.
-- After implementation is complete → delegate to **reviewer**.
-- The main conversation should only: coordinate agents, communicate with the user, and make architectural decisions.
-- The only exception: single-line trivial fixes (typos, renaming a variable in one place) — may be done directly.
+For simple single-file changes, work directly without delegation.
 
 ## Security Boundaries
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(npm run *), Bash(npm test), Bash(npm test *), Bash(npx tsx *), Bash(npx vitest *), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log *)
+- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
 
 ---
 

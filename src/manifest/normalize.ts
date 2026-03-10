@@ -16,23 +16,19 @@ import type {
   HookEntry,
   TeamPolicies,
 } from '../core/types.js';
-import { CLAUDE_CODE_TOOLS, type CanonicalTool } from '../renderers/claude/tools.js';
-import { expandSkillsToTools, CLAUDE_SKILL_MAP } from '../renderers/claude/skill-map.js';
-import type { SkillToolMap } from '../core/skill-resolver.js';
+import { expandSkills } from '../core/skill-resolver.js';
+import type { TargetContext } from '../renderers/target-context.js';
+import { applyDefaults } from './defaults.js';
 import type {
-  AgentDefinition,
   TeamCastManifest,
-  TeamCastManifestV2,
-  AgentConfigV2,
-  CanonicalAgentConfigV1,
+  AgentConfig,
+  BaseAgentConfig,
   GenerationSettings,
   HooksConfig,
-  LegacyAgentConfigV1,
-  LegacyToolsConfig,
   PoliciesConfig,
   PresetMeta,
   ProjectConfig,
-  Tool,
+  TargetConfig,
 } from './types.js';
 
 function cloneArray<T>(value: T[] | undefined): T[] | undefined {
@@ -43,27 +39,6 @@ function definedArray<T>(value: T[] | undefined): T[] | undefined {
   return value && value.length > 0 ? [...value] : undefined;
 }
 
-function dedupeTools(tools: Tool[] | undefined): AgentRuntime['tools'] {
-  if (!tools?.length) return undefined;
-
-  const normalized: AgentRuntime['tools'] = [];
-  for (const tool of tools) {
-    const canonical = tool === 'Task' ? 'Agent' : tool;
-    if (!normalized.includes(canonical)) {
-      normalized.push(canonical);
-    }
-  }
-
-  return normalized;
-}
-
-/**
- * Splits a mixed array of AgentSkill | CanonicalTool values into:
- * - skills: the AgentSkill values found
- * - rawTools: the CanonicalTool values found (not from skill expansion)
- *
- * The expanded tools are computed from skills and merged with rawTools.
- */
 function separateSkillsAndTools(items: Array<AgentSkill | string> | undefined): {
   skills: AgentSkill[];
   rawTools: string[];
@@ -82,26 +57,17 @@ function separateSkillsAndTools(items: Array<AgentSkill | string> | undefined): 
   return { skills, rawTools };
 }
 
-/**
- * Expands AgentSkill values to CanonicalTool[] and merges with explicitly specified raw tools.
- * Returns deduplicated tools.
- */
 function resolveToolsFromSkillsAndRaw(
   skills: AgentSkill[],
   rawTools: string[],
-): { tools: CanonicalTool[] | undefined } {
-  const expandedTools = skills.length > 0 ? expandSkillsToTools(skills) : [];
-  const allTools = [...new Set([...expandedTools, ...(rawTools as CanonicalTool[])])];
+  targetContext: TargetContext,
+): { tools: string[] | undefined } {
+  const expandedTools = skills.length > 0 ? expandSkills(skills, targetContext.skillMap) : [];
+  const allTools = [...new Set([...expandedTools, ...rawTools])];
 
   return {
     tools: allTools.length > 0 ? allTools : undefined,
   };
-}
-
-function isLegacyToolsConfigWithAllow(
-  tools: LegacyToolsConfig,
-): tools is Extract<LegacyToolsConfig, { allow: Tool[] }> {
-  return 'allow' in tools;
 }
 
 function mapHooksConfig(hooks: HooksConfig | undefined): TeamPolicies['hooks'] {
@@ -126,45 +92,45 @@ function mapPolicies(policies: PoliciesConfig | undefined): TeamPolicies | undef
 
   const explicitPolicies: TeamPolicies = {
     permissions: policies.permissions
-    ? {
-        allow: normalizedAllow.abstract,
-        ask: normalizedAsk.abstract,
-        deny: normalizedDeny.abstract,
-        defaultMode: policies.permissions.default_mode,
-        rawRules:
-          normalizedAllow.raw?.length ||
-          normalizedAsk.raw?.length ||
-          normalizedDeny.raw?.length ||
-          policies.permissions.rules?.allow?.length ||
-          policies.permissions.rules?.ask?.length ||
-          policies.permissions.rules?.deny?.length
+      ? {
+          allow: normalizedAllow.abstract,
+          ask: normalizedAsk.abstract,
+          deny: normalizedDeny.abstract,
+          defaultMode: policies.permissions.default_mode,
+          rawRules:
+            normalizedAllow.raw?.length ||
+            normalizedAsk.raw?.length ||
+            normalizedDeny.raw?.length ||
+            policies.permissions.rules?.allow?.length ||
+            policies.permissions.rules?.ask?.length ||
+            policies.permissions.rules?.deny?.length
+              ? {
+                  allow: definedArray([...(normalizedAllow.raw ?? []), ...(policies.permissions.rules?.allow ?? [])]),
+                  ask: definedArray([...(normalizedAsk.raw ?? []), ...(policies.permissions.rules?.ask ?? [])]),
+                  deny: definedArray([...(normalizedDeny.raw ?? []), ...(policies.permissions.rules?.deny ?? [])]),
+                }
+              : undefined,
+        }
+      : undefined,
+    sandbox: policies.sandbox
+      ? {
+          enabled: policies.sandbox.enabled,
+          autoAllowBash: policies.sandbox.auto_allow_bash,
+          excludedCommands: cloneArray(policies.sandbox.excluded_commands),
+          network: policies.sandbox.network
             ? {
-                allow: definedArray([...(normalizedAllow.raw ?? []), ...(policies.permissions.rules?.allow ?? [])]),
-                ask: definedArray([...(normalizedAsk.raw ?? []), ...(policies.permissions.rules?.ask ?? [])]),
-                deny: definedArray([...(normalizedDeny.raw ?? []), ...(policies.permissions.rules?.deny ?? [])]),
+                allowUnixSockets: cloneArray(policies.sandbox.network.allow_unix_sockets),
+                allowLocalBinding: policies.sandbox.network.allow_local_binding,
               }
             : undefined,
-      }
-    : undefined,
-    sandbox: policies.sandbox
-    ? {
-        enabled: policies.sandbox.enabled,
-        autoAllowBash: policies.sandbox.auto_allow_bash,
-        excludedCommands: cloneArray(policies.sandbox.excluded_commands),
-        network: policies.sandbox.network
-          ? {
-              allowUnixSockets: cloneArray(policies.sandbox.network.allow_unix_sockets),
-              allowLocalBinding: policies.sandbox.network.allow_local_binding,
-            }
-          : undefined,
-      }
-    : undefined,
+        }
+      : undefined,
     hooks: mapHooksConfig(policies.hooks),
     network: policies.network
-    ? {
-        allowedDomains: cloneArray(policies.network.allowed_domains),
-      }
-    : undefined,
+      ? {
+          allowedDomains: cloneArray(policies.network.allowed_domains),
+        }
+      : undefined,
     assertions: policies.assertions ? [...policies.assertions] : undefined,
   };
 
@@ -190,19 +156,19 @@ function mapPresetMeta(meta: PresetMeta | undefined): CoreTeam['presetMeta'] {
 
 function mapSettings(settings: GenerationSettings | undefined): CoreTeam['settings'] {
   return {
-    defaultModel: settings?.default_model ?? 'sonnet',
-    generateDocs: settings?.generate_docs ?? true,
-    generateLocalSettings: settings?.generate_local_settings ?? true,
+    generateDocs: settings?.generate_docs,
+    generateLocalSettings: settings?.generate_local_settings,
   };
 }
 
 function buildAgentRuntime(
-  agent: AgentConfigV2['claude'],
-  resolvedTools: CanonicalTool[] | undefined,
-  resolvedDisallowedTools: CanonicalTool[] | undefined,
+  agent: BaseAgentConfig,
+  resolvedTools: string[] | undefined,
+  resolvedDisallowedTools: string[] | undefined,
 ): AgentRuntime {
   return {
     model: agent.model,
+    reasoningEffort: agent.reasoning_effort,
     tools: resolvedTools ? [...resolvedTools] : undefined,
     disallowedTools: resolvedDisallowedTools ? [...resolvedDisallowedTools] : undefined,
     skillDocs: cloneArray(agent.skills),
@@ -213,113 +179,72 @@ function buildAgentRuntime(
   };
 }
 
-function stringToBlocks(value: string | undefined): InstructionBlock[] {
-  if (!value?.trim()) return [];
-  return [{ kind: 'behavior', content: value.trim() }];
-}
+function normalizeAgent(agentId: string, agent: AgentConfig, targetContext: TargetContext): CoreAgent {
+  const usesStructuredComposition =
+    'instruction_blocks' in agent ||
+    'instruction_fragments' in agent ||
+    'capability_traits' in agent;
 
-function mapRuntimeFromLegacy(agent: LegacyAgentConfigV1): AgentRuntime {
-  const allowTools =
-    agent.tools && isLegacyToolsConfigWithAllow(agent.tools)
-      ? dedupeTools(agent.tools.allow)
-      : undefined;
-  const deniedTools = agent.tools
-    ? dedupeTools(agent.tools.deny)
-    : undefined;
+  const { skills: toolsSkills, rawTools } = separateSkillsAndTools(
+    agent.tools as Array<AgentSkill | string> | undefined,
+  );
+  const { skills: disallowedSkills, rawTools: rawDisallowedTools } = separateSkillsAndTools(
+    agent.disallowed_tools as Array<AgentSkill | string> | undefined,
+  );
 
-  return {
-    model: agent.model,
-    tools: allowTools,
-    disallowedTools: deniedTools,
-    skillDocs: cloneArray(agent.skills),
-    maxTurns: agent.max_turns,
-    mcpServers: agent.mcp_servers ? agent.mcp_servers.map((server) => ({ ...server })) : undefined,
-    permissionMode: agent.permission_mode,
-    background: agent.background,
-  };
-}
+  const { tools: resolvedTools } = resolveToolsFromSkillsAndRaw(
+    toolsSkills,
+    rawTools,
+    targetContext,
+  );
+  const { tools: resolvedDisallowedTools } = resolveToolsFromSkillsAndRaw(
+    disallowedSkills,
+    rawDisallowedTools,
+    targetContext,
+  );
 
-function normalizeAgent(agentId: string, agent: AgentDefinition): CoreAgent {
-  if ('claude' in agent) {
-    const v2Agent = agent as AgentConfigV2;
-    const usesStructuredComposition =
-      'instruction_blocks' in agent.claude ||
-      'instruction_fragments' in agent.claude ||
-      'capability_traits' in agent.claude;
-
-    // Separate skills from raw tool names in the tools arrays.
-    const { skills: toolsSkills, rawTools } = separateSkillsAndTools(
-      agent.claude.tools as Array<AgentSkill | string> | undefined,
-    );
-    const { skills: disallowedSkills, rawTools: rawDisallowedTools } = separateSkillsAndTools(
-      agent.claude.disallowed_tools as Array<AgentSkill | string> | undefined,
-    );
-
-    // Expand AgentSkill values found in tools[] into CanonicalTool[].
-    // Note: agent.claude.skills contains free-form skill doc strings (e.g. 'test-first'),
-    // NOT AgentSkill values. Only toolsSkills (extracted from the tools[] array) are abstract skills.
-    const { tools: resolvedTools } = resolveToolsFromSkillsAndRaw(
-      toolsSkills,
-      rawTools,
-    );
-    const { tools: resolvedDisallowedTools } = resolveToolsFromSkillsAndRaw(
-      disallowedSkills,
-      rawDisallowedTools,
-    );
-
-    const baseRuntime = buildAgentRuntime(agent.claude, resolvedTools, resolvedDisallowedTools);
-    const runtime = usesStructuredComposition
-      ? mergeRuntimeWithTraits(
-          // agent.claude.skills holds free-form skill doc references (e.g. 'test-first').
-          // AgentSkill abstract values from tools[] are already expanded into resolvedTools.
-          baseRuntime,
-          v2Agent.claude.capability_traits,
-          CLAUDE_SKILL_MAP as SkillToolMap,
-        )
-      : baseRuntime;
-    const instructionBlocks = usesStructuredComposition
-      ? normalizeInstructionBlocks(
-          resolveInstructionFragments(
-            v2Agent.claude.instruction_fragments,
-            v2Agent.claude.instruction_blocks,
-          ),
-        )
-      : stringToBlocks((agent as CanonicalAgentConfigV1).claude.instructions);
-
-    return {
-      id: agentId,
-      description: agent.claude.description,
-      runtime,
-      instructions: instructionBlocks,
-      metadata: agent.forge
-        ? {
-            handoffs: cloneArray(agent.forge.handoffs),
-            role: agent.forge.role,
-            template: agent.forge.template,
-          }
-        : undefined,
-    };
-  }
+  const baseRuntime = buildAgentRuntime(agent, resolvedTools, resolvedDisallowedTools);
+  const runtime = usesStructuredComposition
+    ? mergeRuntimeWithTraits(baseRuntime, agent.capability_traits, targetContext.skillMap)
+    : baseRuntime;
+  const instructionBlocks = usesStructuredComposition
+    ? normalizeInstructionBlocks(
+        resolveInstructionFragments(agent.instruction_fragments, agent.instruction_blocks),
+      )
+    : [];
 
   return {
     id: agentId,
     description: agent.description,
-    runtime: mapRuntimeFromLegacy(agent),
-    instructions: stringToBlocks(agent.behavior),
-    metadata: agent.handoffs?.length ? { handoffs: cloneArray(agent.handoffs) } : undefined,
+    runtime,
+    instructions: instructionBlocks,
+    metadata: agent.forge
+      ? {
+          handoffs: cloneArray(agent.forge.handoffs),
+          role: agent.forge.role,
+          template: agent.forge.template,
+        }
+      : undefined,
   };
 }
 
-export function normalizeManifest(manifest: TeamCastManifest): CoreTeam {
+export function normalizeManifest(manifest: TeamCastManifest, targetContext: TargetContext): CoreTeam {
+  const defaultedManifest = applyDefaults(manifest);
+  const targetConfig = (defaultedManifest as unknown as Record<string, unknown>)[targetContext.name] as TargetConfig | undefined;
+  const agents = targetConfig?.agents ?? {};
+
   return {
     version: '2',
-    project: mapProject(manifest.project),
+    project: mapProject(defaultedManifest.project),
     agents: Object.fromEntries(
-      Object.entries(manifest.agents).map(([agentId, agent]) => [agentId, normalizeAgent(agentId, agent)]),
+      Object.entries(agents).map(([agentId, agent]) => [
+        agentId,
+        normalizeAgent(agentId, agent as AgentConfig, targetContext),
+      ]),
     ),
-    policies: mapPolicies(manifest.policies),
-    settings: mapSettings(manifest.settings),
-    presetMeta: mapPresetMeta(manifest.preset_meta),
+    policies: mapPolicies(defaultedManifest.policies),
+    settings: mapSettings(defaultedManifest.settings),
+    presetMeta: mapPresetMeta(defaultedManifest.preset_meta),
   };
 }
 
@@ -371,42 +296,28 @@ function denormalizePolicies(policies: CoreTeam['policies']): PoliciesConfig | u
   };
 }
 
-/**
- * Returns the tools from runtime for writing back to YAML.
- * runtime.tools contains the fully-expanded CanonicalTool[] (from both traits and explicit tools).
- * runtime.skillDocs contains free-form skill doc references (not AgentSkill abstract capabilities).
- * Since capability_traits are written back separately via the YAML structure, we write all tools as-is.
- */
-function getRawToolsForYaml(runtime: AgentRuntime): CanonicalTool[] | undefined {
+function getRawToolsForYaml(runtime: AgentRuntime): string[] | undefined {
   if (!runtime.tools?.length) return undefined;
-  return runtime.tools as CanonicalTool[];
+  return runtime.tools;
 }
 
-export function denormalizeManifest(team: CoreTeam): TeamCastManifestV2 {
+export function denormalizeTarget(team: CoreTeam, targetName: string): TargetConfig {
   return {
-    version: '2',
-    project: {
-      name: team.project.name,
-      preset: team.project.preset,
-      description: team.project.description,
-    },
     agents: Object.fromEntries(
       Object.entries(team.agents).map(([agentId, agent]) => [
         agentId,
         {
-          claude: {
-            description: agent.description,
-            model: agent.runtime.model,
-            // Write only non-skill-expanded tools back. Skills are written in the skills field.
-            tools: getRawToolsForYaml(agent.runtime),
-            disallowed_tools: cloneArray(agent.runtime.disallowedTools) as CanonicalTool[] | undefined,
-            skills: cloneArray(agent.runtime.skillDocs),
-            max_turns: agent.runtime.maxTurns,
-            mcp_servers: agent.runtime.mcpServers?.map((server) => ({ ...server })),
-            permission_mode: agent.runtime.permissionMode,
-            instruction_blocks: agent.instructions.map((block) => ({ ...block })),
-            background: agent.runtime.background,
-          },
+          description: agent.description,
+          model: agent.runtime.model,
+          reasoning_effort: targetName === 'codex' ? agent.runtime.reasoningEffort : undefined,
+          tools: getRawToolsForYaml(agent.runtime),
+          disallowed_tools: cloneArray(agent.runtime.disallowedTools),
+          skills: cloneArray(agent.runtime.skillDocs),
+          max_turns: agent.runtime.maxTurns,
+          mcp_servers: agent.runtime.mcpServers?.map((server) => ({ ...server })),
+          permission_mode: agent.runtime.permissionMode,
+          instruction_blocks: agent.instructions.map((block) => ({ ...block })),
+          background: agent.runtime.background,
           forge: agent.metadata
             ? {
                 handoffs: cloneArray(agent.metadata.handoffs),
@@ -417,12 +328,28 @@ export function denormalizeManifest(team: CoreTeam): TeamCastManifestV2 {
         },
       ]),
     ),
-    policies: denormalizePolicies(team.policies),
-    settings: {
-      default_model: team.settings?.defaultModel,
-      generate_docs: team.settings?.generateDocs,
-      generate_local_settings: team.settings?.generateLocalSettings,
+  };
+}
+
+function denormalizeSharedSettings(settings: CoreTeam['settings']): GenerationSettings | undefined {
+  if (!settings) return undefined;
+  return {
+    generate_docs: settings.generateDocs,
+    generate_local_settings: settings.generateLocalSettings,
+  };
+}
+
+export function createManifestForTarget(team: CoreTeam, targetName: string): TeamCastManifest {
+  return {
+    version: '2',
+    project: {
+      name: team.project.name,
+      preset: team.project.preset,
+      description: team.project.description,
     },
+    [targetName]: denormalizeTarget(team, targetName),
+    policies: denormalizePolicies(team.policies),
+    settings: denormalizeSharedSettings(team.settings),
     preset_meta: team.presetMeta
       ? {
           author: team.presetMeta.author,
@@ -430,11 +357,23 @@ export function denormalizeManifest(team: CoreTeam): TeamCastManifestV2 {
           min_version: team.presetMeta.minVersion,
         }
       : undefined,
-  };
+  } as TeamCastManifest;
+}
+
+export function replaceManifestTarget(
+  manifest: TeamCastManifest,
+  targetName: string,
+  team: CoreTeam,
+): TeamCastManifest {
+  return {
+    ...manifest,
+    [targetName]: denormalizeTarget(team, targetName),
+  } as TeamCastManifest;
 }
 
 export function buildRuntimeFromCapabilities(capabilities: {
   model?: AgentRuntime['model'];
+  reasoningEffort?: AgentRuntime['reasoningEffort'];
   tools?: AgentRuntime['tools'];
   disallowedTools?: AgentRuntime['disallowedTools'];
   skillDocs?: AgentRuntime['skillDocs'];
@@ -443,6 +382,7 @@ export function buildRuntimeFromCapabilities(capabilities: {
 }): AgentRuntime {
   return {
     model: capabilities.model,
+    reasoningEffort: capabilities.reasoningEffort,
     tools: cloneArray(capabilities.tools),
     disallowedTools: cloneArray(capabilities.disallowedTools),
     skillDocs: cloneArray(capabilities.skillDocs),
@@ -451,6 +391,9 @@ export function buildRuntimeFromCapabilities(capabilities: {
   };
 }
 
-export function ensureKnownTools(tools: AgentRuntime['tools'] | undefined): AgentRuntime['tools'] {
-  return tools?.filter((tool) => CLAUDE_CODE_TOOLS.includes(tool as CanonicalTool));
+export function ensureKnownTools(
+  tools: AgentRuntime['tools'] | undefined,
+  knownTools: string[],
+): AgentRuntime['tools'] {
+  return tools?.filter((tool) => knownTools.includes(tool));
 }

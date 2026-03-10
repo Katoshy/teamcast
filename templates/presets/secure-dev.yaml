@@ -1,73 +1,15 @@
 version: "2"
 preset_meta:
-  tags: [security, team, audit]
+  tags:
+    - security
+    - team
+    - audit
   min_version: "2"
 project:
   name: placeholder
   preset: secure-dev
-  description: High-security team with a dedicated security auditor and strict access controls.
-
-agents:
-  orchestrator:
-    claude:
-      description: Coordinates the team with security-first mindset. Ensures every change goes through security review.
-      model: opus
-      capability_traits: [base-read, delegation, no-file-edits, no-commands, no-web]
-      max_turns: 30
-      instruction_fragments:
-        - secure-orchestrator-core
-        - secure-orchestrator-workflow
-        - secure-orchestrator-gate
-    forge:
-      handoffs: [planner, developer, security-auditor, reviewer]
-
-  planner:
-    claude:
-      description: Plans implementation with security considerations in mind. Identifies potential attack surfaces.
-      model: sonnet
-      capability_traits: [base-read, no-file-edits, no-commands, no-web]
-      skills: [architecture-analysis, planning, threat-modeling]
-      instruction_fragments:
-        - secure-planning
-
-  developer:
-    claude:
-      description: Implements code securely. Follows OWASP guidelines. No internet access.
-      model: sonnet
-      capability_traits: [base-read, file-authoring, command-execution, no-web]
-      skills: [test-first, clean-code, secure-coding]
-      instruction_fragments:
-        - secure-development
-        - secure-development-tests
-
-  security-auditor:
-    claude:
-      description: Performs security review of all code changes. Checks for vulnerabilities before code reaches reviewer.
-      model: sonnet
-      capability_traits: [base-read, command-execution, no-file-edits, no-web]
-      skills: [security-check, vulnerability-scan]
-      instruction_blocks:
-        - kind: behavior
-          content: |
-            You are the security auditor. Review all code changes for:
-            - Injection vulnerabilities (SQL, command, LDAP, XPath)
-            - Authentication and authorization flaws
-            - Sensitive data exposure
-            - Security misconfiguration
-            - Known vulnerable dependencies
-      instruction_fragments:
-        - security-review-gate
-
-  reviewer:
-    claude:
-      description: Reviews code quality and style after security clearance.
-      model: sonnet
-      capability_traits: [base-read, command-execution, no-file-edits, no-web]
-      skills: [code-review]
-      instruction_fragments:
-        - post-audit-review-core
-        - post-audit-review
-
+  description: High-security team with a dedicated security auditor and strict
+    access controls.
 policies:
   fragments:
     - allow-npm-run
@@ -91,3 +33,92 @@ policies:
       kind: behavior
     - rule: max_agents
       count: 8
+claude:
+  agents:
+    orchestrator:
+      forge:
+        handoffs:
+          - planner
+          - developer
+          - security-auditor
+          - reviewer
+      description: Coordinates the team with security-first mindset. Ensures every
+        change goes through security review.
+      model: opus
+      capability_traits:
+        - base-read
+        - delegation
+        - no-file-edits
+        - no-commands
+        - no-web
+      max_turns: 30
+      instruction_fragments:
+        - secure-orchestrator-core
+        - secure-orchestrator-workflow
+        - secure-orchestrator-gate
+    planner:
+      description: Plans implementation with security considerations in mind.
+        Identifies potential attack surfaces.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - no-file-edits
+        - no-commands
+        - no-web
+      skills:
+        - architecture-analysis
+        - planning
+        - threat-modeling
+      instruction_fragments:
+        - secure-planning
+    developer:
+      description: Implements code securely. Follows OWASP guidelines. No internet access.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - file-authoring
+        - command-execution
+        - no-web
+      skills:
+        - test-first
+        - clean-code
+        - secure-coding
+      instruction_fragments:
+        - secure-development
+        - secure-development-tests
+    security-auditor:
+      description: Performs security review of all code changes. Checks for
+        vulnerabilities before code reaches reviewer.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - command-execution
+        - no-file-edits
+        - no-web
+      skills:
+        - security-check
+        - vulnerability-scan
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            You are the security auditor. Review all code changes for:
+            - Injection vulnerabilities (SQL, command, LDAP, XPath)
+            - Authentication and authorization flaws
+            - Sensitive data exposure
+            - Security misconfiguration
+            - Known vulnerable dependencies
+      instruction_fragments:
+        - security-review-gate
+    reviewer:
+      description: Reviews code quality and style after security clearance.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - command-execution
+        - no-file-edits
+        - no-web
+      skills:
+        - code-review
+      instruction_fragments:
+        - post-audit-review-core
+        - post-audit-review

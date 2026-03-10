@@ -1,24 +1,13 @@
 version: "2"
 preset_meta:
-  tags: [solo, simple]
+  tags:
+    - solo
+    - simple
   min_version: "2"
 project:
   name: placeholder
   preset: solo-dev
   description: Single enhanced developer agent with safe defaults for individual developers.
-
-agents:
-  developer:
-    claude:
-      description: Full-stack developer agent. Reads, writes, edits files and runs commands. Use for any development task.
-      model: sonnet
-      capability_traits: [base-read, file-authoring, command-execution, web-research, delegation]
-      skills: [test-first, clean-code, planning]
-      instruction_fragments:
-        - solo-dev-core
-        - solo-dev-workflow
-        - solo-dev-style
-
 policies:
   fragments:
     - allow-npm-run
@@ -30,3 +19,23 @@ policies:
     - deny-destructive-shell
     - deny-env-files
     - sandbox-default
+claude:
+  agents:
+    developer:
+      description: Full-stack developer agent. Reads, writes, edits files and runs
+        commands. Use for any development task.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - file-authoring
+        - command-execution
+        - web-research
+        - delegation
+      skills:
+        - test-first
+        - clean-code
+        - planning
+      instruction_fragments:
+        - solo-dev-core
+        - solo-dev-workflow
+        - solo-dev-style

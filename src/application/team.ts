@@ -1,9 +1,20 @@
-import type { CoreAgent, CoreTeam, ModelAlias } from '../core/types.js';
-import { CLAUDE_CODE_TOOLS } from '../renderers/claude/tools.js';
+import type { CoreAgent, CoreTeam, ReasoningEffort } from '../core/types.js';
+import type { AgentConfig, TeamCastManifest, TargetConfig } from '../manifest/types.js';
 import type { TeamRoleName } from '../team-templates/roles.js';
 import { createPolicies } from '../team-templates/policies.js';
 import { createRoleAgent } from '../team-templates/roles.js';
 import { applyPreset, loadPreset } from '../presets/index.js';
+import { createManifestForTarget, normalizeManifest } from '../manifest/normalize.js';
+import type { TargetContext } from '../renderers/target-context.js';
+import '../renderers/index.js';
+import { getTarget } from '../renderers/registry.js';
+
+export type InitTargetName = 'claude' | 'codex';
+export type InitTargetSelection = InitTargetName | 'both';
+
+export function resolveInitTargets(selection: InitTargetSelection = 'claude'): InitTargetName[] {
+  return selection === 'both' ? ['claude', 'codex'] : [selection];
+}
 
 function cloneAgent(agent: CoreAgent): CoreAgent {
   return {
@@ -26,14 +37,89 @@ function cloneAgent(agent: CoreAgent): CoreAgent {
   };
 }
 
-export function buildTeamFromPreset(presetName: string, projectName: string): CoreTeam {
-  const preset = loadPreset(presetName);
-  return applyPreset(preset, projectName);
+function cloneTargetConfig(targetConfig: TargetConfig | undefined, options?: { dropTargetSpecificFields?: boolean }): TargetConfig | undefined {
+  if (!targetConfig) return undefined;
+
+  return {
+    agents: Object.fromEntries(
+      Object.entries(targetConfig.agents).map(([agentId, agent]) => [
+        agentId,
+        {
+          ...agent,
+          model: options?.dropTargetSpecificFields ? undefined : agent.model,
+          reasoning_effort: options?.dropTargetSpecificFields ? undefined : agent.reasoning_effort,
+          tools: agent.tools ? [...agent.tools] : undefined,
+          disallowed_tools: agent.disallowed_tools ? [...agent.disallowed_tools] : undefined,
+          skills: agent.skills ? [...agent.skills] : undefined,
+          mcp_servers: agent.mcp_servers?.map((server) => ({ ...server })),
+          instruction_fragments: agent.instruction_fragments ? [...agent.instruction_fragments] : undefined,
+          instruction_blocks: agent.instruction_blocks?.map((block) => ({ ...block })),
+          capability_traits: agent.capability_traits ? [...agent.capability_traits] : undefined,
+          forge: agent.forge
+            ? {
+                handoffs: agent.forge.handoffs ? [...agent.forge.handoffs] : undefined,
+                role: agent.forge.role,
+                template: agent.forge.template,
+              }
+            : undefined,
+        } satisfies AgentConfig,
+      ]),
+    ),
+  };
 }
 
-export function buildTeamFromRoles(projectName: string, roles: TeamRoleName[]): CoreTeam {
+function mergeManifests(base: TeamCastManifest | undefined, extra: TeamCastManifest): TeamCastManifest {
+  if (!base) return extra;
+
+  return {
+    ...base,
+    claude: extra.claude ?? base.claude,
+    codex: extra.codex ?? base.codex,
+  };
+}
+
+export function buildManifestFromPreset(
+  presetName: string,
+  projectName: string,
+  selection: InitTargetSelection = 'claude',
+): TeamCastManifest {
+  const preset = loadPreset(presetName);
+  const manifest = applyPreset(preset, projectName);
+  const sourceTarget = manifest.claude ?? manifest.codex;
+  const targetNames = resolveInitTargets(selection);
+
+  return {
+    version: '2',
+    project: { ...manifest.project },
+    policies: manifest.policies ? { ...manifest.policies } : undefined,
+    settings: manifest.settings ? { ...manifest.settings } : undefined,
+    preset_meta: manifest.preset_meta ? { ...manifest.preset_meta } : undefined,
+    claude: targetNames.includes('claude')
+      ? cloneTargetConfig(manifest.claude ?? sourceTarget, { dropTargetSpecificFields: !manifest.claude })
+      : undefined,
+    codex: targetNames.includes('codex')
+      ? cloneTargetConfig(manifest.codex ?? sourceTarget, { dropTargetSpecificFields: !manifest.codex })
+      : undefined,
+  };
+}
+
+export function buildTeamFromPreset(
+  presetName: string,
+  projectName: string,
+  targetName: InitTargetName = 'claude',
+): CoreTeam {
+  const manifest = buildManifestFromPreset(presetName, projectName, targetName);
+  return normalizeManifest(manifest, getTarget(targetName));
+}
+
+export function buildTeamFromRoles(
+  projectName: string,
+  roles: TeamRoleName[],
+  targetName: InitTargetName = 'claude',
+): CoreTeam {
+  const targetContext = getTarget(targetName);
   const agents = Object.fromEntries(
-    roles.map((roleName) => [roleName, createRoleAgent(roleName)]),
+    roles.map((roleName) => [roleName, createRoleAgent(roleName, targetContext)]),
   );
 
   if (agents.orchestrator && roles.length > 1) {
@@ -52,19 +138,32 @@ export function buildTeamFromRoles(projectName: string, roles: TeamRoleName[]): 
     agents,
     policies: createPolicies('custom-team'),
     settings: {
-      defaultModel: 'sonnet',
       generateDocs: true,
       generateLocalSettings: true,
     },
   };
 }
 
+export function buildManifestFromRoles(
+  projectName: string,
+  roles: TeamRoleName[],
+  selection: InitTargetSelection = 'claude',
+): TeamCastManifest {
+  return buildManifestFromTeams(
+    resolveInitTargets(selection).map((targetName) => ({
+      targetName,
+      team: buildTeamFromRoles(projectName, roles, targetName),
+    })),
+  );
+}
+
 export function buildSingleAgentTeam(projectName: string): CoreTeam {
+  const claudeTarget = getTarget('claude');
   return {
     version: '2',
     project: { name: projectName },
     agents: {
-      developer: createRoleAgent('developer', {
+      developer: createRoleAgent('developer', claudeTarget, {
         description: 'Full-stack developer. Handles implementation, testing, and debugging.',
         runtime: {
           model: 'sonnet',
@@ -81,11 +180,71 @@ export function buildSingleAgentTeam(projectName: string): CoreTeam {
     },
     policies: createPolicies('single-agent'),
     settings: {
-      defaultModel: 'sonnet',
       generateDocs: true,
       generateLocalSettings: true,
     },
   };
+}
+
+export function buildSingleAgentTeamForTarget(
+  projectName: string,
+  targetName: InitTargetName = 'claude',
+): CoreTeam {
+  const targetContext = getTarget(targetName);
+  return {
+    version: '2',
+    project: { name: projectName },
+    agents: {
+      developer: createRoleAgent('developer', targetContext, {
+        description: 'Full-stack developer. Handles implementation, testing, and debugging.',
+        runtime: {
+          model: targetName === 'claude' ? 'sonnet' : undefined,
+          tools: targetName === 'claude'
+            ? ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Grep', 'Glob', 'Agent']
+            : ['read_file', 'write_file', 'execute_command', 'search_codebase'],
+          skillDocs: ['test-first', 'clean-code'],
+        },
+        instructions: [
+          {
+            kind: 'behavior',
+            content: 'You are a capable developer. Understand the task, read the relevant code, make a plan, implement with tests, and verify the result.',
+          },
+        ],
+      }),
+    },
+    policies: createPolicies('single-agent'),
+    settings: {
+      generateDocs: true,
+      generateLocalSettings: true,
+    },
+  };
+}
+
+export function buildSingleAgentManifest(
+  projectName: string,
+  selection: InitTargetSelection = 'claude',
+): TeamCastManifest {
+  return buildManifestFromTeams(
+    resolveInitTargets(selection).map((targetName) => ({
+      targetName,
+      team: buildSingleAgentTeamForTarget(projectName, targetName),
+    })),
+  );
+}
+
+export function buildManifestFromTeams(
+  teams: Array<{ targetName: InitTargetName; team: CoreTeam }>,
+): TeamCastManifest {
+  let manifest: TeamCastManifest | undefined;
+  for (const entry of teams) {
+    manifest = mergeManifests(manifest, createManifestForTarget(entry.team, entry.targetName));
+  }
+
+  if (!manifest) {
+    throw new Error('At least one target team is required');
+  }
+
+  return manifest;
 }
 
 export function addAgentToTeam(team: CoreTeam, name: string, agent: CoreAgent): CoreTeam {
@@ -164,7 +323,8 @@ export function updateAgentBasics(
   agent: CoreAgent,
   options: {
     description?: string;
-    model?: ModelAlias;
+    model?: string | null;
+    reasoningEffort?: ReasoningEffort | null;
     maxTurns?: number;
     tools?: CoreAgent['runtime']['tools'];
     disallowedTools?: CoreAgent['runtime']['disallowedTools'];
@@ -175,7 +335,9 @@ export function updateAgentBasics(
     description: options.description?.trim() || agent.description,
     runtime: {
       ...agent.runtime,
-      model: options.model ?? agent.runtime.model,
+      model: options.model === undefined ? agent.runtime.model : options.model ?? undefined,
+      reasoningEffort:
+        options.reasoningEffort === undefined ? agent.runtime.reasoningEffort : options.reasoningEffort ?? undefined,
       maxTurns: options.maxTurns ?? agent.runtime.maxTurns,
       tools: options.tools ? [...options.tools] : agent.runtime.tools ? [...agent.runtime.tools] : undefined,
       disallowedTools: options.disallowedTools
@@ -187,57 +349,6 @@ export function updateAgentBasics(
   };
 }
 
-export function buildCustomAgent(config: {
-  name: string;
-  description: string;
-  model: Exclude<ModelAlias, 'inherit'>;
-  canWrite: boolean;
-  canBash: boolean;
-  canWeb: boolean;
-  canDelegate: boolean;
-}): CoreAgent {
-  const allow: CoreAgent['runtime']['tools'] = ['Read', 'Grep', 'Glob'];
-  const deny: CoreAgent['runtime']['disallowedTools'] = [];
-
-  if (config.canWrite) {
-    allow.push('Write', 'Edit', 'MultiEdit');
-  } else {
-    deny.push('Write', 'Edit');
-  }
-
-  if (config.canBash) {
-    allow.push('Bash');
-  } else {
-    deny.push('Bash');
-  }
-
-  if (config.canWeb) {
-    allow.push('WebFetch', 'WebSearch');
-  } else {
-    deny.push('WebFetch', 'WebSearch');
-  }
-
-  if (config.canDelegate) {
-    allow.push('Agent');
-  }
-
-  return {
-    id: config.name,
-    description: config.description.trim(),
-    runtime: {
-      model: config.model,
-      tools: allow,
-      disallowedTools: deny.length > 0 ? deny : undefined,
-    },
-    instructions: [
-      {
-        kind: 'behavior',
-        content: `You are ${config.name}. Focus on the responsibilities described in your role and use your allowed tools appropriately.`,
-      },
-    ],
-  };
-}
-
-export function invertToolSelection(tools: NonNullable<CoreAgent['runtime']['tools']>) {
-  return CLAUDE_CODE_TOOLS.filter((tool) => !tools.includes(tool));
+export function invertToolSelection(tools: NonNullable<CoreAgent['runtime']['tools']>, knownTools: string[]) {
+  return knownTools.filter((tool) => !tools.includes(tool));
 }

@@ -4,12 +4,12 @@ description: Use when a clear implementation plan is ready. Writes TypeScript co
 model: sonnet
 tools:
   - Read
+  - Grep
+  - Glob
   - Write
   - Edit
   - MultiEdit
   - Bash
-  - Grep
-  - Glob
 disallowedTools:
   - WebFetch
   - WebSearch
@@ -28,3 +28,7 @@ Rules:
 - Do not access the internet.
 
 When done: run tests, summarize changes.
+
+Always start with tests. Follow the existing code style. Do not access the internet.
+
+When done, summarize what you changed and why.

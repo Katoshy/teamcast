@@ -2,6 +2,8 @@ import type { Command } from 'commander';
 import chalk from 'chalk';
 import { existsSync, rmSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import { readManifest, ManifestError } from '../manifest/reader.js';
+import { generate } from '../generator/index.js';
 import {
   printSuccess,
   printHeader,
@@ -11,6 +13,8 @@ import {
 import { promptConfirm } from '../utils/prompts.js';
 
 const GENERATED_PATHS = [
+  '.codex/agents',
+  '.codex/config.toml',
   '.claude/agents',
   '.claude/skills',
   '.claude/settings.json',
@@ -19,13 +23,38 @@ const GENERATED_PATHS = [
   'AGENTS.md',
 ];
 
-function collectExisting(cwd: string): string[] {
-  const found: string[] = [];
-  for (const rel of GENERATED_PATHS) {
-    const abs = join(cwd, rel);
-    if (existsSync(abs)) found.push(rel);
+function collectManifestGeneratedPaths(cwd: string): string[] {
+  try {
+    const manifest = readManifest(cwd);
+    return generate(manifest, { cwd, dryRun: true }).map((file) => file.path);
+  } catch (err) {
+    if (err instanceof ManifestError) {
+      return [];
+    }
+    return [];
   }
-  return found;
+}
+
+function collectExisting(cwd: string): string[] {
+  const found = new Set<string>();
+  for (const rel of [...GENERATED_PATHS, ...collectManifestGeneratedPaths(cwd)]) {
+    const abs = join(cwd, rel);
+    if (existsSync(abs)) found.add(rel);
+  }
+  return [...found];
+}
+
+function deleteEmptyDirIfPossible(cwd: string, rel: string): void {
+  const abs = join(cwd, rel);
+  if (!existsSync(abs)) {
+    return;
+  }
+
+  const remaining = readdirSync(abs);
+  if (remaining.length === 0) {
+    rmSync(abs, { recursive: true });
+    printSuccess(`Deleted ${rel}/`);
+  }
 }
 
 function deleteFiles(cwd: string, paths: string[]): void {
@@ -41,14 +70,11 @@ function deleteFiles(cwd: string, paths: string[]): void {
     printSuccess(`Deleted ${rel}`);
   }
 
-  const claudeDir = join(cwd, '.claude');
-  if (existsSync(claudeDir)) {
-    const remaining = readdirSync(claudeDir);
-    if (remaining.length === 0) {
-      rmSync(claudeDir, { recursive: true });
-      printSuccess('Deleted .claude/');
-    }
-  }
+  deleteEmptyDirIfPossible(cwd, '.claude/agents');
+  deleteEmptyDirIfPossible(cwd, '.claude/skills');
+  deleteEmptyDirIfPossible(cwd, '.codex/agents');
+  deleteEmptyDirIfPossible(cwd, '.claude');
+  deleteEmptyDirIfPossible(cwd, '.codex');
 }
 
 export function registerResetCommand(program: Command): void {

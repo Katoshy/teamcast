@@ -1,69 +1,15 @@
 version: "2"
 preset_meta:
-  tags: [team, feature, orchestration]
+  tags:
+    - team
+    - feature
+    - orchestration
   min_version: "2"
 project:
   name: placeholder
   preset: feature-team
-  description: Classic feature development team with orchestration, planning, coding, and review.
-
-agents:
-  orchestrator:
-    claude:
-      description: Coordinates the team. Analyzes tasks, decomposes them into subtasks, and delegates to the right specialist. Never writes code directly.
-      model: opus
-      capability_traits: [base-read, delegation, no-file-edits, no-commands, no-web]
-      skills: [triage, routing]
-      max_turns: 30
-      instruction_blocks:
-        - kind: behavior
-          content: |
-            You are the team coordinator. Your job is to analyze the user's request, break it down into subtasks, and delegate each subtask to the appropriate specialist.
-      instruction_fragments:
-        - feature-orchestrator-workflow
-        - feature-orchestrator-output
-    forge:
-      handoffs: [planner, developer, reviewer]
-
-  planner:
-    claude:
-      description: Reads the codebase and produces an implementation plan. Does not write code.
-      model: sonnet
-      capability_traits: [base-read, web-research, no-file-edits, no-commands]
-      skills: [architecture-analysis, planning]
-      instruction_blocks:
-        - kind: behavior
-          content: |
-            You are the planner. Your job is to deeply understand the codebase and produce a clear, step-by-step implementation plan.
-      instruction_fragments:
-        - feature-planner-workflow
-        - feature-planner-read-only
-
-  developer:
-    claude:
-      description: Implements code according to the plan. Writes tests. Does not access the internet.
-      model: sonnet
-      capability_traits: [base-read, file-authoring, command-execution, no-web]
-      skills: [test-first, clean-code]
-      instruction_fragments:
-        - feature-developer-core
-        - feature-developer-workflow
-        - feature-developer-summary
-
-  reviewer:
-    claude:
-      description: Reviews code quality, security, and style. Does not modify files - only provides recommendations.
-      model: sonnet
-      capability_traits: [base-read, command-execution, no-file-edits, no-web]
-      skills: [code-review, security-check]
-      instruction_blocks:
-        - kind: behavior
-          content: |
-            You are the reviewer. Your job is to review the implementation for quality, correctness, and security.
-      instruction_fragments:
-        - feature-reviewer-checklist
-        - feature-reviewer-style
-
+  description: Classic feature development team with orchestration, planning,
+    coding, and review.
 policies:
   fragments:
     - allow-npm-run
@@ -75,3 +21,90 @@ policies:
     - deny-network-downloads
     - deny-env-files
     - sandbox-default
+claude:
+  agents:
+    orchestrator:
+      forge:
+        handoffs:
+          - planner
+          - developer
+          - reviewer
+      description: Coordinates the team. Analyzes tasks, decomposes them into
+        subtasks, and delegates to the right specialist. Never writes code
+        directly.
+      model: opus
+      capability_traits:
+        - base-read
+        - delegation
+        - no-file-edits
+        - no-commands
+        - no-web
+      skills:
+        - triage
+        - routing
+      max_turns: 30
+      instruction_blocks:
+        - kind: behavior
+          content: >
+            You are the team coordinator. Your job is to analyze the user's
+            request, break it down into subtasks, and delegate each subtask to
+            the appropriate specialist.
+      instruction_fragments:
+        - feature-orchestrator-workflow
+        - feature-orchestrator-output
+    planner:
+      description: Reads the codebase and produces an implementation plan. Does not
+        write code.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - web-research
+        - no-file-edits
+        - no-commands
+      skills:
+        - architecture-analysis
+        - planning
+      instruction_blocks:
+        - kind: behavior
+          content: >
+            You are the planner. Your job is to deeply understand the codebase
+            and produce a clear, step-by-step implementation plan.
+      instruction_fragments:
+        - feature-planner-workflow
+        - feature-planner-read-only
+    developer:
+      description: Implements code according to the plan. Writes tests. Does not
+        access the internet.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - file-authoring
+        - command-execution
+        - no-web
+      skills:
+        - test-first
+        - clean-code
+      instruction_fragments:
+        - feature-developer-core
+        - feature-developer-workflow
+        - feature-developer-summary
+    reviewer:
+      description: Reviews code quality, security, and style. Does not modify files -
+        only provides recommendations.
+      model: sonnet
+      capability_traits:
+        - base-read
+        - command-execution
+        - no-file-edits
+        - no-web
+      skills:
+        - code-review
+        - security-check
+      instruction_blocks:
+        - kind: behavior
+          content: >
+            You are the reviewer. Your job is to review the implementation for
+            quality, correctness, and security.
+      instruction_fragments:
+        - feature-reviewer-checklist
+        - feature-reviewer-style

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
 import { registerAllCommands } from './cli/index.js';
+import './renderers/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,7 +23,7 @@ const program = new Command();
 
 program
   .name('teamcast')
-  .description('CLI to design, generate, and validate Claude Code agent teams from a single manifest')
+  .description('CLI to design, generate, and validate multi-target agent teams from a single manifest')
   .version(version, '-v, --version');
 
 registerAllCommands(program);

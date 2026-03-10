@@ -39,7 +39,11 @@ export function checkInstructionBlocks(team: CoreTeam, skillMap: SkillToolMap): 
       seenKinds.add(block.kind);
     }
 
-    if (seenKinds.has('delegation') && !agentHasSkill(agent.runtime.tools ?? [], 'delegate', skillMap)) {
+    if (
+      (skillMap.delegate?.length ?? 0) > 0 &&
+      seenKinds.has('delegation') &&
+      !agentHasSkill(agent.runtime.tools ?? [], 'delegate', skillMap)
+    ) {
       results.push({
         severity: 'warning',
         category: 'Instruction blocks',

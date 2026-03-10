@@ -4,12 +4,12 @@
   "title": "TeamCast Manifest",
   "description": "Schema for teamcast.yaml and built-in preset manifests",
   "type": "object",
-  "required": ["version", "project", "agents"],
+  "required": ["version", "project"],
   "additionalProperties": false,
   "properties": {
     "version": {
       "type": "string",
-      "enum": ["1", "2"],
+      "enum": ["2"],
       "description": "Manifest format version"
     },
     "project": {
@@ -29,15 +29,11 @@
         }
       }
     },
-    "agents": {
-      "type": "object",
-      "minProperties": 1,
-      "patternProperties": {
-        "^[a-z][a-z0-9-]*$": {
-          "$ref": "#/definitions/AgentDefinition"
-        }
-      },
-      "additionalProperties": false
+    "claude": {
+      "$ref": "#/definitions/TargetConfig"
+    },
+    "codex": {
+      "$ref": "#/definitions/TargetConfig"
     },
     "policies": {
       "$ref": "#/definitions/PoliciesConfig"
@@ -50,10 +46,6 @@
     }
   },
   "definitions": {
-    "ModelAlias": {
-      "type": "string",
-      "enum": ["opus", "sonnet", "haiku", "inherit"]
-    },
     "AgentSkill": {
       "type": "string",
       "enum": ["read_files", "write_files", "execute", "search", "web", "delegate", "interact", "notebook"]
@@ -68,16 +60,7 @@
         "Agent"
       ]
     },
-    "CompatTool": {
-      "type": "string",
-      "enum": [
-        "Read", "Write", "Edit", "MultiEdit",
-        "Grep", "Glob",
-        "Bash",
-        "WebFetch", "WebSearch",
-        "Agent", "Task"
-      ]
-    },
+
     "PermissionMode": {
       "type": "string",
       "enum": ["default", "acceptEdits", "bypassPermissions", "plan", "dontAsk"]
@@ -210,37 +193,7 @@
         }
       }
     },
-    "LegacyToolsConfig": {
-      "type": "object",
-      "anyOf": [
-        {
-          "required": ["allow"],
-          "properties": {
-            "allow": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/CompatTool" },
-              "minItems": 1
-            },
-            "deny": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/CompatTool" }
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "required": ["deny"],
-          "properties": {
-            "deny": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/CompatTool" },
-              "minItems": 1
-            }
-          },
-          "additionalProperties": false
-        }
-      ]
-    },
+
     "McpServerConfig": {
       "type": "object",
       "required": ["name", "url"],
@@ -250,13 +203,17 @@
         "url": { "type": "string", "format": "uri" }
       }
     },
-    "ClaudeAgentConfigV2": {
+    "BaseAgentConfig": {
       "type": "object",
       "required": ["description"],
       "additionalProperties": false,
       "properties": {
         "description": { "type": "string", "minLength": 1 },
-        "model": { "$ref": "#/definitions/ModelAlias" },
+        "model": { "type": "string", "minLength": 1 },
+        "reasoning_effort": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
         "capability_traits": {
           "type": "array",
           "items": { "$ref": "#/definitions/CapabilityTraitName" }
@@ -266,7 +223,8 @@
           "items": {
             "anyOf": [
               { "$ref": "#/definitions/AgentSkill" },
-              { "$ref": "#/definitions/CanonicalTool" }
+              { "$ref": "#/definitions/CanonicalTool" },
+              { "type": "string" }
             ]
           },
           "minItems": 1
@@ -276,7 +234,8 @@
           "items": {
             "anyOf": [
               { "$ref": "#/definitions/AgentSkill" },
-              { "$ref": "#/definitions/CanonicalTool" }
+              { "$ref": "#/definitions/CanonicalTool" },
+              { "type": "string" }
             ]
           }
         },
@@ -305,46 +264,8 @@
         },
         "background": {
           "type": "boolean"
-        }
-      }
-    },
-    "ClaudeAgentConfigV1": {
-      "type": "object",
-      "required": ["description"],
-      "additionalProperties": false,
-      "properties": {
-        "description": { "type": "string", "minLength": 1 },
-        "model": { "$ref": "#/definitions/ModelAlias" },
-        "tools": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/CanonicalTool" },
-          "minItems": 1
         },
-        "disallowed_tools": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/CanonicalTool" }
-        },
-        "skills": {
-          "type": "array",
-          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
-        },
-        "max_turns": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "mcp_servers": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/McpServerConfig" }
-        },
-        "permission_mode": {
-          "$ref": "#/definitions/PermissionMode"
-        },
-        "instructions": {
-          "type": "string"
-        },
-        "background": {
-          "type": "boolean"
-        }
+        "forge": { "$ref": "#/definitions/ForgeAgentMetadata" }
       }
     },
     "ForgeAgentMetadata": {
@@ -359,65 +280,25 @@
         "template": { "type": "string" }
       }
     },
-    "CanonicalAgentConfigV2": {
-      "type": "object",
-      "required": ["claude"],
-      "additionalProperties": false,
-      "properties": {
-        "claude": { "$ref": "#/definitions/ClaudeAgentConfigV2" },
-        "forge": { "$ref": "#/definitions/ForgeAgentMetadata" }
-      }
+    "AgentDefinition": {
+      "$ref": "#/definitions/BaseAgentConfig"
     },
-    "CanonicalAgentConfigV1": {
+    "TargetConfig": {
       "type": "object",
-      "required": ["claude"],
+      "required": ["agents"],
       "additionalProperties": false,
       "properties": {
-        "claude": { "$ref": "#/definitions/ClaudeAgentConfigV1" },
-        "forge": { "$ref": "#/definitions/ForgeAgentMetadata" }
-      }
-    },
-    "LegacyAgentConfig": {
-      "type": "object",
-      "required": ["description"],
-      "additionalProperties": false,
-      "properties": {
-        "description": { "type": "string", "minLength": 1 },
-        "model": { "$ref": "#/definitions/ModelAlias" },
-        "tools": { "$ref": "#/definitions/LegacyToolsConfig" },
-        "skills": {
-          "type": "array",
-          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
-        },
-        "handoffs": {
-          "type": "array",
-          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
-        },
-        "max_turns": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "mcp_servers": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/McpServerConfig" }
-        },
-        "permission_mode": {
-          "$ref": "#/definitions/PermissionMode"
-        },
-        "behavior": {
-          "type": "string"
-        },
-        "background": {
-          "type": "boolean"
+        "agents": {
+          "type": "object",
+          "minProperties": 1,
+          "patternProperties": {
+            "^[a-z][a-z0-9-]*$": {
+              "$ref": "#/definitions/AgentDefinition"
+            }
+          },
+          "additionalProperties": false
         }
       }
-    },
-    "AgentDefinition": {
-      "anyOf": [
-        { "$ref": "#/definitions/CanonicalAgentConfigV2" },
-        { "$ref": "#/definitions/CanonicalAgentConfigV1" },
-        { "$ref": "#/definitions/LegacyAgentConfig" }
-      ]
     },
     "PermissionsConfig": {
       "type": "object",
@@ -505,8 +386,7 @@
       "additionalProperties": false,
       "properties": {
         "matcher": { "type": "string" },
-        "command": { "type": "string" },
-        "async": { "type": "boolean" }
+        "command": { "type": "string" }
       }
     },
     "HooksConfig": {
@@ -559,7 +439,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "default_model": { "$ref": "#/definitions/ModelAlias" },
         "generate_docs": { "type": "boolean" },
         "generate_local_settings": { "type": "boolean" }
       }

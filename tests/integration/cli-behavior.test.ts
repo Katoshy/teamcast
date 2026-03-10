@@ -64,6 +64,25 @@ describe('CLI behavior', () => {
     }
   });
 
+  it('init supports generating both targets from one preset', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'teamcast-both-'));
+
+    try {
+      writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'both-app' }, null, 2));
+
+      const result = runCli(['init', '--preset', 'feature-team', '--target', 'both'], cwd);
+
+      expect(result.status).toBe(0);
+      expect(existsSync(join(cwd, '.claude/agents/orchestrator.md'))).toBe(true);
+      expect(existsSync(join(cwd, '.codex/config.toml'))).toBe(true);
+      expect(existsSync(join(cwd, '.codex/agents/orchestrator.toml'))).toBe(true);
+      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('claude:');
+      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('codex:');
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('generate exits before writing files when validation has blocking errors', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'teamcast-generate-block-'));
 
@@ -71,15 +90,16 @@ describe('CLI behavior', () => {
       writeFileSync(
         join(cwd, 'teamcast.yaml'),
         [
-          'version: "1"',
+          'version: "2"',
           'project:',
           '  name: broken-app',
-          'agents:',
-          '  orchestrator:',
-          '    description: Coordinates tasks',
-          '    tools:',
-          '      allow: [Read, Task]',
-          '    handoffs: [ghost-agent]',
+          'claude:',
+          '  agents:',
+          '    orchestrator:',
+          '      description: Coordinates tasks',
+          '      tools: [Read, Grep, Glob, Agent]',
+          '      forge:',
+          '        handoffs: [ghost-agent]',
           'policies:',
           '  permissions:',
           '    deny: ["Write(.env*)", "Edit(.env*)"]',
@@ -156,11 +176,10 @@ describe('CLI behavior', () => {
     }
   });
 
-  it('import command creates teamcast.yaml from .claude/ directory', () => {
+  it('import command creates teamcast.yaml from .claude/ and .codex/ directories', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'teamcast-import-'));
 
     try {
-      // Create a .claude/ structure manually (as if Claude Code already set it up)
       const agentsDir = join(cwd, '.claude', 'agents');
       mkdirSync(agentsDir, { recursive: true });
 
@@ -190,13 +209,48 @@ describe('CLI behavior', () => {
 
       writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'imported-app' }, null, 2));
 
+      mkdirSync(join(cwd, '.codex', 'agents'), { recursive: true });
+      writeFileSync(
+        join(cwd, '.codex', 'config.toml'),
+        [
+          '[features]',
+          'multi_agent = true',
+          '',
+          '[agents.reviewer]',
+          'description = "Reviews changes"',
+          'config_file = "agents/reviewer.toml"',
+        ].join('\n'),
+        'utf-8',
+      );
+      writeFileSync(
+        join(cwd, '.codex', 'agents', 'reviewer.toml'),
+        [
+          'model = "gpt-5-codex"',
+          'model_reasoning_effort = "medium"',
+          'sandbox_mode = "read-only"',
+          'developer_instructions = """',
+          'You are reviewer. Reviews changes',
+          '',
+          'Review the implementation and report issues.',
+          '',
+          '## Allowed Tool Intents',
+          '',
+          'read_file, search_codebase',
+          '"""',
+        ].join('\n'),
+        'utf-8',
+      );
+
       const result = runCli(['import', '--yes'], cwd);
       expect(result.status).toBe(0);
 
       const yaml = readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8');
       expect(yaml).toContain('developer');
+      expect(yaml).toContain('reviewer');
       expect(yaml).toContain('Implements features and fixes bugs');
       expect(yaml).toContain('sonnet');
+      expect(yaml).toContain('gpt-5-codex');
+      expect(yaml).toContain('codex:');
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
@@ -213,15 +267,15 @@ describe('CLI behavior', () => {
       writeFileSync(
         templatePath,
         [
-          'version: "1"',
+          'version: "2"',
           'project:',
           '  name: my-project',
-          'agents:',
-          '  analyzer:',
-          '    description: Analyzes code quality',
-          '    model: sonnet',
-          '    tools:',
-          '      allow: [Read, Grep, Glob]',
+          'claude:',
+          '  agents:',
+          '    analyzer:',
+          '      description: Analyzes code quality',
+          '      model: sonnet',
+          '      tools: [Read, Grep, Glob]',
           'policies:',
           '  permissions:',
           '    deny: ["Write(.env*)"]',
@@ -251,12 +305,13 @@ describe('CLI behavior', () => {
 
     try {
       writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'clean-app' }, null, 2));
-      expect(runCli(['init', '--preset', 'feature-team'], cwd).status).toBe(0);
+      expect(runCli(['init', '--preset', 'feature-team', '--target', 'both'], cwd).status).toBe(0);
 
       const resetResult = runCli(['reset', '--yes'], cwd);
       expect(resetResult.status).toBe(0);
       expect(existsSync(join(cwd, 'teamcast.yaml'))).toBe(true);
       expect(existsSync(join(cwd, 'CLAUDE.md'))).toBe(false);
+      expect(existsSync(join(cwd, '.codex/config.toml'))).toBe(false);
 
       expect(runCli(['generate'], cwd).status).toBe(0);
 
@@ -264,6 +319,7 @@ describe('CLI behavior', () => {
       expect(cleanResult.status).toBe(0);
       expect(existsSync(join(cwd, 'teamcast.yaml'))).toBe(false);
       expect(existsSync(join(cwd, 'CLAUDE.md'))).toBe(false);
+      expect(existsSync(join(cwd, '.codex/config.toml'))).toBe(false);
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

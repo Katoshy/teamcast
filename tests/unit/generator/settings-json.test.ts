@@ -1,17 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { renderSettingsJson } from '../../../src/renderers/claude/settings.js';
 import { applyDefaults } from '../../../src/manifest/defaults.js';
+import { normalizeManifest } from '../../../src/manifest/normalize.js';
+import { createClaudeTarget } from '../../../src/renderers/claude/index.js';
 import type { TeamCastManifest } from '../../../src/types/manifest.js';
 
+const claudeTarget = createClaudeTarget();
 const baseManifest: TeamCastManifest = {
-  version: '1',
+  version: '2',
   project: { name: 'test-project' },
-  agents: {},
+  claude: { agents: {} },
 };
 
 describe('renderSettingsJson', () => {
   it('generates empty permissions object when no policies', () => {
-    const result = renderSettingsJson(applyDefaults(baseManifest));
+    const result = renderSettingsJson(normalizeManifest(applyDefaults(baseManifest), claudeTarget));
     expect(result.path).toBe('.claude/settings.json');
     const parsed = JSON.parse(result.content);
     expect(parsed).toEqual({});
@@ -29,7 +32,7 @@ describe('renderSettingsJson', () => {
       },
     };
 
-    const result = renderSettingsJson(applyDefaults(manifest));
+    const result = renderSettingsJson(normalizeManifest(applyDefaults(manifest), claudeTarget));
     const parsed = JSON.parse(result.content);
 
     expect(parsed.permissions.allow).toContain('Bash(npm run *)');
@@ -50,7 +53,7 @@ describe('renderSettingsJson', () => {
       },
     };
 
-    const result = renderSettingsJson(applyDefaults(manifest));
+    const result = renderSettingsJson(normalizeManifest(applyDefaults(manifest), claudeTarget));
     const parsed = JSON.parse(result.content);
 
     expect(parsed.permissions.allow).toContain('Bash(npm run *)');
@@ -73,7 +76,7 @@ describe('renderSettingsJson', () => {
       },
     };
 
-    const result = renderSettingsJson(applyDefaults(manifest));
+    const result = renderSettingsJson(normalizeManifest(applyDefaults(manifest), claudeTarget));
     const parsed = JSON.parse(result.content);
 
     expect(parsed.permissions.allow).toContain('WebFetch(github.com:*)');
@@ -92,7 +95,7 @@ describe('renderSettingsJson', () => {
       },
     };
 
-    const result = renderSettingsJson(applyDefaults(manifest));
+    const result = renderSettingsJson(normalizeManifest(applyDefaults(manifest), claudeTarget));
     const parsed = JSON.parse(result.content);
 
     expect(parsed.sandbox.enabled).toBe(true);
@@ -111,7 +114,7 @@ describe('renderSettingsJson', () => {
       },
     };
 
-    const result = renderSettingsJson(applyDefaults(manifest));
+    const result = renderSettingsJson(normalizeManifest(applyDefaults(manifest), claudeTarget));
     const parsed = JSON.parse(result.content);
 
     expect(parsed.hooks.PreToolUse).toHaveLength(1);

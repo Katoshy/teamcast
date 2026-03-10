@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { checkInstructionBlocks } from '../../../src/validator/checks/instruction-blocks.js';
 import type { CoreTeam } from '../../../src/core/types.js';
 import { CLAUDE_SKILL_MAP } from '../../../src/renderers/claude/skill-map.js';
+import { CODEX_SKILL_MAP } from '../../../src/renderers/codex/skill-map.js';
 import type { SkillToolMap } from '../../../src/core/skill-resolver.js';
 
 const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
@@ -119,6 +120,22 @@ describe('checkInstructionBlocks', () => {
     });
 
     const results = checkInstructionBlocks(team, skillMap);
+    expect(results).toHaveLength(0);
+  });
+
+  it('does not warn about delegation blocks for codex targets without delegate tool mapping', () => {
+    const team = makeTeam({
+      coordinator: {
+        id: 'coordinator',
+        description: 'Coordinates work',
+        runtime: { tools: ['read_file', 'search_codebase'] },
+        instructions: [
+          { kind: 'delegation', content: 'Delegate tasks to sub-agents.' },
+        ],
+      },
+    });
+
+    const results = checkInstructionBlocks(team, CODEX_SKILL_MAP);
     expect(results).toHaveLength(0);
   });
 

@@ -8,8 +8,9 @@ tools:
   - Glob
   - Bash
 disallowedTools:
-  - Edit
   - Write
+  - Edit
+  - MultiEdit
   - WebFetch
   - WebSearch
 skills:
@@ -28,3 +29,11 @@ Review checklist:
 - No security issues (no command injection, no unsafe file writes)
 
 Provide actionable recommendations. Do not modify files yourself.
+
+Read the changed files carefully. Check for:
+- Correctness and edge cases
+- Security vulnerabilities
+- Code style and readability
+- Test coverage
+
+Provide clear, actionable recommendations. Do not modify files yourself.

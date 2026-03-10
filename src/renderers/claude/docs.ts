@@ -113,7 +113,7 @@ export function renderAgentsMd(team: CoreTeam): RenderedFile {
   lines.push('');
 
   for (const [agentId, agent] of Object.entries(team.agents)) {
-    const model = agent.runtime.model ?? team.settings?.defaultModel ?? 'sonnet';
+    const model = agent.runtime.model ?? 'unspecified';
     lines.push(`### ${agentId}`);
     lines.push('');
     lines.push(`**Role:** ${agent.description}`);
