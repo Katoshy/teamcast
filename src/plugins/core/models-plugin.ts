@@ -5,25 +5,47 @@ export const coreModelsPlugin: TeamCastPlugin = {
   version: '1.0.0',
   description: 'Registers default Anthropic and Codex models',
   models: {
-    'claude-3-opus': {
-      id: 'claude-3-5-opus-20240229',
-      displayName: 'Claude 3.5 Opus',
-      features: ['vision', 'tools'],
+    opus: {
+      id: 'opus',
+      displayName: 'Claude Opus 4.6',
+      target: 'claude',
+      features: ['quality', 'tools'],
     },
-    'claude-3-sonnet': {
-      id: 'claude-3-5-sonnet-20241022',
-      displayName: 'Claude 3.5 Sonnet',
-      features: ['vision', 'tools', 'fast'],
+    sonnet: {
+      id: 'sonnet',
+      displayName: 'Claude 4.6 Sonnet',
+      target: 'claude',
+      features: ['vision', 'tools', 'fast', 'reasoning'],
     },
-    'gpt-4o': {
-      id: 'gpt-4o',
-      displayName: 'GPT-4o (Codex)',
-      features: ['vision', 'tools'],
+    haiku: {
+      id: 'haiku',
+      displayName: 'Claude Haiku 4.5',
+      target: 'claude',
+      features: ['fast', 'economical'],
     },
-    'o3-mini': {
-      id: 'o3-mini',
-      displayName: 'o3-mini (Codex)',
-      features: ['reasoning'],
-    }
-  }
+    'gpt-5.3-codex': {
+      id: 'gpt-5.3-codex',
+      displayName: 'GPT-5.3-Codex',
+      target: 'codex',
+      features: ['tools', 'reasoning'],
+    },
+    'gpt-5.2-codex': {
+      id: 'gpt-5.2-codex',
+      displayName: 'GPT-5.2-Codex',
+      target: 'codex',
+      features: ['tools', 'reasoning'],
+    },
+    'gpt-5-codex': {
+      id: 'gpt-5-codex',
+      displayName: 'GPT-5-Codex',
+      target: 'codex',
+      features: ['tools', 'reasoning'],
+    },
+    'gpt-5.1-codex-mini': {
+      id: 'gpt-5.1-codex-mini',
+      displayName: 'GPT-5.1-Codex Mini',
+      target: 'codex',
+      features: ['tools', 'fast'],
+    },
+  },
 };

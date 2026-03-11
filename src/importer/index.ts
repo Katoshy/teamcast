@@ -208,7 +208,7 @@ function stripCodexGeneratedSections(body: string | undefined): string | undefin
 
 function parseCodexReasoningEffort(value: string | undefined): ReasoningEffort | undefined {
   if (!value) return undefined;
-  if (value === 'low' || value === 'medium' || value === 'high') {
+  if (value === 'low' || value === 'medium' || value === 'high' || value === 'xhigh') {
     return value;
   }
   return undefined;

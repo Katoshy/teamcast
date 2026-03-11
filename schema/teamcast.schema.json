@@ -218,7 +218,7 @@
         "model": { "type": "string", "minLength": 1 },
         "reasoning_effort": {
           "type": "string",
-          "enum": ["low", "medium", "high"]
+          "enum": ["low", "medium", "high", "xhigh"]
         },
         "capability_traits": {
           "type": "array",
