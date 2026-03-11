@@ -66,6 +66,8 @@ describe('stepAgentCustomization', () => {
     mockedPrompt.mockResolvedValueOnce({ value: 'opus' });
     // skill selection -> read_files, execute
     mockedPrompt.mockResolvedValueOnce({ value: ['read_files', 'execute'] });
+    // keep restricted tools as-is
+    mockedPrompt.mockResolvedValueOnce({ value: false });
 
     const result = await stepAgentCustomization(team, claudeTarget);
 
@@ -80,6 +82,8 @@ describe('stepAgentCustomization', () => {
     mockedPrompt.mockResolvedValueOnce({ value: 'sonnet' });
     // skills -> write_files, execute
     mockedPrompt.mockResolvedValueOnce({ value: ['write_files', 'execute'] });
+    // keep restricted tools as-is
+    mockedPrompt.mockResolvedValueOnce({ value: false });
 
     const result = await stepAgentCustomization(team, claudeTarget);
     const tools = result.agents.dev.runtime.tools ?? [];
@@ -101,6 +105,8 @@ describe('stepAgentCustomization', () => {
     mockedPrompt.mockResolvedValueOnce({ value: 'unspecified' });
     // skills -> none selected
     mockedPrompt.mockResolvedValueOnce({ value: [] });
+    // keep restricted tools as-is
+    mockedPrompt.mockResolvedValueOnce({ value: false });
 
     const result = await stepAgentCustomization(team, claudeTarget);
 
@@ -121,7 +127,8 @@ describe('stepAgentCustomization', () => {
         const q = Array.isArray(questions) ? questions[0] : questions;
         capturedChoices = q.choices as Array<{ value: string; checked?: boolean }>;
         return Promise.resolve({ value: ['read_files'] });
-      });
+      })
+      .mockResolvedValueOnce({ value: false });
 
     await stepAgentCustomization(team, claudeTarget);
 
@@ -156,8 +163,10 @@ describe('stepAgentCustomization', () => {
       .mockResolvedValueOnce({ value: true })   // confirm
       .mockResolvedValueOnce({ value: 'haiku' }) // planner model
       .mockResolvedValueOnce({ value: ['read_files'] }) // planner skills
+      .mockResolvedValueOnce({ value: false }) // planner restricted tools
       .mockResolvedValueOnce({ value: 'sonnet' }) // developer model
-      .mockResolvedValueOnce({ value: ['read_files', 'write_files', 'execute'] }); // developer skills
+      .mockResolvedValueOnce({ value: ['read_files', 'write_files', 'execute'] }) // developer skills
+      .mockResolvedValueOnce({ value: false }); // developer restricted tools
 
     const result = await stepAgentCustomization(team, claudeTarget);
 
@@ -174,7 +183,8 @@ describe('stepAgentCustomization', () => {
     mockedPrompt
       .mockResolvedValueOnce({ value: true })
       .mockResolvedValueOnce({ value: 'opus' })
-      .mockResolvedValueOnce({ value: ['execute'] });
+      .mockResolvedValueOnce({ value: ['execute'] })
+      .mockResolvedValueOnce({ value: false });
 
     await stepAgentCustomization(team, claudeTarget);
 
@@ -188,7 +198,8 @@ describe('stepAgentCustomization', () => {
       .mockResolvedValueOnce({ value: true })
       .mockResolvedValueOnce({ value: 'gpt-5.3-codex' })
       .mockResolvedValueOnce({ value: 'xhigh' })
-      .mockResolvedValueOnce({ value: ['read_files', 'search'] });
+      .mockResolvedValueOnce({ value: ['read_files', 'search'] })
+      .mockResolvedValueOnce({ value: false });
 
     const result = await stepAgentCustomization(team, codexTarget);
 
@@ -196,5 +207,49 @@ describe('stepAgentCustomization', () => {
     expect(result.agents.dev.runtime.reasoningEffort).toBe('xhigh');
     expect(result.agents.dev.runtime.tools).toContain('read_file');
     expect(result.agents.dev.runtime.tools).toContain('search_codebase');
+  });
+
+  it('drops conflicting default disallowed tools when customization explicitly allows them', async () => {
+    const team = makeTeam({
+      runtime: {
+        model: 'sonnet',
+        tools: ['Read', 'Grep', 'Glob', 'Bash'],
+        disallowedTools: ['WebFetch', 'WebSearch'],
+      },
+    });
+
+    mockedPrompt
+      .mockResolvedValueOnce({ value: true })
+      .mockResolvedValueOnce({ value: 'sonnet' })
+      .mockResolvedValueOnce({ value: ['read_files', 'web'] })
+      .mockResolvedValueOnce({ value: false });
+
+    const result = await stepAgentCustomization(team, claudeTarget);
+
+    expect(result.agents.dev.runtime.tools).toContain('WebFetch');
+    expect(result.agents.dev.runtime.tools).toContain('WebSearch');
+    expect(result.agents.dev.runtime.disallowedTools).toBeUndefined();
+  });
+
+  it('allows explicit editing of restricted tools separately from allowed tools', async () => {
+    const team = makeTeam({
+      runtime: {
+        model: 'sonnet',
+        tools: ['Read', 'Grep', 'Glob', 'Bash'],
+        disallowedTools: ['WebFetch'],
+      },
+    });
+
+    mockedPrompt
+      .mockResolvedValueOnce({ value: true })
+      .mockResolvedValueOnce({ value: 'sonnet' })
+      .mockResolvedValueOnce({ value: ['read_files'] })
+      .mockResolvedValueOnce({ value: true })
+      .mockResolvedValueOnce({ value: ['Bash'] });
+
+    const result = await stepAgentCustomization(team, claudeTarget);
+
+    expect(result.agents.dev.runtime.tools).toEqual(['Read', 'Grep', 'Glob']);
+    expect(result.agents.dev.runtime.disallowedTools).toEqual(['Bash']);
   });
 });

@@ -55,7 +55,6 @@ import {
   addAgentToTeam,
   assignSkillToAgents,
   editAgentInTeam,
-  invertToolSelection,
   removeAgentFromTeam,
   updateAgentBasics,
 } from '../application/team.js';
@@ -142,6 +141,56 @@ async function promptTargetReasoningEffort(
   });
 
   return selected === 'unspecified' ? null : parseReasoningEffort(selected);
+}
+
+function removeConflictingDisallowedTools(
+  tools: string[] | undefined,
+  disallowedTools: string[] | undefined,
+): string[] | undefined {
+  if (!disallowedTools?.length) {
+    return disallowedTools;
+  }
+
+  if (!tools?.length) {
+    return [...disallowedTools];
+  }
+
+  const allowedToolSet = new Set(tools);
+  const filtered = disallowedTools.filter((tool) => !allowedToolSet.has(tool));
+  return filtered.length > 0 ? filtered : undefined;
+}
+
+async function promptRestrictedTools(
+  targetContext: TargetContext,
+  allowedTools: string[] | undefined,
+  currentDisallowedTools: string[] | undefined,
+): Promise<CoreAgent['runtime']['disallowedTools']> {
+  const customizeRestrictedTools = await promptConfirm({
+    message: 'Customize restricted tools?',
+    default: false,
+  });
+
+  if (!customizeRestrictedTools) {
+    return removeConflictingDisallowedTools(allowedTools, currentDisallowedTools);
+  }
+
+  const allowedToolSet = new Set(allowedTools ?? []);
+  const restrictableTools = targetContext.knownTools.filter((tool) => !allowedToolSet.has(tool));
+
+  if (restrictableTools.length === 0) {
+    return undefined;
+  }
+
+  const restrictedTools = await promptCheckbox<string>({
+    message: 'Select restricted tools (unchecked tools stay undefined):',
+    choices: restrictableTools.map((tool) => ({
+      name: tool,
+      value: tool,
+      checked: currentDisallowedTools?.includes(tool) ?? false,
+    })),
+  });
+
+  return restrictedTools.length > 0 ? restrictedTools : undefined;
 }
 
 function loadManifestOrExit(cwd: string): TeamCastManifest {
@@ -556,8 +605,7 @@ async function promptAgentConfig(name: string, targetContext: TargetContext): Pr
   const allow = selectedSkills.length > 0
     ? expandSkills(selectedSkills as AgentSkill[], targetContext.skillMap)
     : [];
-
-  const deny = targetContext.knownTools.filter((t) => !allow.includes(t));
+  const deny = await promptRestrictedTools(targetContext, allow, undefined);
 
   return {
     id: name,
@@ -566,7 +614,7 @@ async function promptAgentConfig(name: string, targetContext: TargetContext): Pr
       model: model ?? undefined,
       reasoningEffort: reasoningEffort ?? undefined,
       tools: allow,
-      disallowedTools: deny.length > 0 ? deny : undefined,
+      disallowedTools: deny,
     },
     instructions: [
       {
@@ -616,8 +664,12 @@ async function promptEditAgent(current: CoreAgent, targetContext: TargetContext)
     });
 
     tools = allowList as CoreAgent['runtime']['tools'];
-    disallowedTools = invertToolSelection(tools ?? [], targetContext.knownTools);
   }
+  disallowedTools = await promptRestrictedTools(
+    targetContext,
+    tools,
+    disallowedTools,
+  );
 
   const maxTurns = maxTurnsInput.trim() ? parseInt(maxTurnsInput.trim(), 10) : undefined;
 

@@ -386,7 +386,3 @@ export function updateAgentBasics(
     },
   };
 }
-
-export function invertToolSelection(tools: NonNullable<CoreAgent['runtime']['tools']>, knownTools: string[]) {
-  return knownTools.filter((tool) => !tools.includes(tool));
-}
