@@ -1,6 +1,6 @@
 {
   "name": "teamcast",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "YAML-driven CLI to design, validate, and generate multi-target agent teams for Claude Code and Codex",
   "type": "module",
   "bin": {
