@@ -58,8 +58,8 @@ describe('stepCustomTeam', () => {
     const result = await stepCustomTeam('test');
 
     expect(result.policies!.sandbox!.enabled).toBe(true);
-    expect(result.policies!.permissions!.deny).toContain('destructive-shell');
-    expect(result.policies!.permissions!.deny).toContain('env.write');
+    expect(result.policies!.permissions!.rules!.deny).toContain('Bash(rm -rf *)');
+    expect(result.policies!.permissions!.rules!.deny).toContain('Write(.env*)');
   });
 
   it('preserves project name from partial manifest', async () => {

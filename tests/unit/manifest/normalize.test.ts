@@ -22,8 +22,10 @@ describe('manifest normalization', () => {
       },
       policies: {
         permissions: {
-          allow: ['project.commands'],
-          deny: ['Write(.env*)'],
+          rules: {
+            allow: ['Bash(npm run *)'],
+            deny: ['Write(.env*)', 'Edit(.env*)'],
+          },
         },
       },
       claude: {
@@ -56,8 +58,8 @@ describe('manifest normalization', () => {
       generateDocs: false,
       generateLocalSettings: true,
     });
-    expect(team.policies?.permissions?.allow).toEqual(['project.commands']);
-    expect(team.policies?.permissions?.deny).toEqual(['env.write']);
+    expect(team.policies?.permissions?.rules?.allow).toEqual(['Bash(npm run *)']);
+    expect(team.policies?.permissions?.rules?.deny).toEqual(['Write(.env*)', 'Edit(.env*)']);
     expect(team.agents.developer.runtime.tools).toEqual(['Read', 'Grep', 'Glob', 'Bash']);
     expect(team.agents.developer.runtime.disallowedTools).toEqual(['WebFetch', 'WebSearch']);
     expect(team.agents.developer.runtime.skillDocs).toEqual(['test-first']);
@@ -140,8 +142,10 @@ describe('manifest normalization', () => {
       },
       policies: {
         permissions: {
-          allow: ['project.commands'],
-          deny: ['env.write'],
+          rules: {
+            allow: ['Bash(npm run *)'],
+            deny: ['Write(.env*)', 'Edit(.env*)'],
+          },
         },
       },
       settings: {
@@ -219,8 +223,10 @@ describe('manifest normalization', () => {
       },
       policies: {
         permissions: {
-          allow: ['project.commands'],
-          deny: ['env.write'],
+          rules: {
+            allow: ['Bash(npm run *)'],
+            deny: ['Write(.env*)', 'Edit(.env*)'],
+          },
         },
       },
       settings: {
@@ -268,7 +274,7 @@ describe('manifest normalization', () => {
       generate_docs: false,
       generate_local_settings: false,
     });
-    expect(manifest.policies?.permissions?.deny).toEqual(['env.write']);
+    expect(manifest.policies?.permissions?.rules?.deny).toEqual(['Write(.env*)', 'Edit(.env*)']);
     expect(manifest.preset_meta).toEqual({
       author: 'teamcast',
       tags: ['review'],

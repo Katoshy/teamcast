@@ -12,19 +12,6 @@ export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export type PermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk';
 
-export type AbstractPermission =
-  | 'project.commands'
-  | 'tests'
-  | 'git.read'
-  | 'git.write'
-  | 'package.exec'
-  | 'security.audit'
-  | 'git.push'
-  | 'destructive-shell'
-  | 'downloads'
-  | 'dynamic-exec'
-  | 'env.write';
-
 // --- Nested config types ---
 
 export interface McpServerConfig {
@@ -92,11 +79,8 @@ export interface CoreAgent {
 // --- Resolved policies ---
 
 export interface PermissionsConfig {
-  allow?: AbstractPermission[];
-  ask?: AbstractPermission[];
-  deny?: AbstractPermission[];
   defaultMode?: 'default' | 'acceptEdits';
-  rawRules?: {
+  rules?: {
     allow?: string[];
     ask?: string[];
     deny?: string[];

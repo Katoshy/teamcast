@@ -92,16 +92,16 @@ export function buildExplanation(team: CoreTeam, targetContext: TargetContext): 
       lines.push(`  ${chalk.dim('*')} Network: restricted to ${team.policies.network.allowedDomains.join(', ')}`);
     }
 
-    // Abstract permissions (allow / ask / deny)
-    const perms = team.policies.permissions;
-    if (perms?.allow?.length) {
-      lines.push(`  ${chalk.dim('*')} Allowed: ${perms.allow.join(', ')}`);
+    // Permissions (allow / ask / deny)
+    const rules = team.policies.permissions?.rules;
+    if (rules?.allow?.length) {
+      lines.push(`  ${chalk.dim('*')} Allowed: ${rules.allow.join(', ')}`);
     }
-    if (perms?.ask?.length) {
-      lines.push(`  ${chalk.dim('*')} Ask before: ${perms.ask.join(', ')}`);
+    if (rules?.ask?.length) {
+      lines.push(`  ${chalk.dim('*')} Ask before: ${rules.ask.join(', ')}`);
     }
-    if (perms?.deny?.length) {
-      lines.push(`  ${chalk.dim('*')} Denied: ${perms.deny.join(', ')}`);
+    if (rules?.deny?.length) {
+      lines.push(`  ${chalk.dim('*')} Denied: ${rules.deny.join(', ')}`);
     }
 
     const hookCount =

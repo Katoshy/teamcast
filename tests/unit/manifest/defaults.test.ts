@@ -44,7 +44,7 @@ describe('applyDefaults', () => {
       version: '2',
       project: { name: 'test' },
       claude: { agents: {} },
-      policies: { permissions: { allow: ['Bash(npm test)'] } },
+      policies: { permissions: { rules: { allow: ['Bash(npm test)'] } } },
     };
     const result = applyDefaults(input);
     expect(result.policies!.sandbox).toBeUndefined();

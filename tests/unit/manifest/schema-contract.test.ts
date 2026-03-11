@@ -26,19 +26,6 @@ describe('manifest schema contract', () => {
     expect(result.valid).toBe(false);
   });
 
-  it('rejects removed target-local settings blocks', () => {
-    const result = validateSchema({
-      ...baseManifest,
-      claude: {
-        settings: {
-          generate_docs: false,
-        },
-        agents: baseManifest.claude?.agents,
-      },
-    });
-
-    expect(result.valid).toBe(false);
-  });
 
   it('rejects removed shared default_model', () => {
     const result = validateSchema({

@@ -1,10 +1,9 @@
 import type { InstructionBlock, InstructionBlockKind } from '../core/instructions.js';
 import type {
-  AbstractPermission,
-  HookEntry,
-  McpServerConfig,
-  PermissionMode,
   ReasoningEffort,
+  PermissionMode,
+  McpServerConfig,
+  HookEntry,
 } from '../core/types.js';
 import type { AgentSkill } from '../core/skills.js';
 import type {
@@ -52,12 +51,14 @@ export interface AgentConfig extends BaseAgentConfig {
 
 export interface TargetConfig {
   agents: Record<string, AgentConfig>;
+  policies?: PoliciesConfig;
+  settings?: GenerationSettings;
 }
 
 export interface PermissionsConfig {
-  allow?: Array<AbstractPermission | string>;
-  ask?: Array<AbstractPermission | string>;
-  deny?: Array<AbstractPermission | string>;
+  allow?: string[];
+  ask?: string[];
+  deny?: string[];
   default_mode?: 'default' | 'acceptEdits';
   rules?: {
     allow?: string[];
@@ -115,6 +116,7 @@ export interface PresetMeta {
 export interface TeamCastManifest {
   version: '2';
   project: ProjectConfig;
+  plugins?: string[];
   policies?: PoliciesConfig;
   settings?: GenerationSettings;
   preset_meta?: PresetMeta;

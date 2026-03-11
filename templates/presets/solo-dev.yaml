@@ -10,11 +10,8 @@ project:
   description: Single enhanced developer agent with safe defaults for individual developers.
 policies:
   fragments:
-    - allow-npm-run
-    - allow-npm-test
     - allow-git-read
     - allow-git-write
-    - allow-npx
     - ask-git-push
     - deny-destructive-shell
     - deny-env-files

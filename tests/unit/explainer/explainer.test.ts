@@ -171,20 +171,22 @@ describe('buildExplanation', () => {
     expect(out).toContain('enabled');
   });
 
-  it('shows abstract permissions in security section', () => {
+  it('shows rules in security section', () => {
     const team: CoreTeam = {
       ...baseTeam,
       policies: {
         permissions: {
-          allow: ['project.commands', 'tests'],
-          deny: ['destructive-shell'],
+          rules: {
+            allow: ['Bash(npm run *)', 'Bash(npm test)'],
+            deny: ['Bash(rm -rf *)'],
+          },
         },
       },
     };
     const out = strip(buildExplanation(team, claudeTarget));
-    expect(out).toContain('project.commands');
-    expect(out).toContain('tests');
-    expect(out).toContain('destructive-shell');
+    expect(out).toContain('Bash(npm run *)');
+    expect(out).toContain('Bash(npm test)');
+    expect(out).toContain('Bash(rm -rf *)');
   });
 
   it('shows no skills line when agent has no tools', () => {

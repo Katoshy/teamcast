@@ -1,20 +1,22 @@
-import Ajv from 'ajv';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { createRequire } from 'module';
 import type { TeamCastManifest } from './types.js';
 
+const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-let _ajv: Ajv | null = null;
-let _validate: ReturnType<Ajv['compile']> | null = null;
+let _ajv: any = null;
+let _validate: any = null;
 
-function getValidator(): ReturnType<Ajv['compile']> {
+function getValidator(): any {
   if (_validate) return _validate;
 
   if (!_ajv) {
-    _ajv = new Ajv({ allErrors: true, strict: false });
+    const AjvCtor = require('ajv').default || require('ajv');
+    _ajv = new AjvCtor({ allErrors: true, strict: false });
     // Register uri format to suppress "unknown format" warnings
     _ajv.addFormat('uri', { validate: () => true });
   }
@@ -35,7 +37,7 @@ export function validateSchema(raw: unknown): SchemaValidationResult {
 
   if (valid) return { valid: true, data: raw as TeamCastManifest };
 
-  const errors = (validate.errors ?? []).map((err) => ({
+  const errors = (validate.errors ?? []).map((err: any) => ({
     path: err.instancePath || '(root)',
     message: err.message ?? 'Unknown validation error',
   }));

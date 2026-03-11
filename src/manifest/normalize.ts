@@ -2,7 +2,6 @@ import {
   normalizeInstructionBlocks,
   type InstructionBlock,
 } from '../core/instructions.js';
-import { normalizePermissionTokens } from '../core/permissions.js';
 import {
   mergeRuntimeWithTraits,
   resolveInstructionFragments,
@@ -86,30 +85,22 @@ function mapHooksConfig(hooks: HooksConfig | undefined): TeamPolicies['hooks'] {
 function mapPolicies(policies: PoliciesConfig | undefined): TeamPolicies | undefined {
   if (!policies) return undefined;
 
-  const normalizedAllow = normalizePermissionTokens(policies.permissions?.allow, 'allow');
-  const normalizedAsk = normalizePermissionTokens(policies.permissions?.ask, 'ask');
-  const normalizedDeny = normalizePermissionTokens(policies.permissions?.deny, 'deny');
+  const combinedAllow = [...(policies.permissions?.allow ?? []), ...(policies.permissions?.rules?.allow ?? [])];
+  const combinedAsk = [...(policies.permissions?.ask ?? []), ...(policies.permissions?.rules?.ask ?? [])];
+  const combinedDeny = [...(policies.permissions?.deny ?? []), ...(policies.permissions?.rules?.deny ?? [])];
 
   const explicitPolicies: TeamPolicies = {
     permissions: policies.permissions
       ? {
-          allow: normalizedAllow.abstract,
-          ask: normalizedAsk.abstract,
-          deny: normalizedDeny.abstract,
-          defaultMode: policies.permissions.default_mode,
-          rawRules:
-            normalizedAllow.raw?.length ||
-            normalizedAsk.raw?.length ||
-            normalizedDeny.raw?.length ||
-            policies.permissions.rules?.allow?.length ||
-            policies.permissions.rules?.ask?.length ||
-            policies.permissions.rules?.deny?.length
+          rules:
+            combinedAllow.length || combinedAsk.length || combinedDeny.length
               ? {
-                  allow: definedArray([...(normalizedAllow.raw ?? []), ...(policies.permissions.rules?.allow ?? [])]),
-                  ask: definedArray([...(normalizedAsk.raw ?? []), ...(policies.permissions.rules?.ask ?? [])]),
-                  deny: definedArray([...(normalizedDeny.raw ?? []), ...(policies.permissions.rules?.deny ?? [])]),
+                  allow: definedArray(combinedAllow),
+                  ask: definedArray(combinedAsk),
+                  deny: definedArray(combinedDeny),
                 }
               : undefined,
+          defaultMode: policies.permissions.default_mode,
         }
       : undefined,
     sandbox: policies.sandbox
@@ -254,17 +245,14 @@ function denormalizePolicies(policies: CoreTeam['policies']): PoliciesConfig | u
   return {
     permissions: policies.permissions
       ? {
-          allow: cloneArray(policies.permissions.allow),
-          ask: cloneArray(policies.permissions.ask),
-          deny: cloneArray(policies.permissions.deny),
-          default_mode: policies.permissions.defaultMode,
-          rules: policies.permissions.rawRules
+          rules: policies.permissions.rules
             ? {
-                allow: definedArray(policies.permissions.rawRules.allow),
-                ask: definedArray(policies.permissions.rawRules.ask),
-                deny: definedArray(policies.permissions.rawRules.deny),
+                allow: cloneArray(policies.permissions.rules.allow),
+                ask: cloneArray(policies.permissions.rules.ask),
+                deny: cloneArray(policies.permissions.rules.deny),
               }
             : undefined,
+          default_mode: policies.permissions.defaultMode,
         }
       : undefined,
     sandbox: policies.sandbox

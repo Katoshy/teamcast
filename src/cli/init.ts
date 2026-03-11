@@ -13,6 +13,7 @@ import {
   teamHasBlockingIssues,
   printManifestValidation,
 } from '../application/validate-team.js';
+import { defaultRegistry } from '../plugins/index.js';
 import {
   buildManifestFromPreset,
   type InitTargetSelection,
@@ -96,6 +97,11 @@ async function initWithPreset(
 
   const projectName = detectedName ?? 'my-project';
   const manifest = buildManifestFromPreset(presetName, projectName, targetSelection);
+  
+  const detectedPlugins = defaultRegistry.getDetectedPlugins(cwd).map(p => p.name);
+  if (detectedPlugins.length > 0) {
+    manifest.plugins = detectedPlugins;
+  }
   const validation = evaluateTeam(manifest);
 
   if (teamHasBlockingIssues(validation)) {
