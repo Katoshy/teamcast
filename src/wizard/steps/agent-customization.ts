@@ -24,6 +24,56 @@ function getSupportedSkills(targetContext: TargetContext): string[] {
   return allSkills.filter((skill) => (targetContext.skillMap[skill as AgentSkill]?.length ?? 0) > 0);
 }
 
+function removeConflictingDisallowedTools(
+  tools: string[] | undefined,
+  disallowedTools: string[] | undefined,
+): string[] | undefined {
+  if (!disallowedTools?.length) {
+    return disallowedTools;
+  }
+
+  if (!tools?.length) {
+    return [...disallowedTools];
+  }
+
+  const allowedToolSet = new Set(tools);
+  const filtered = disallowedTools.filter((tool) => !allowedToolSet.has(tool));
+  return filtered.length > 0 ? filtered : undefined;
+}
+
+async function promptRestrictedTools(
+  targetContext: TargetContext,
+  allowedTools: string[] | undefined,
+  currentDisallowedTools: string[] | undefined,
+): Promise<string[] | undefined> {
+  const customizeRestrictedTools = await promptConfirm({
+    message: `  Customize restricted tools [${targetContext.name}]?`,
+    default: false,
+  });
+
+  if (!customizeRestrictedTools) {
+    return removeConflictingDisallowedTools(allowedTools, currentDisallowedTools);
+  }
+
+  const allowedToolSet = new Set(allowedTools ?? []);
+  const restrictableTools = targetContext.knownTools.filter((tool) => !allowedToolSet.has(tool));
+
+  if (restrictableTools.length === 0) {
+    return undefined;
+  }
+
+  const selectedRestrictedTools = await promptCheckbox<string>({
+    message: `  Restricted tools for ${targetContext.name} (unchecked = leave undefined):`,
+    choices: restrictableTools.map((tool) => ({
+      name: tool,
+      value: tool,
+      checked: currentDisallowedTools?.includes(tool) ?? false,
+    })),
+  });
+
+  return selectedRestrictedTools.length > 0 ? selectedRestrictedTools : undefined;
+}
+
 async function promptTargetModel(targetContext: TargetContext, currentModel?: string): Promise<string | undefined> {
   const models = Object.values(defaultRegistry.getModels());
   const targetModels = models.filter((m) => !m.target || m.target === targetContext.name);
@@ -120,6 +170,11 @@ export async function stepAgentCustomization(
     const expandedTools = selectedSkills.length > 0
       ? expandSkills(selectedSkills as AgentSkill[], targetContext.skillMap)
       : undefined;
+    const disallowedTools = await promptRestrictedTools(
+      targetContext,
+      expandedTools,
+      agent.runtime.disallowedTools,
+    );
 
     updatedAgents[name] = {
       ...agent,
@@ -128,6 +183,7 @@ export async function stepAgentCustomization(
         model,
         reasoningEffort,
         tools: expandedTools,
+        disallowedTools,
       },
     };
   }
