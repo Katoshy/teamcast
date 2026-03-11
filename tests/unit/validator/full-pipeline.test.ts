@@ -31,7 +31,7 @@ describe('runValidation (full pipeline)', () => {
         },
       } },
       policies: {
-        permissions: { deny: ['Write(.env*)', 'Edit(.env*)'] },
+        permissions: { rules: { deny: ['Write(.env*)', 'Edit(.env*)'] } },
         sandbox: { enabled: true },
       },
     };
@@ -104,7 +104,7 @@ describe('runValidation (full pipeline)', () => {
         b: { description: 'B', tools: ['Agent'], forge: { handoffs: ['c'] } },
         c: { description: 'C', tools: ['Agent'], forge: { handoffs: ['a'] } },
       } },
-      policies: { sandbox: { enabled: true }, permissions: { deny: ['Write(.env*)'] } },
+      policies: { sandbox: { enabled: true }, permissions: { rules: { deny: ['Write(.env*)'] } } },
     };
     const errors = runValidation(normalizeManifest(manifest, claudeTarget), claudeTarget).filter(
       (r) => r.severity === 'error' && r.message.includes('Cyclic'),

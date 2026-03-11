@@ -2,14 +2,9 @@ import type { CoreTeam } from '../../core/types.js';
 import type { Checker, ValidationResult } from '../types.js';
 
 function hasDotEnvDeny(team: CoreTeam): boolean {
-  const abstractDeny = team.policies?.permissions?.deny ?? [];
-  const rawDeny = team.policies?.permissions?.rawRules?.deny ?? [];
+  const deny = team.policies?.permissions?.rules?.deny ?? [];
 
-  if (abstractDeny.includes('env.write')) {
-    return true;
-  }
-
-  return rawDeny.some((rule) => {
+  return deny.some((rule) => {
     const lower = rule.toLowerCase();
     return lower.includes('.env') || /write\(.*\.env/i.test(lower) || /edit\(.*\.env/i.test(lower);
   });
@@ -47,19 +42,7 @@ export const checkSecurityBaseline: Checker = (
     }
   }
 
-  const abstractAllow = team.policies?.permissions?.allow ?? [];
-  const allow = team.policies?.permissions?.rawRules?.allow ?? [];
-  const dangerousAbstractPermissions = ['destructive-shell', 'dynamic-exec', 'env.write'];
-
-  for (const permission of abstractAllow) {
-    if (dangerousAbstractPermissions.includes(permission)) {
-      results.push({
-        severity: 'warning',
-        category: 'Security',
-        message: `Allow permissions include high-risk capability "${permission}"`,
-      });
-    }
-  }
+  const allow = team.policies?.permissions?.rules?.allow ?? [];
 
   for (const rule of allow) {
     if (rule.includes('dangerously-skip-permissions')) {
@@ -71,7 +54,7 @@ export const checkSecurityBaseline: Checker = (
     }
   }
 
-  const dangerousPatterns = ['rm -rf', 'git push --force', 'chmod 777', 'sudo'];
+  const dangerousPatterns = ['rm -rf', 'git push --force', 'chmod 777', 'sudo', 'eval(', 'exec('];
   for (const rule of allow) {
     for (const pattern of dangerousPatterns) {
       if (rule.toLowerCase().includes(pattern)) {

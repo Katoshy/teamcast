@@ -12,7 +12,6 @@ export type PolicyBundleName =
 
 const POLICY_BUNDLES: Record<PolicyBundleName, PolicyFragmentName[]> = {
   'custom-team': [
-    'allow-npm-run',
     'allow-git-read',
     'ask-git-push',
     'deny-destructive-shell',
@@ -20,7 +19,6 @@ const POLICY_BUNDLES: Record<PolicyBundleName, PolicyFragmentName[]> = {
     'sandbox-default',
   ],
   'single-agent': [
-    'allow-npm-run',
     'allow-git-read',
     'ask-git-push',
     'deny-destructive-shell',
@@ -28,8 +26,6 @@ const POLICY_BUNDLES: Record<PolicyBundleName, PolicyFragmentName[]> = {
     'sandbox-default',
   ],
   'feature-team': [
-    'allow-npm-run',
-    'allow-npm-test',
     'allow-git-read',
     'allow-git-write',
     'ask-git-push',
@@ -39,19 +35,14 @@ const POLICY_BUNDLES: Record<PolicyBundleName, PolicyFragmentName[]> = {
     'sandbox-default',
   ],
   'solo-dev': [
-    'allow-npm-run',
-    'allow-npm-test',
     'allow-git-read',
     'allow-git-write',
-    'allow-npx',
     'ask-git-push',
     'deny-destructive-shell',
     'deny-env-files',
     'sandbox-default',
   ],
   'research-and-build': [
-    'allow-npm-run',
-    'allow-npm-test',
     'allow-git-read',
     'allow-git-write',
     'ask-git-push',
@@ -61,9 +52,6 @@ const POLICY_BUNDLES: Record<PolicyBundleName, PolicyFragmentName[]> = {
     'sandbox-default',
   ],
   'secure-dev': [
-    'allow-npm-run',
-    'allow-npm-test',
-    'allow-npm-audit',
     'allow-git-read',
     'allow-git-write',
     'ask-git-push',

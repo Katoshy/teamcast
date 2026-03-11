@@ -82,14 +82,16 @@ describe('renderClaudeMd', () => {
       policies: {
         sandbox: { enabled: true },
         permissions: {
-          allow: ['Bash(npm test)'],
-          deny: ['Bash(rm -rf *)'],
+          rules: {
+            allow: ['Bash(npm test)'],
+            deny: ['Bash(rm -rf *)'],
+          },
         },
       },
     };
     const content = renderClaudeMd(normalizeManifest(applyDefaults(manifest), claudeTarget)).content;
     expect(content).toContain('Sandbox is **enabled**');
     expect(content).toContain('Bash(rm -rf *)');
-    expect(content).toContain('Bash(npm test *)');
+    expect(content).toContain('Bash(npm test)');
   });
 });

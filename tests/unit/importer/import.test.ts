@@ -71,14 +71,14 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    const agent = result.team.agents.developer;
+    const agent = result.team.claude?.agents.developer as any;
 
     expect(agent).toBeDefined();
     expect(agent.description).toBe('Implements features and fixes bugs');
-    expect(agent.runtime.model).toBe('sonnet');
+    expect(agent.model).toBe('sonnet');
     // Read+Grep+Glob -> read_files, Bash -> execute; Write and Edit remain (no MultiEdit to complete write_files)
-    expect(agent.runtime.tools).toEqual(['read_files', 'execute', 'Write', 'Edit']);
-    expect(agent.instructions).toEqual([{ kind: 'behavior', content: 'Custom behavior instructions here.' }]);
+    expect(agent?.tools).toEqual(['read_files', 'execute', 'Write', 'Edit']);
+    expect(agent?.instruction_blocks).toEqual([{ kind: 'behavior', content: 'Custom behavior instructions here.' }]);
   });
 
   it('imports multiple agents', () => {
@@ -102,9 +102,9 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(Object.keys(result.team.agents)).toHaveLength(2);
-    expect(result.team.agents.planner.runtime.model).toBe('opus');
-    expect(result.team.agents.reviewer.runtime.model).toBe('haiku');
+    expect(Object.keys(result.team.claude?.agents ?? {})).toHaveLength(2);
+    expect((result.team.claude?.agents.planner as any).model).toBe('opus');
+    expect((result.team.claude?.agents.reviewer as any).model).toBe('haiku');
   });
 
   it('imports permissions from settings.json', () => {
@@ -123,11 +123,11 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.team.policies?.permissions?.allow).toEqual(['tests']);
-    expect(result.team.policies?.permissions?.deny).toContain('env.write');
-    expect(result.team.policies?.permissions?.deny).toContain('destructive-shell');
-    expect(result.team.policies?.sandbox?.enabled).toBe(true);
-    expect(result.team.policies?.sandbox?.autoAllowBash).toBe(true);
+    expect((result.team.claude as any)?.policies?.permissions?.rules?.allow).toEqual(['Bash(npm test)']);
+    expect((result.team.claude as any)?.policies?.permissions?.rules?.deny).toContain('Write(.env*)');
+    expect((result.team.claude as any)?.policies?.permissions?.rules?.deny).toContain('Bash(rm -rf *)');
+    expect((result.team.claude as any)?.policies?.sandbox?.enabled).toBe(true);
+    expect((result.team.claude as any)?.policies?.sandbox?.auto_allow_bash).toBe(true);
   });
 
   it('imports hooks from settings.json (camelCase -> snake_case)', () => {
@@ -146,10 +146,10 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.team.policies?.hooks?.preToolUse).toEqual([
+    expect((result.team.claude as any)?.policies?.hooks?.pre_tool_use).toEqual([
       { matcher: 'Bash', command: 'echo pre' },
     ]);
-    expect(result.team.policies?.hooks?.postToolUse).toEqual([
+    expect((result.team.claude as any)?.policies?.hooks?.post_tool_use).toEqual([
       { matcher: 'Write', command: 'echo post' },
     ]);
   });
@@ -161,7 +161,7 @@ describe('importFromClaudeDir', () => {
 
     const result = importFromClaudeDir(TMP, 'test-project');
     expect(result.warnings.some((w) => w.message.includes('Unknown model'))).toBe(true);
-    expect(result.team.agents.agent.runtime.model).toBeUndefined();
+    expect((result.team.claude?.agents.agent as any).model).toBeUndefined();
   });
 
   it('warns when no agent files found', () => {
@@ -196,8 +196,8 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.team.agents.dev.instructions).toEqual([{ kind: 'behavior', content: 'Write clean code.' }]);
-    expect(result.team.agents.dev.metadata?.handoffs).toEqual(['reviewer']);
+    expect((result.team.claude?.agents.dev as any).instruction_blocks).toEqual([{ kind: 'behavior', content: 'Write clean code.' }]);
+    expect((result.team.claude?.agents.dev as any).forge?.handoffs).toEqual(['reviewer']);
   });
 
   it('uses filename as agent name when frontmatter name is missing', () => {
@@ -206,7 +206,7 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.team.agents['my-agent']).toBeDefined();
+    expect(result.team.claude?.agents['my-agent']).toBeDefined();
   });
 
   it('sets project name correctly', () => {
@@ -225,7 +225,7 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.team.agents.reader.runtime.disallowedTools).toEqual(['Write', 'Edit', 'Bash']);
+    expect((result.team.claude?.agents.reader as any).disallowed_tools).toEqual(['Write', 'Edit', 'Bash']);
   });
 
   it('reverse-maps canonical tools to AgentSkill names when all tools for a skill are present', () => {
@@ -240,7 +240,7 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    const tools = result.team.agents.fullstack.runtime.tools ?? [];
+    const tools = (result.team.claude?.agents.fullstack as any).tools ?? [];
     // All four skills should be present
     expect(tools).toContain('read_files');
     expect(tools).toContain('write_files');
@@ -267,7 +267,7 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    const tools = result.team.agents.partial.runtime.tools ?? [];
+    const tools = (result.team.claude?.agents.partial as any).tools ?? [];
     expect(tools).toContain('execute');
     expect(tools).toContain('Read');
     expect(tools).not.toContain('read_files');
@@ -279,9 +279,9 @@ describe('importFromClaudeDir', () => {
     });
 
     const result = importFromClaudeDir(TMP, 'test-project');
-    expect(result.team.agents['win-agent'].description).toBe('Windows agent');
-    expect(result.team.agents['win-agent'].runtime.model).toBe('opus');
-    expect(result.team.agents['win-agent'].instructions).toEqual([{ kind: 'behavior', content: 'Windows instructions.' }]);
+    expect((result.team.claude?.agents['win-agent'] as any).description).toBe('Windows agent');
+    expect((result.team.claude?.agents['win-agent'] as any).model).toBe('opus');
+    expect((result.team.claude?.agents['win-agent'] as any).instruction_blocks).toEqual([{ kind: 'behavior', content: 'Windows instructions.' }]);
   });
 });
 
@@ -325,15 +325,15 @@ describe('importFromCodexDir', () => {
     ]);
 
     const result = importFromCodexDir(TMP, 'test-project');
-    const agent = result.team.agents.developer;
+    const agent = result.team.codex?.agents.developer as any;
 
-    expect(agent.description).toBe('Builds features');
-    expect(agent.runtime.model).toBe('gpt-5-codex');
-    expect(agent.runtime.reasoningEffort).toBe('high');
-    expect(agent.runtime.tools).toEqual(['read_file', 'write_file', 'execute_command', 'search_codebase']);
-    expect(agent.runtime.skillDocs).toEqual(['test-first', 'clean-code']);
-    expect(agent.metadata?.handoffs).toEqual(['reviewer']);
-    expect(agent.instructions).toEqual([{ kind: 'behavior', content: 'Implement the requested changes.' }]);
+    expect(agent?.description).toBe('Builds features');
+    expect(agent?.model).toBe('gpt-5-codex');
+    expect(agent?.reasoning_effort).toBe('high');
+    expect(agent?.tools).toEqual(['read_file', 'write_file', 'execute_command', 'search_codebase']);
+    expect(agent?.skills).toEqual(['test-first', 'clean-code']);
+    expect(agent?.forge?.handoffs).toEqual(['reviewer']);
+    expect(agent?.instruction_blocks).toEqual([{ kind: 'behavior', content: 'Implement the requested changes.' }]);
   });
 
   it('warns when no codex agent files are found', () => {

@@ -4,6 +4,8 @@ import { existsSync, rmSync } from 'fs';
 import { join } from 'path';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { writeManifest } from '../manifest/writer.js';
+import { expandSkills } from '../core/skill-resolver.js';
+import { defaultRegistry } from '../plugins/index.js';
 import { generate } from '../generator/index.js';
 import {
   printSuccess,
@@ -24,12 +26,26 @@ import {
   teamHasBlockingIssues,
   printManifestValidation,
 } from '../application/validate-team.js';
+import { confirm, checkbox } from '@inquirer/prompts';
 import {
-  promptCheckbox,
   promptConfirm,
   promptInput,
   promptList,
+  promptCheckbox,
 } from '../utils/prompts.js';
+import type { AgentSkill } from '../core/skills.js';
+
+function formatSkillLabel(skillId: string, description?: string): string {
+  const skillDef = defaultRegistry.getSkills()[skillId];
+  const label = skillDef ? skillDef.description : skillId;
+  const shortLabel = label.split(' ')[0] ?? skillId;
+  return `${shortLabel.padEnd(16)}`;
+}
+
+function getSupportedSkills(targetContext: TargetContext): string[] {
+  const allSkills = Object.keys(defaultRegistry.getSkills());
+  return allSkills.filter((skill) => (targetContext.skillMap[skill as AgentSkill]?.length ?? 0) > 0);
+}
 import {
   createRoleAgent,
   isTeamRoleName,
@@ -77,21 +93,21 @@ function parseReasoningEffort(value: string | undefined): ReasoningEffort | null
   process.exit(1);
 }
 
-function getClaudeModelChoices() {
-  return [
-    { name: 'sonnet  (recommended - fast, capable)', value: 'sonnet' },
-    { name: 'opus    (most capable, slower)', value: 'opus' },
-    { name: 'haiku   (fastest, lightweight tasks)', value: 'haiku' },
-    { name: 'unspecified', value: 'unspecified' },
-  ] as const;
-}
-
 async function promptTargetModel(targetContext: TargetContext, currentModel?: string): Promise<string | null | undefined> {
-  if (targetContext.name === 'claude') {
+  const models = Object.values(defaultRegistry.getModels());
+  const targetModels = models.filter((m) => !m.target || m.target === targetContext.name);
+
+  if (targetModels.length > 0) {
+    const choices = targetModels.map((m) => ({
+      name: `${m.displayName.padEnd(20)} ${chalk.dim(`(${m.features.join(', ')})`)}`,
+      value: m.id,
+    }));
+    choices.push({ name: 'unspecified', value: 'unspecified' });
+
     const selected = await promptList<string>({
       message: 'Model:',
-      choices: [...getClaudeModelChoices()],
-      default: currentModel ?? 'sonnet',
+      choices,
+      default: currentModel ?? targetModels[0].id,
     });
 
     return selected === 'unspecified' ? null : selected;
@@ -525,68 +541,22 @@ async function promptAgentConfig(name: string, targetContext: TargetContext): Pr
   });
   const model = await promptTargetModel(targetContext);
   const reasoningEffort = await promptTargetReasoningEffort(targetContext);
-  const canWrite = await promptConfirm({
-    message: 'Can this agent write/edit files?',
-    default: true,
-  });
-  const canBash = await promptConfirm({
-    message: 'Can this agent run shell commands?',
-    default: false,
-  });
-  const canWeb = await promptConfirm({
-    message: 'Can this agent access the internet?',
-    default: false,
-  });
-  const canDelegate = await promptConfirm({
-    message: 'Can this agent delegate to other agents?',
-    default: false,
+
+  const supportedSkills = getSupportedSkills(targetContext);
+  const selectedSkills = await promptCheckbox<string>({
+    message: `Skills for ${name}:`,
+    choices: supportedSkills.map((skill) => ({
+      name: formatSkillLabel(skill, defaultRegistry.getSkills()[skill]?.description),
+      value: skill,
+      checked: ['read_files', 'write_files'].includes(skill), // default selection
+    })),
   });
 
-  const allow: CoreAgent['runtime']['tools'] = [];
-  const knownTools = targetContext.knownTools;
-  const deny: CoreAgent['runtime']['disallowedTools'] = [];
+  const allow = selectedSkills.length > 0
+    ? expandSkills(selectedSkills as AgentSkill[], targetContext.skillMap)
+    : [];
 
-  if (knownTools.includes('Read')) allow.push('Read');
-  if (knownTools.includes('Grep')) allow.push('Grep');
-  if (knownTools.includes('Glob')) allow.push('Glob');
-  if (knownTools.includes('read_file') && !allow.includes('read_file')) allow.push('read_file');
-  if (knownTools.includes('search_codebase') && !allow.includes('search_codebase')) allow.push('search_codebase');
-
-  if (canWrite) {
-    for (const tool of ['Write', 'Edit', 'MultiEdit', 'write_file']) {
-      if (knownTools.includes(tool) && !allow.includes(tool)) allow.push(tool);
-    }
-  } else {
-    for (const tool of ['Write', 'Edit', 'MultiEdit', 'write_file']) {
-      if (knownTools.includes(tool) && !deny.includes(tool)) deny.push(tool);
-    }
-  }
-
-  if (canBash) {
-    for (const tool of ['Bash', 'execute_command']) {
-      if (knownTools.includes(tool) && !allow.includes(tool)) allow.push(tool);
-    }
-  } else {
-    for (const tool of ['Bash', 'execute_command']) {
-      if (knownTools.includes(tool) && !deny.includes(tool)) deny.push(tool);
-    }
-  }
-
-  if (canWeb) {
-    for (const tool of ['WebFetch', 'WebSearch', 'web_search']) {
-      if (knownTools.includes(tool) && !allow.includes(tool)) allow.push(tool);
-    }
-  } else {
-    for (const tool of ['WebFetch', 'WebSearch', 'web_search']) {
-      if (knownTools.includes(tool) && !deny.includes(tool)) deny.push(tool);
-    }
-  }
-
-  if (canDelegate) {
-    for (const tool of ['Agent']) {
-      if (knownTools.includes(tool) && !allow.includes(tool)) allow.push(tool);
-    }
-  }
+  const deny = targetContext.knownTools.filter((t) => !allow.includes(t));
 
   return {
     id: name,

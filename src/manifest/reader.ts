@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { parse } from 'yaml';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 import type { TeamCastManifest } from './types.js';
 import { validateSchema } from './schema-validator.js';
 
@@ -29,7 +30,8 @@ export function readManifest(cwd: string): TeamCastManifest {
 
   let parsed: unknown;
   try {
-    parsed = parse(raw);
+    const yaml = require('yaml');
+    parsed = yaml.parse(raw);
   } catch (err) {
     throw new ManifestError(
       'Failed to parse teamcast.yaml',

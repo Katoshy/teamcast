@@ -10,8 +10,6 @@ project:
   description: Research-first team. Researcher has full internet access; developer does not.
 policies:
   fragments:
-    - allow-npm-run
-    - allow-npm-test
     - allow-git-read
     - allow-git-write
     - ask-git-push

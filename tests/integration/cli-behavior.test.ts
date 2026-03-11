@@ -242,6 +242,10 @@ describe('CLI behavior', () => {
       );
 
       const result = runCli(['import', '--yes'], cwd);
+      if (result.status !== 0) {
+        console.error('CLI STDOUT:\n', result.stdout);
+        console.error('CLI STDERR:\n', result.stderr);
+      }
       expect(result.status).toBe(0);
 
       const yaml = readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8');

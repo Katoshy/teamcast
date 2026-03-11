@@ -72,22 +72,23 @@ export function registerImportCommand(program: Command): void {
           console.log('');
         }
 
-        const agentNames = Object.keys(result.team.agents);
+        const agents = result.team.claude?.agents ?? {};
+        const agentNames = Object.keys(agents);
         if (agentNames.length > 0) {
           importedTargets.push({ targetName: 'claude', agentNames });
-          mergeManifest(createManifestForTarget(result.team, 'claude'));
+          mergeManifest(result.team);
 
           console.log(chalk.dim(`  Claude: ${agentNames.length} agent${agentNames.length !== 1 ? 's' : ''}`));
           for (const name of agentNames) {
-            const agent = result.team.agents[name];
+            const agent = agents[name];
             console.log(chalk.dim(`    ${name} - ${agent.description}`));
           }
 
-          if (result.team.policies) {
+          if (result.team.claude?.policies) {
             const parts: string[] = [];
-            if (result.team.policies.permissions) parts.push('permissions');
-            if (result.team.policies.sandbox) parts.push('sandbox');
-            if (result.team.policies.hooks) parts.push('hooks');
+            if (result.team.claude.policies.permissions) parts.push('permissions');
+            if (result.team.claude.policies.sandbox) parts.push('sandbox');
+            if (result.team.claude.policies.hooks) parts.push('hooks');
             if (parts.length > 0) {
               console.log(chalk.dim(`  Claude policies: ${parts.join(', ')}`));
             }
@@ -106,14 +107,15 @@ export function registerImportCommand(program: Command): void {
           console.log('');
         }
 
-        const agentNames = Object.keys(result.team.agents);
+        const agents = result.team.codex?.agents ?? {};
+        const agentNames = Object.keys(agents);
         if (agentNames.length > 0) {
           importedTargets.push({ targetName: 'codex', agentNames });
-          mergeManifest(createManifestForTarget(result.team, 'codex'));
+          mergeManifest(result.team);
 
           console.log(chalk.dim(`  Codex: ${agentNames.length} agent${agentNames.length !== 1 ? 's' : ''}`));
           for (const name of agentNames) {
-            const agent = result.team.agents[name];
+            const agent = agents[name];
             console.log(chalk.dim(`    ${name} - ${agent.description}`));
           }
           console.log('');

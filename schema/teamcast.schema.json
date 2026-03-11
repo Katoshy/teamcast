@@ -29,6 +29,12 @@
         }
       }
     },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "claude": {
       "$ref": "#/definitions/TargetConfig"
     },
@@ -297,7 +303,9 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "policies": { "$ref": "#/definitions/PoliciesConfig" },
+        "settings": { "$ref": "#/definitions/GenerationSettings" }
       }
     },
     "PermissionsConfig": {

@@ -28,7 +28,7 @@ describe('component composition', () => {
         },
       } },
       policies: {
-        fragments: ['allow-npm-run', 'deny-env-files', 'sandbox-default'],
+        fragments: ['allow-git-read', 'deny-env-files', 'sandbox-default'],
       },
     };
 
@@ -44,8 +44,8 @@ describe('component composition', () => {
         content: 'Read the relevant code before editing. Keep changes focused and validate the result.',
       },
     ]);
-    expect(team.policies?.permissions?.allow).toEqual(['project.commands']);
-    expect(team.policies?.permissions?.deny).toEqual(['env.write']);
+    expect(team.policies?.permissions?.rules?.allow).toEqual(['Bash(git status)', 'Bash(git diff *)']);
+    expect(team.policies?.permissions?.rules?.deny).toEqual(['Write(.env*)', 'Edit(.env*)']);
     expect(team.policies?.sandbox?.enabled).toBe(true);
     expect(team.policies?.sandbox?.autoAllowBash).toBe(true);
   });

@@ -20,7 +20,9 @@ const manifest: TeamCastManifest = {
   },
   policies: {
     permissions: {
-      deny: ['Write(.env*)', 'Edit(.env*)'],
+      rules: {
+        deny: ['Write(.env*)', 'Edit(.env*)'],
+      },
     },
     sandbox: { enabled: true },
   },

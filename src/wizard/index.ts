@@ -11,6 +11,7 @@ import { stepAgentCustomization } from './steps/agent-customization.js';
 import { normalizeManifest, replaceManifestTarget } from '../manifest/normalize.js';
 import { getTarget, getRegisteredTargetNames } from '../renderers/registry.js';
 import { evaluateTeam, teamHasBlockingIssues, printManifestValidation } from '../application/validate-team.js';
+import { defaultRegistry } from '../plugins/index.js';
 import {
   printSuccess,
   printError,
@@ -55,6 +56,10 @@ export async function runWizard(options: WizardOptions): Promise<void> {
     rawManifest = replaceManifestTarget(rawManifest, targetName, customizedTeam);
   }
 
+  const detectedPlugins = defaultRegistry.getDetectedPlugins(cwd).map(p => p.name);
+  if (detectedPlugins.length > 0) {
+    rawManifest.plugins = detectedPlugins;
+  }
   const validation = evaluateTeam(rawManifest);
   if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);

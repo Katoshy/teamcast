@@ -25,9 +25,11 @@ describe('renderSettingsJson', () => {
       ...baseManifest,
       policies: {
         permissions: {
-          allow: ['Bash(npm run *)'],
-          ask: ['Bash(git push *)'],
-          deny: ['Bash(rm -rf *)'],
+          rules: {
+            allow: ['Bash(npm run *)'],
+            ask: ['Bash(git push *)'],
+            deny: ['Bash(rm -rf *)'],
+          },
         },
       },
     };
@@ -40,31 +42,6 @@ describe('renderSettingsJson', () => {
     expect(parsed.permissions.deny).toContain('Bash(rm -rf *)');
   });
 
-  it('maps abstract permissions to Claude-specific rules', () => {
-    const manifest: TeamCastManifest = {
-      ...baseManifest,
-      version: '2',
-      policies: {
-        permissions: {
-          allow: ['project.commands', 'git.read'],
-          ask: ['git.push'],
-          deny: ['env.write', 'downloads'],
-        },
-      },
-    };
-
-    const result = renderSettingsJson(normalizeManifest(applyDefaults(manifest), claudeTarget));
-    const parsed = JSON.parse(result.content);
-
-    expect(parsed.permissions.allow).toContain('Bash(npm run *)');
-    expect(parsed.permissions.allow).toContain('Bash(git status)');
-    expect(parsed.permissions.allow).toContain('Bash(git diff *)');
-    expect(parsed.permissions.ask).toContain('Bash(git push *)');
-    expect(parsed.permissions.deny).toContain('Write(.env*)');
-    expect(parsed.permissions.deny).toContain('Edit(.env*)');
-    expect(parsed.permissions.deny).toContain('Bash(curl *)');
-    expect(parsed.permissions.deny).toContain('Bash(wget *)');
-  });
 
   it('converts network.allowed_domains to WebFetch rules', () => {
     const manifest: TeamCastManifest = {

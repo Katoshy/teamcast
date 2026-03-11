@@ -137,8 +137,6 @@ Provide clear, actionable recommendations. Do not modify files yourself.
     ".claude/settings.json": "{
   "permissions": {
     "allow": [
-      "Bash(npm run *)",
-      "Bash(npm test *)",
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
@@ -217,8 +215,6 @@ Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast gene
 ## Access Control
 
 **Permitted operations:**
-- \`Bash(npm run *)\`
-- \`Bash(npm test *)\`
 - \`Bash(git status)\`
 - \`Bash(git diff *)\`
 - \`Bash(git add *)\`
@@ -264,7 +260,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
 
 ---
 
@@ -397,8 +393,6 @@ Do not modify any files.
     ".claude/settings.json": "{
   "permissions": {
     "allow": [
-      "Bash(npm run *)",
-      "Bash(npm test *)",
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
@@ -476,8 +470,6 @@ Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast gene
 ## Access Control
 
 **Permitted operations:**
-- \`Bash(npm run *)\`
-- \`Bash(npm test *)\`
 - \`Bash(git status)\`
 - \`Bash(git diff *)\`
 - \`Bash(git add *)\`
@@ -523,7 +515,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
 
 ---
 
@@ -692,9 +684,6 @@ If you find critical issues, block the PR and explain what must be fixed. Do not
     ".claude/settings.json": "{
   "permissions": {
     "allow": [
-      "Bash(npm run *)",
-      "Bash(npm test *)",
-      "Bash(npm audit)",
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
@@ -784,9 +773,6 @@ Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast gene
 ## Access Control
 
 **Permitted operations:**
-- \`Bash(npm run *)\`
-- \`Bash(npm test *)\`
-- \`Bash(npm audit)\`
 - \`Bash(git status)\`
 - \`Bash(git diff *)\`
 - \`Bash(git add *)\`
@@ -835,7 +821,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Bash(eval *), Bash(exec *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(npm audit), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
 
 ---
 
@@ -892,13 +878,10 @@ Follow existing code style. Keep changes minimal and focused.
     ".claude/settings.json": "{
   "permissions": {
     "allow": [
-      "Bash(npm run *)",
-      "Bash(npm test *)",
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(npx *)"
+      "Bash(git commit *)"
     ],
     "ask": [
       "Bash(git push *)"
@@ -939,13 +922,10 @@ Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast gene
 ## Access Control
 
 **Permitted operations:**
-- \`Bash(npm run *)\`
-- \`Bash(npm test *)\`
 - \`Bash(git status)\`
 - \`Bash(git diff *)\`
 - \`Bash(git add *)\`
 - \`Bash(git commit *)\`
-- \`Bash(npx *)\`
 
 **Prohibited operations:**
 - \`Bash(rm -rf *)\`
@@ -976,7 +956,7 @@ This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(npx *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
 
 ---
 

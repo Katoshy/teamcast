@@ -22,7 +22,7 @@ describe('checkSecurityBaseline', () => {
     const manifest: TeamCastManifest = {
       ...base,
       policies: {
-        permissions: { deny: ['Write(.env*)', 'Edit(.env*)'] },
+        permissions: { rules: { deny: ['Write(.env*)', 'Edit(.env*)'] } },
         sandbox: { enabled: true },
       },
     };
@@ -54,7 +54,7 @@ describe('checkSecurityBaseline', () => {
     const manifest: TeamCastManifest = {
       ...base,
       policies: {
-        permissions: { allow: ['Bash(--dangerously-skip-permissions)'] },
+        permissions: { rules: { allow: ['Bash(--dangerously-skip-permissions)'] } },
       },
     };
     const errors = checkSecurityBaseline(normalizeManifest(manifest, claudeTarget)).filter((r) => r.severity === 'error');

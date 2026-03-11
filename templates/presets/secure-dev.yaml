@@ -12,9 +12,6 @@ project:
     access controls.
 policies:
   fragments:
-    - allow-npm-run
-    - allow-npm-test
-    - allow-npm-audit
     - allow-git-read
     - allow-git-write
     - ask-git-push

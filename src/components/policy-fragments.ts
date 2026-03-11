@@ -1,12 +1,8 @@
 import type { TeamPolicies } from '../core/types.js';
 
 export type PolicyFragmentName =
-  | 'allow-npm-run'
-  | 'allow-npm-test'
   | 'allow-git-read'
   | 'allow-git-write'
-  | 'allow-npx'
-  | 'allow-npm-audit'
   | 'ask-git-push'
   | 'deny-destructive-shell'
   | 'deny-network-downloads'
@@ -15,60 +11,26 @@ export type PolicyFragmentName =
   | 'sandbox-default';
 
 const POLICY_FRAGMENTS: Record<PolicyFragmentName, TeamPolicies> = {
-  'allow-npm-run': {
-    permissions: {
-      allow: ['project.commands'],
-    },
-  },
-  'allow-npm-test': {
-    permissions: {
-      allow: ['tests'],
-    },
-  },
   'allow-git-read': {
-    permissions: {
-      allow: ['git.read'],
-    },
+    permissions: { rules: { allow: ['Bash(git status)', 'Bash(git diff *)'] } }
   },
   'allow-git-write': {
-    permissions: {
-      allow: ['git.write'],
-    },
-  },
-  'allow-npx': {
-    permissions: {
-      allow: ['package.exec'],
-    },
-  },
-  'allow-npm-audit': {
-    permissions: {
-      allow: ['security.audit'],
-    },
+    permissions: { rules: { allow: ['Bash(git add *)', 'Bash(git commit *)'] } }
   },
   'ask-git-push': {
-    permissions: {
-      ask: ['git.push'],
-    },
+    permissions: { rules: { ask: ['Bash(git push *)'] } }
   },
   'deny-destructive-shell': {
-    permissions: {
-      deny: ['destructive-shell'],
-    },
+    permissions: { rules: { deny: ['Bash(rm -rf *)', 'Bash(git push --force *)'] } }
   },
   'deny-network-downloads': {
-    permissions: {
-      deny: ['downloads'],
-    },
+    permissions: { rules: { deny: ['Bash(curl *)', 'Bash(wget *)'] } }
   },
   'deny-dynamic-exec': {
-    permissions: {
-      deny: ['dynamic-exec'],
-    },
+    permissions: { rules: { deny: ['Bash(eval *)', 'Bash(exec *)'] } }
   },
   'deny-env-files': {
-    permissions: {
-      deny: ['env.write'],
-    },
+    permissions: { rules: { deny: ['Write(.env*)', 'Edit(.env*)'] } }
   },
   'sandbox-default': {
     sandbox: {
@@ -87,17 +49,14 @@ function mergePolicies(base: TeamPolicies, extra: TeamPolicies): TeamPolicies {
   return {
     permissions: base.permissions || extra.permissions
       ? {
-          allow: mergeUnique(base.permissions?.allow, extra.permissions?.allow),
-          ask: mergeUnique(base.permissions?.ask, extra.permissions?.ask),
-          deny: mergeUnique(base.permissions?.deny, extra.permissions?.deny),
-          defaultMode: extra.permissions?.defaultMode ?? base.permissions?.defaultMode,
-          rawRules: base.permissions?.rawRules || extra.permissions?.rawRules
+          rules: base.permissions?.rules || extra.permissions?.rules
             ? {
-                allow: mergeUnique(base.permissions?.rawRules?.allow, extra.permissions?.rawRules?.allow),
-                ask: mergeUnique(base.permissions?.rawRules?.ask, extra.permissions?.rawRules?.ask),
-                deny: mergeUnique(base.permissions?.rawRules?.deny, extra.permissions?.rawRules?.deny),
+                allow: mergeUnique(base.permissions?.rules?.allow, extra.permissions?.rules?.allow),
+                ask: mergeUnique(base.permissions?.rules?.ask, extra.permissions?.rules?.ask),
+                deny: mergeUnique(base.permissions?.rules?.deny, extra.permissions?.rules?.deny),
               }
             : undefined,
+          defaultMode: extra.permissions?.defaultMode ?? base.permissions?.defaultMode,
         }
       : undefined,
     sandbox: base.sandbox || extra.sandbox

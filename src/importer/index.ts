@@ -3,13 +3,13 @@ import { join, basename } from 'path';
 import { parse } from 'yaml';
 import type {
   CoreAgent,
-  CoreTeam,
   HookEntry,
   McpServerConfig,
   PermissionMode,
   TeamPolicies,
+  TeamSettings,
 } from '../core/types.js';
-import { normalizePermissionTokens } from '../core/permissions.js';
+import type { TeamCastManifest } from '../manifest/types.js';
 import type { TargetContext } from '../renderers/target-context.js';
 import { createClaudeTarget } from '../renderers/claude/index.js';
 import { createCodexTarget } from '../renderers/codex/index.js';
@@ -27,7 +27,7 @@ interface ImportWarning {
 }
 
 interface ImportResult {
-  team: CoreTeam;
+  team: TeamCastManifest;
   warnings: ImportWarning[];
 }
 
@@ -299,29 +299,18 @@ function parseSettingsJson(filePath: string): { policies: TeamPolicies; warnings
     ? settings.permissions as Record<string, unknown>
     : undefined;
   if (perms) {
-    const allow = normalizePermissionTokens(
-      Array.isArray(perms.allow) ? perms.allow as string[] : undefined,
-      'allow',
-    );
-    const ask = normalizePermissionTokens(
-      Array.isArray(perms.ask) ? perms.ask as string[] : undefined,
-      'ask',
-    );
-    const deny = normalizePermissionTokens(
-      Array.isArray(perms.deny) ? perms.deny as string[] : undefined,
-      'deny',
-    );
+    const allow = Array.isArray(perms.allow) ? perms.allow as string[] : undefined;
+    const ask = Array.isArray(perms.ask) ? perms.ask as string[] : undefined;
+    const deny = Array.isArray(perms.deny) ? perms.deny as string[] : undefined;
 
     policies.permissions = {};
-    if (allow.abstract) policies.permissions.allow = allow.abstract;
-    if (ask.abstract) policies.permissions.ask = ask.abstract;
-    if (deny.abstract) policies.permissions.deny = deny.abstract;
-    if (allow.raw || ask.raw || deny.raw) {
-      policies.permissions.rawRules = {};
-      if (allow.raw) policies.permissions.rawRules.allow = allow.raw;
-      if (ask.raw) policies.permissions.rawRules.ask = ask.raw;
-      if (deny.raw) policies.permissions.rawRules.deny = deny.raw;
+    if (allow || ask || deny) {
+      policies.permissions.rules = {};
+      if (allow) policies.permissions.rules.allow = allow;
+      if (ask) policies.permissions.rules.ask = ask;
+      if (deny) policies.permissions.rules.deny = deny;
     }
+
     if (perms.defaultMode && typeof perms.defaultMode === 'string') {
       policies.permissions.defaultMode = perms.defaultMode as 'default' | 'acceptEdits';
     }
@@ -412,15 +401,58 @@ export function importFromClaudeDir(cwd: string, projectName: string): ImportRes
     warnings.push(...result.warnings);
   }
 
+  const agentConfigs: Record<string, any> = {};
+  for (const [id, coreAgent] of Object.entries(agents)) {
+    agentConfigs[id] = {
+      description: coreAgent.description,
+      model: coreAgent.runtime.model,
+      reasoning_effort: coreAgent.runtime.reasoningEffort,
+      tools: coreAgent.runtime.tools,
+      disallowed_tools: coreAgent.runtime.disallowedTools,
+      permission_mode: coreAgent.runtime.permissionMode,
+      skills: coreAgent.runtime.skillDocs,
+      max_turns: coreAgent.runtime.maxTurns,
+      mcp_servers: coreAgent.runtime.mcpServers,
+      background: coreAgent.runtime.background,
+      instruction_blocks: coreAgent.instructions,
+      forge: coreAgent.metadata,
+    };
+  }
+
   return {
     team: {
       version: '2',
       project: { name: projectName },
-      agents,
-      policies,
-      settings: {
-        generateDocs: true,
-        generateLocalSettings: true,
+      claude: {
+        agents: agentConfigs,
+        policies: policies ? {
+          permissions: policies.permissions ? {
+            rules: policies.permissions.rules ? {
+              allow: policies.permissions.rules.allow,
+              ask: policies.permissions.rules.ask,
+              deny: policies.permissions.rules.deny,
+            } : undefined,
+            default_mode: policies.permissions.defaultMode,
+          } : undefined,
+          sandbox: policies.sandbox ? {
+            enabled: policies.sandbox.enabled,
+            auto_allow_bash: policies.sandbox.autoAllowBash,
+            excluded_commands: policies.sandbox.excludedCommands,
+            network: policies.sandbox.network ? {
+              allow_unix_sockets: policies.sandbox.network.allowUnixSockets,
+              allow_local_binding: policies.sandbox.network.allowLocalBinding,
+            } : undefined,
+          } : undefined,
+          hooks: policies.hooks ? {
+            pre_tool_use: policies.hooks.preToolUse,
+            post_tool_use: policies.hooks.postToolUse,
+            notification: policies.hooks.notification,
+          } : undefined,
+        } : undefined,
+        settings: {
+          generate_docs: true,
+          generate_local_settings: true,
+        },
       },
     },
     warnings,
@@ -539,14 +571,34 @@ export function importFromCodexDir(cwd: string, projectName: string): ImportResu
     warnings.push({ file: join(cwd, '.codex', 'agents'), message: 'No agent .toml files found in .codex/agents/' });
   }
 
+  const agentConfigs: Record<string, any> = {};
+  for (const [id, coreAgent] of Object.entries(agents)) {
+    agentConfigs[id] = {
+      description: coreAgent.description,
+      model: coreAgent.runtime.model,
+      reasoning_effort: coreAgent.runtime.reasoningEffort,
+      tools: coreAgent.runtime.tools,
+      disallowed_tools: coreAgent.runtime.disallowedTools,
+      permission_mode: coreAgent.runtime.permissionMode,
+      skills: coreAgent.runtime.skillDocs,
+      max_turns: coreAgent.runtime.maxTurns,
+      mcp_servers: coreAgent.runtime.mcpServers,
+      background: coreAgent.runtime.background,
+      instruction_blocks: coreAgent.instructions,
+      forge: coreAgent.metadata,
+    };
+  }
+
   return {
     team: {
       version: '2',
       project: { name: projectName },
-      agents,
-      settings: {
-        generateDocs: true,
-        generateLocalSettings: true,
+      codex: {
+        agents: agentConfigs,
+        settings: {
+          generate_docs: true,
+          generate_local_settings: true,
+        },
       },
     },
     warnings,

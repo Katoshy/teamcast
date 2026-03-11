@@ -6,12 +6,15 @@ import { buildGeneratedOutputs } from '../application/build-generated-files.js';
 import '../renderers/index.js';
 import { getRegisteredTargetNames, getTarget } from '../renderers/registry.js';
 import { normalizeManifest } from '../manifest/normalize.js';
+import { injectEnvironmentPolicies } from '../plugins/inject.js';
 
 export function generate(
   manifest: TeamCastManifest,
   options: BuildGeneratedOutputsOptions,
 ) {
   const rawManifest = applyDefaults(manifest);
+  injectEnvironmentPolicies(rawManifest, options.cwd);
+  
   const rawManifestRecord = rawManifest as unknown as Record<string, unknown>;
   const registeredTargets = getRegisteredTargetNames();
   const allGeneratedFiles: ReturnType<typeof buildGeneratedOutputs> = [];
