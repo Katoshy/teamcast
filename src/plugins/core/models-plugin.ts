@@ -7,7 +7,7 @@ export const coreModelsPlugin: TeamCastPlugin = {
   models: {
     opus: {
       id: 'opus',
-      displayName: 'Claude Opus',
+      displayName: 'Claude Opus 4.6',
       target: 'claude',
       features: ['quality', 'tools'],
     },
@@ -19,9 +19,15 @@ export const coreModelsPlugin: TeamCastPlugin = {
     },
     haiku: {
       id: 'haiku',
-      displayName: 'Claude Haiku',
+      displayName: 'Claude Haiku 4.5',
       target: 'claude',
       features: ['fast', 'economical'],
+    },
+    'gpt-5.3-codex': {
+      id: 'gpt-5.3-codex',
+      displayName: 'GPT-5.3-Codex',
+      target: 'codex',
+      features: ['tools', 'reasoning'],
     },
     'gpt-5.2-codex': {
       id: 'gpt-5.2-codex',

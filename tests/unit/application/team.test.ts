@@ -11,7 +11,7 @@ describe('application team builders', () => {
 
     expect(manifest.claude?.agents.orchestrator.model).toBe('opus');
     expect(manifest.claude?.agents.developer.model).toBe('sonnet');
-    expect(manifest.codex?.agents.orchestrator.model).toBe('gpt-5.2-codex');
+    expect(manifest.codex?.agents.orchestrator.model).toBe('gpt-5.3-codex');
     expect(manifest.codex?.agents.orchestrator.reasoning_effort).toBe('high');
     expect(manifest.codex?.agents.developer.model).toBe('gpt-5-codex');
     expect(manifest.codex?.agents.developer.reasoning_effort).toBe('medium');
@@ -21,13 +21,13 @@ describe('application team builders', () => {
     const manifest = buildManifestFromPreset('feature-team', 'demo-app', 'both');
 
     expect(manifest.claude?.agents.orchestrator.model).toBe('opus');
-    expect(manifest.codex?.agents.orchestrator.model).toBe('gpt-5.2-codex');
+    expect(manifest.codex?.agents.orchestrator.model).toBe('gpt-5.3-codex');
     expect(manifest.codex?.agents.orchestrator.reasoning_effort).toBe('high');
-    expect(manifest.codex?.agents.planner.model).toBe('gpt-5.2-codex');
+    expect(manifest.codex?.agents.planner.model).toBe('gpt-5.3-codex');
     expect(manifest.codex?.agents.planner.reasoning_effort).toBe('high');
     expect(manifest.codex?.agents.developer.model).toBe('gpt-5-codex');
     expect(manifest.codex?.agents.developer.reasoning_effort).toBe('medium');
-    expect(manifest.codex?.agents.reviewer.model).toBe('gpt-5.2-codex');
+    expect(manifest.codex?.agents.reviewer.model).toBe('gpt-5.3-codex');
     expect(manifest.codex?.agents.reviewer.reasoning_effort).toBe('high');
   });
 

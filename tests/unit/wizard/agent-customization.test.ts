@@ -186,13 +186,13 @@ describe('stepAgentCustomization', () => {
 
     mockedPrompt
       .mockResolvedValueOnce({ value: true })
-      .mockResolvedValueOnce({ value: 'gpt-5.2-codex' })
+      .mockResolvedValueOnce({ value: 'gpt-5.3-codex' })
       .mockResolvedValueOnce({ value: 'xhigh' })
       .mockResolvedValueOnce({ value: ['read_files', 'search'] });
 
     const result = await stepAgentCustomization(team, codexTarget);
 
-    expect(result.agents.dev.runtime.model).toBe('gpt-5.2-codex');
+    expect(result.agents.dev.runtime.model).toBe('gpt-5.3-codex');
     expect(result.agents.dev.runtime.reasoningEffort).toBe('xhigh');
     expect(result.agents.dev.runtime.tools).toContain('read_file');
     expect(result.agents.dev.runtime.tools).toContain('search_codebase');

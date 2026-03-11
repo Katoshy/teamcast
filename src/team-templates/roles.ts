@@ -48,7 +48,7 @@ const ROLE_TEMPLATES: Record<TeamRoleName, RoleTemplate> = {
     instructionFragments: ['coordination-core', 'delegate-first'],
     runtimeByTarget: {
       claude: { model: 'opus' },
-      codex: { model: 'gpt-5.2-codex', reasoningEffort: 'high' },
+      codex: { model: 'gpt-5.3-codex', reasoningEffort: 'high' },
     },
   },
   planner: {
@@ -59,7 +59,7 @@ const ROLE_TEMPLATES: Record<TeamRoleName, RoleTemplate> = {
     instructionFragments: ['planning-core', 'planning-read-only'],
     runtimeByTarget: {
       claude: { model: 'sonnet' },
-      codex: { model: 'gpt-5.2-codex', reasoningEffort: 'high' },
+      codex: { model: 'gpt-5.3-codex', reasoningEffort: 'high' },
     },
   },
   researcher: {
@@ -103,7 +103,7 @@ const ROLE_TEMPLATES: Record<TeamRoleName, RoleTemplate> = {
     instructionFragments: ['review-core', 'review-feedback'],
     runtimeByTarget: {
       claude: { model: 'sonnet' },
-      codex: { model: 'gpt-5.2-codex', reasoningEffort: 'high' },
+      codex: { model: 'gpt-5.3-codex', reasoningEffort: 'high' },
     },
   },
   'security-auditor': {
@@ -114,7 +114,7 @@ const ROLE_TEMPLATES: Record<TeamRoleName, RoleTemplate> = {
     instructionFragments: ['security-audit-core', 'security-audit-severity'],
     runtimeByTarget: {
       claude: { model: 'sonnet' },
-      codex: { model: 'gpt-5.2-codex', reasoningEffort: 'high' },
+      codex: { model: 'gpt-5.3-codex', reasoningEffort: 'high' },
     },
   },
 };
