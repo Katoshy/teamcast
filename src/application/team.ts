@@ -2,7 +2,7 @@ import type { CoreAgent, CoreTeam, ReasoningEffort } from '../core/types.js';
 import type { AgentConfig, TeamCastManifest, TargetConfig } from '../manifest/types.js';
 import type { TeamRoleName } from '../team-templates/roles.js';
 import { createPolicies } from '../team-templates/policies.js';
-import { createRoleAgent } from '../team-templates/roles.js';
+import { createRoleAgent, getRoleRuntimeDefaults, isTeamRoleName } from '../team-templates/roles.js';
 import { applyPreset, loadPreset } from '../presets/index.js';
 import { createManifestForTarget, normalizeManifest } from '../manifest/normalize.js';
 import type { TargetContext } from '../renderers/target-context.js';
@@ -37,17 +37,42 @@ function cloneAgent(agent: CoreAgent): CoreAgent {
   };
 }
 
-function cloneTargetConfig(targetConfig: TargetConfig | undefined, options?: { dropTargetSpecificFields?: boolean }): TargetConfig | undefined {
+function inferBuiltInRole(agentId: string, agent: AgentConfig): TeamRoleName | undefined {
+  if (isTeamRoleName(agentId)) {
+    return agentId;
+  }
+
+  if (agent.forge?.role && isTeamRoleName(agent.forge.role)) {
+    return agent.forge.role;
+  }
+
+  return undefined;
+}
+
+function cloneTargetConfig(
+  targetConfig: TargetConfig | undefined,
+  options?: { dropTargetSpecificFields?: boolean; targetName?: InitTargetName },
+): TargetConfig | undefined {
   if (!targetConfig) return undefined;
 
   return {
     agents: Object.fromEntries(
       Object.entries(targetConfig.agents).map(([agentId, agent]) => [
         agentId,
-        {
+        (() => {
+          const roleName =
+            options?.dropTargetSpecificFields && options.targetName
+              ? inferBuiltInRole(agentId, agent)
+              : undefined;
+          const runtimeDefaults =
+            roleName && options?.targetName
+              ? getRoleRuntimeDefaults(roleName, options.targetName)
+              : {};
+
+          return {
           ...agent,
-          model: options?.dropTargetSpecificFields ? undefined : agent.model,
-          reasoning_effort: options?.dropTargetSpecificFields ? undefined : agent.reasoning_effort,
+          model: options?.dropTargetSpecificFields ? runtimeDefaults.model : agent.model,
+          reasoning_effort: options?.dropTargetSpecificFields ? runtimeDefaults.reasoningEffort : agent.reasoning_effort,
           tools: agent.tools ? [...agent.tools] : undefined,
           disallowed_tools: agent.disallowed_tools ? [...agent.disallowed_tools] : undefined,
           skills: agent.skills ? [...agent.skills] : undefined,
@@ -62,7 +87,8 @@ function cloneTargetConfig(targetConfig: TargetConfig | undefined, options?: { d
                 template: agent.forge.template,
               }
             : undefined,
-        } satisfies AgentConfig,
+          } satisfies AgentConfig;
+        })(),
       ]),
     ),
   };
@@ -95,10 +121,16 @@ export function buildManifestFromPreset(
     settings: manifest.settings ? { ...manifest.settings } : undefined,
     preset_meta: manifest.preset_meta ? { ...manifest.preset_meta } : undefined,
     claude: targetNames.includes('claude')
-      ? cloneTargetConfig(manifest.claude ?? sourceTarget, { dropTargetSpecificFields: !manifest.claude })
+      ? cloneTargetConfig(manifest.claude ?? sourceTarget, {
+          dropTargetSpecificFields: !manifest.claude,
+          targetName: 'claude',
+        })
       : undefined,
     codex: targetNames.includes('codex')
-      ? cloneTargetConfig(manifest.codex ?? sourceTarget, { dropTargetSpecificFields: !manifest.codex })
+      ? cloneTargetConfig(manifest.codex ?? sourceTarget, {
+          dropTargetSpecificFields: !manifest.codex,
+          targetName: 'codex',
+        })
       : undefined,
   };
 }
@@ -191,19 +223,25 @@ export function buildSingleAgentTeamForTarget(
   targetName: InitTargetName = 'claude',
 ): CoreTeam {
   const targetContext = getTarget(targetName);
+  const runtimeOverrides =
+    targetName === 'claude'
+      ? {
+          model: 'sonnet',
+          tools: ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Grep', 'Glob', 'Agent'],
+          skillDocs: ['test-first', 'clean-code'],
+        }
+      : {
+          tools: ['read_file', 'write_file', 'execute_command', 'search_codebase'],
+          skillDocs: ['test-first', 'clean-code'],
+        };
+
   return {
     version: '2',
     project: { name: projectName },
     agents: {
       developer: createRoleAgent('developer', targetContext, {
         description: 'Full-stack developer. Handles implementation, testing, and debugging.',
-        runtime: {
-          model: targetName === 'claude' ? 'sonnet' : undefined,
-          tools: targetName === 'claude'
-            ? ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Grep', 'Glob', 'Agent']
-            : ['read_file', 'write_file', 'execute_command', 'search_codebase'],
-          skillDocs: ['test-first', 'clean-code'],
-        },
+        runtime: runtimeOverrides,
         instructions: [
           {
             kind: 'behavior',

@@ -36,7 +36,7 @@ async function promptTargetModel(targetContext: TargetContext, currentModel?: st
     choices.push({ name: 'unspecified', value: 'unspecified' });
 
     const model = await promptList<string>({
-      message: '  Model:',
+      message: `  Model [${targetContext.name}]:`,
       choices,
       default: currentModel ?? targetModels[0].id,
     });
@@ -45,7 +45,7 @@ async function promptTargetModel(targetContext: TargetContext, currentModel?: st
   }
 
   const model = await promptInput({
-    message: '  Model (leave empty to omit):',
+    message: `  Model [${targetContext.name}] (leave empty to omit):`,
     default: currentModel ?? '',
   });
 
@@ -61,12 +61,13 @@ async function promptReasoningEffort(
   }
 
   const reasoning = await promptList<ReasoningEffort | 'unspecified'>({
-    message: '  Reasoning effort:',
+    message: '  Reasoning effort [codex]:',
     choices: [
       { name: 'unspecified', value: 'unspecified' },
       { name: 'low', value: 'low' },
       { name: 'medium', value: 'medium' },
       { name: 'high', value: 'high' },
+      { name: 'xhigh', value: 'xhigh' },
     ],
     default: currentValue ?? 'unspecified',
   });
@@ -84,7 +85,7 @@ export async function stepAgentCustomization(
   }
 
   const customize = await promptConfirm({
-    message: 'Customize agents before generating?',
+    message: `Customize ${chalk.cyan(targetContext.name)} agents before generating?`,
     default: false,
   });
 
@@ -97,7 +98,7 @@ export async function stepAgentCustomization(
     const agent = updatedAgents[name];
 
     console.log('');
-    console.log(chalk.bold(name) + chalk.dim(` - ${agent.description}`));
+    console.log(chalk.bold(name) + chalk.dim(` - ${agent.description} `) + chalk.cyan(`[${targetContext.name}]`));
 
     const model = await promptTargetModel(targetContext, agent.runtime.model);
     const reasoningEffort = await promptReasoningEffort(targetContext, agent.runtime.reasoningEffort);

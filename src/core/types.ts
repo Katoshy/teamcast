@@ -8,7 +8,7 @@ import type { PolicyAssertion } from './assertions.js';
 
 // --- Primitive aliases ---
 
-export type ReasoningEffort = 'low' | 'medium' | 'high';
+export type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
 
 export type PermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk';
 

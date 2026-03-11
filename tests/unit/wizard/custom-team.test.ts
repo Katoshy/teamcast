@@ -104,6 +104,7 @@ describe('stepCustomTeam', () => {
     expect(result.claude?.agents.developer).toBeDefined();
     expect(result.codex?.agents.developer).toBeDefined();
     expect(claudeTeam.agents.developer.runtime.model).toBe('sonnet');
-    expect(codexTeam.agents.developer.runtime.model).toBeUndefined();
+    expect(codexTeam.agents.developer.runtime.model).toBe('gpt-5-codex');
+    expect(codexTeam.agents.developer.runtime.reasoningEffort).toBe('medium');
   });
 });

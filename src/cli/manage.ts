@@ -85,11 +85,11 @@ function parseReasoningEffort(value: string | undefined): ReasoningEffort | null
   if (value === undefined) return undefined;
   const normalized = value.trim().toLowerCase();
   if (normalized === '') return null;
-  if (normalized === 'low' || normalized === 'medium' || normalized === 'high') {
+  if (normalized === 'low' || normalized === 'medium' || normalized === 'high' || normalized === 'xhigh') {
     return normalized;
   }
 
-  printError('Invalid reasoning effort', 'Use one of: low, medium, high');
+  printError('Invalid reasoning effort', 'Use one of: low, medium, high, xhigh');
   process.exit(1);
 }
 
@@ -130,12 +130,13 @@ async function promptTargetReasoningEffort(
   }
 
   const selected = await promptList<string>({
-    message: 'Reasoning effort:',
+    message: 'Reasoning effort [codex]:',
     choices: [
       { name: 'unspecified', value: 'unspecified' },
       { name: 'low', value: 'low' },
       { name: 'medium', value: 'medium' },
       { name: 'high', value: 'high' },
+      { name: 'xhigh', value: 'xhigh' },
     ],
     default: currentValue ?? 'unspecified',
   });
@@ -489,7 +490,7 @@ export function registerManageCommands(program: Command): void {
     .description('Edit an existing agent configuration')
     .option('--description <text>', 'Update the agent description')
     .option('--model <model>', 'Update the model')
-    .option('--reasoning-effort <level>', 'Update Codex reasoning effort (low|medium|high)')
+    .option('--reasoning-effort <level>', 'Update Codex reasoning effort (low|medium|high|xhigh)')
     .option('--max-turns <number>', 'Update max turns')
     .option('--target <name>', 'Target block to modify')
     .action(async (name: string, options: EditAgentOptions) => {

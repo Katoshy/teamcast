@@ -43,11 +43,20 @@ export async function runWizard(options: WizardOptions): Promise<void> {
   });
 
   let rawManifest = await stepTeamSelection(projectPartial, selection, { nonInteractive });
+  const activeTargetNames = getRegisteredTargetNames().filter((targetName) => {
+    const rawManifestRecord = rawManifest as unknown as Record<string, unknown>;
+    return Boolean(rawManifestRecord[targetName]);
+  });
 
   for (const targetName of getRegisteredTargetNames()) {
     const rawManifestRecord = rawManifest as unknown as Record<string, unknown>;
     if (!rawManifestRecord[targetName]) {
       continue;
+    }
+
+    if (!nonInteractive && activeTargetNames.length > 1) {
+      console.log('');
+      console.log(chalk.bold(`Customize ${targetName} target`));
     }
 
     const targetContext = getTarget(targetName);

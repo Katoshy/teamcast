@@ -1,5 +1,5 @@
 import type { InstructionBlock } from '../core/instructions.js';
-import type { CoreAgent } from '../core/types.js';
+import type { CoreAgent, ReasoningEffort } from '../core/types.js';
 import type { TargetContext } from '../renderers/target-context.js';
 import type {
   CapabilityTraitName,
@@ -23,13 +23,16 @@ export interface RoleTemplate {
   name: TeamRoleName;
   label: string;
   description: string;
-  model?: string;
   capabilityTraits: CapabilityTraitName[];
   allow?: string[];
   deny?: string[];
   instructionFragments: InstructionFragmentName[];
   blocks?: InstructionBlock[];
   skillDocs?: string[];
+  runtimeByTarget?: Partial<Record<'claude' | 'codex', {
+    model?: string;
+    reasoningEffort?: ReasoningEffort;
+  }>>;
 }
 
 function block(kind: InstructionBlock['kind'], content: string, title?: string): InstructionBlock {
@@ -41,57 +44,78 @@ const ROLE_TEMPLATES: Record<TeamRoleName, RoleTemplate> = {
     name: 'orchestrator',
     label: 'Orchestrator',
     description: 'Coordinates the team and delegates tasks',
-    model: 'opus',
     capabilityTraits: ['base-read', 'delegation', 'no-file-edits', 'no-commands'],
     instructionFragments: ['coordination-core', 'delegate-first'],
+    runtimeByTarget: {
+      claude: { model: 'opus' },
+      codex: { model: 'gpt-5.2-codex', reasoningEffort: 'high' },
+    },
   },
   planner: {
     name: 'planner',
     label: 'Planner',
     description: 'Analyzes codebase and produces implementation plans',
-    model: 'sonnet',
     capabilityTraits: ['base-read', 'web-research', 'no-file-edits', 'no-commands'],
     instructionFragments: ['planning-core', 'planning-read-only'],
+    runtimeByTarget: {
+      claude: { model: 'sonnet' },
+      codex: { model: 'gpt-5.2-codex', reasoningEffort: 'high' },
+    },
   },
   researcher: {
     name: 'researcher',
     label: 'Researcher',
     description: 'Researches topics using web access',
-    model: 'haiku',
     capabilityTraits: ['base-read', 'web-research', 'no-file-edits', 'no-commands'],
     instructionFragments: ['research-core', 'research-citation'],
+    runtimeByTarget: {
+      claude: { model: 'haiku' },
+      codex: { model: 'gpt-5-codex', reasoningEffort: 'medium' },
+    },
   },
   developer: {
     name: 'developer',
     label: 'Developer',
     description: 'Implements features, writes code and tests',
-    model: 'sonnet',
     capabilityTraits: ['base-read', 'file-authoring', 'command-execution', 'no-web'],
     instructionFragments: ['development-core', 'development-workflow'],
+    runtimeByTarget: {
+      claude: { model: 'sonnet' },
+      codex: { model: 'gpt-5-codex', reasoningEffort: 'medium' },
+    },
   },
   tester: {
     name: 'tester',
     label: 'Tester',
     description: 'Runs tests and verifies functionality',
-    model: 'sonnet',
     capabilityTraits: ['base-read', 'command-execution', 'no-file-edits'],
     instructionFragments: ['tester-core', 'tester-read-only'],
+    runtimeByTarget: {
+      claude: { model: 'sonnet' },
+      codex: { model: 'gpt-5-codex', reasoningEffort: 'medium' },
+    },
   },
   reviewer: {
     name: 'reviewer',
     label: 'Reviewer',
     description: 'Reviews code for quality and security issues',
-    model: 'sonnet',
     capabilityTraits: ['base-read', 'command-execution', 'no-file-edits', 'no-web'],
     instructionFragments: ['review-core', 'review-feedback'],
+    runtimeByTarget: {
+      claude: { model: 'sonnet' },
+      codex: { model: 'gpt-5.2-codex', reasoningEffort: 'high' },
+    },
   },
   'security-auditor': {
     name: 'security-auditor',
     label: 'Security Auditor',
     description: 'Audits code for security vulnerabilities',
-    model: 'sonnet',
     capabilityTraits: ['base-read', 'command-execution', 'no-file-edits', 'no-web'],
     instructionFragments: ['security-audit-core', 'security-audit-severity'],
+    runtimeByTarget: {
+      claude: { model: 'sonnet' },
+      codex: { model: 'gpt-5.2-codex', reasoningEffort: 'high' },
+    },
   },
 };
 
@@ -121,14 +145,29 @@ export function getRoleTemplate(name: TeamRoleName): RoleTemplate {
   return ROLE_TEMPLATES[name];
 }
 
+export function getRoleRuntimeDefaults(
+  name: TeamRoleName,
+  targetName: 'claude' | 'codex',
+): { model?: string; reasoningEffort?: ReasoningEffort } {
+  const runtime = ROLE_TEMPLATES[name].runtimeByTarget?.[targetName];
+  return {
+    model: runtime?.model,
+    reasoningEffort: runtime?.reasoningEffort,
+  };
+}
+
 export function createRoleAgent(
   name: TeamRoleName,
   targetContext: TargetContext,
   overrides: Partial<CoreAgent> = {},
 ): CoreAgent {
   const template = getRoleTemplate(name);
+  const runtimeDefaults = targetContext.name === 'claude' || targetContext.name === 'codex'
+    ? getRoleRuntimeDefaults(name, targetContext.name)
+    : {};
   const runtime = mergeRuntimeWithTraits({
-    model: targetContext.name === 'claude' ? template.model : undefined,
+    model: runtimeDefaults.model,
+    reasoningEffort: runtimeDefaults.reasoningEffort,
     tools: cloneArray(template.allow),
     disallowedTools: cloneArray(template.deny),
     skillDocs: cloneArray(template.skillDocs),
