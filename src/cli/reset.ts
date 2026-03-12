@@ -77,84 +77,88 @@ function deleteFiles(cwd: string, paths: string[]): void {
   deleteEmptyDirIfPossible(cwd, '.codex');
 }
 
+export async function runResetCommand(options: { yes?: boolean }): Promise<void> {
+  const cwd = process.cwd();
+  const existing = collectExisting(cwd);
+
+  if (existing.length === 0) {
+    console.log(chalk.dim('\nNo generated files found. Nothing to reset.'));
+    return;
+  }
+
+  printHeader('Reset');
+  console.log(chalk.bold('Files that will be deleted:'));
+  for (const path of existing) {
+    console.log(`  ${chalk.dim('-')} ${path}`);
+  }
+  console.log('');
+
+  const confirmed = options.yes
+    ? true
+    : await promptConfirm({
+        message: 'Delete these files?',
+        default: false,
+      });
+
+  if (!confirmed) {
+    console.log(chalk.dim('Aborted.'));
+    return;
+  }
+
+  console.log('');
+  deleteFiles(cwd, existing);
+  printCommandSuccess('Reset complete. teamcast.yaml preserved.');
+  printDim('  Run "teamcast generate" to regenerate files.');
+  console.log('');
+}
+
+export async function runCleanCommand(options: { yes?: boolean }): Promise<void> {
+  const cwd = process.cwd();
+  const allPaths = [...collectExisting(cwd)];
+  if (existsSync(join(cwd, 'teamcast.yaml'))) {
+    allPaths.push('teamcast.yaml');
+  }
+
+  if (allPaths.length === 0) {
+    console.log(chalk.dim('\nNo TeamCast files found. Nothing to clean.'));
+    return;
+  }
+
+  printHeader('Clean');
+  console.log(chalk.bold('Files that will be deleted:'));
+  for (const path of allPaths) {
+    console.log(`  ${chalk.dim('-')} ${path}`);
+  }
+  console.log('');
+
+  const confirmed = options.yes
+    ? true
+    : await promptConfirm({
+        message: chalk.yellow('Delete everything including teamcast.yaml?'),
+        default: false,
+      });
+
+  if (!confirmed) {
+    console.log(chalk.dim('Aborted.'));
+    return;
+  }
+
+  console.log('');
+  deleteFiles(cwd, allPaths);
+  printCommandSuccess('Clean complete. All TeamCast files removed.');
+  console.log('');
+}
+
 export function registerResetCommand(program: Command): void {
   program
     .command('reset')
     .description('Delete generated files, keep teamcast.yaml')
     .option('--yes', 'Skip confirmation')
-    .action(async (options: { yes?: boolean }) => {
-      const cwd = process.cwd();
-      const existing = collectExisting(cwd);
-
-      if (existing.length === 0) {
-        console.log(chalk.dim('\nNo generated files found. Nothing to reset.'));
-        return;
-      }
-
-      printHeader('Reset');
-      console.log(chalk.bold('Files that will be deleted:'));
-      for (const path of existing) {
-        console.log(`  ${chalk.dim('-')} ${path}`);
-      }
-      console.log('');
-
-      const confirmed = options.yes
-        ? true
-        : await promptConfirm({
-            message: 'Delete these files?',
-            default: false,
-          });
-
-      if (!confirmed) {
-        console.log(chalk.dim('Aborted.'));
-        return;
-      }
-
-      console.log('');
-      deleteFiles(cwd, existing);
-      printCommandSuccess('Reset complete. teamcast.yaml preserved.');
-      printDim('  Run "teamcast generate" to regenerate files.');
-      console.log('');
-    });
+    .action(runResetCommand);
 
   program
     .command('clean')
     .description('Delete all generated files and teamcast.yaml')
     .option('--yes', 'Skip confirmation')
-    .action(async (options: { yes?: boolean }) => {
-      const cwd = process.cwd();
-      const allPaths = [...collectExisting(cwd)];
-      if (existsSync(join(cwd, 'teamcast.yaml'))) {
-        allPaths.push('teamcast.yaml');
-      }
-
-      if (allPaths.length === 0) {
-        console.log(chalk.dim('\nNo TeamCast files found. Nothing to clean.'));
-        return;
-      }
-
-      printHeader('Clean');
-      console.log(chalk.bold('Files that will be deleted:'));
-      for (const path of allPaths) {
-        console.log(`  ${chalk.dim('-')} ${path}`);
-      }
-      console.log('');
-
-      const confirmed = options.yes
-        ? true
-        : await promptConfirm({
-            message: chalk.yellow('Delete everything including teamcast.yaml?'),
-            default: false,
-          });
-
-      if (!confirmed) {
-        console.log(chalk.dim('Aborted.'));
-        return;
-      }
-
-      console.log('');
-      deleteFiles(cwd, allPaths);
-      printCommandSuccess('Clean complete. All TeamCast files removed.');
-      console.log('');
-    });
+    .action(runCleanCommand);
 }

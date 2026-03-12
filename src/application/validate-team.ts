@@ -6,7 +6,6 @@ import { normalizeManifest } from '../manifest/normalize.js';
 import { runValidation } from '../validator/index.js';
 import { hasErrors } from '../validator/reporter.js';
 import type { ValidationResult } from '../validator/types.js';
-import '../renderers/index.js';
 import { getTarget, getRegisteredTargetNames } from '../renderers/registry.js';
 
 export interface TeamValidationSummary {

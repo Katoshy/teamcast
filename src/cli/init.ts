@@ -41,6 +41,29 @@ function parseInitTargetSelection(value: string | undefined): InitTargetSelectio
   process.exit(1);
 }
 
+export async function runInitCommand(options: { preset?: string; from?: string; target?: string; yes?: boolean }): Promise<void> {
+  const cwd = process.cwd();
+  const ctx = detectProjectContext(cwd);
+  const targetSelection = parseInitTargetSelection(options.target);
+
+  if (options.from) {
+    await initFromFile(options.from, cwd, ctx.name);
+    return;
+  }
+
+  if (options.preset) {
+    await initWithPreset(options.preset, cwd, ctx.name, targetSelection);
+    return;
+  }
+
+  await runWizard({
+    cwd,
+    skipConfirm: options.yes,
+    nonInteractive: options.yes,
+    targetSelection,
+  });
+}
+
 export function registerInitCommand(program: Command): void {
   program
     .command('init')
@@ -49,28 +72,7 @@ export function registerInitCommand(program: Command): void {
     .option('--from <path>', 'Initialize from a custom YAML manifest file')
     .option('--target <name>', 'Generate claude, codex, or both targets')
     .option('--yes', 'Accept all defaults without prompting')
-    .action(async (options: { preset?: string; from?: string; target?: string; yes?: boolean }) => {
-      const cwd = process.cwd();
-      const ctx = detectProjectContext(cwd);
-      const targetSelection = parseInitTargetSelection(options.target);
-
-      if (options.from) {
-        await initFromFile(options.from, cwd, ctx.name);
-        return;
-      }
-
-      if (options.preset) {
-        await initWithPreset(options.preset, cwd, ctx.name, targetSelection);
-        return;
-      }
-
-      await runWizard({
-        cwd,
-        skipConfirm: options.yes,
-        nonInteractive: options.yes,
-        targetSelection,
-      });
-    });
+    .action(runInitCommand);
 }
 
 async function initWithPreset(

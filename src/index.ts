@@ -1,11 +1,7 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
-import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
-import { registerAllCommands } from './cli/index.js';
-import './renderers/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,6 +15,17 @@ try {
   // ignore
 }
 
+const args = process.argv.slice(2);
+if (args.length > 0 && args.every((arg) => arg === '-v' || arg === '--version')) {
+  process.stdout.write(`${version}\n`);
+  process.exit(0);
+}
+
+const [{ Command }, { registerAllCommands }] = await Promise.all([
+  import('commander'),
+  import('./cli/index.js'),
+]);
+
 const program = new Command();
 
 program
@@ -28,4 +35,4 @@ program
 
 registerAllCommands(program);
 
-program.parseAsync(process.argv);
+await program.parseAsync(process.argv);

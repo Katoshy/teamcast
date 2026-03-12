@@ -3,7 +3,6 @@ import { applyDefaults } from '../manifest/defaults.js';
 import type { BuildGeneratedOutputsOptions } from '../application/build-generated-files.js';
 import { buildGeneratedOutputs } from '../application/build-generated-files.js';
 
-import '../renderers/index.js';
 import { getRegisteredTargetNames, getTarget } from '../renderers/registry.js';
 import { normalizeManifest } from '../manifest/normalize.js';
 import { injectEnvironmentPolicies } from '../plugins/inject.js';
