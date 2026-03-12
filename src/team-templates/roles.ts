@@ -35,10 +35,6 @@ export interface RoleTemplate {
   }>>;
 }
 
-function block(kind: InstructionBlock['kind'], content: string, title?: string): InstructionBlock {
-  return { kind, content, title };
-}
-
 const ROLE_TEMPLATES: Record<TeamRoleName, RoleTemplate> = {
   orchestrator: {
     name: 'orchestrator',

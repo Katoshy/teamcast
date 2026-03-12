@@ -1,13 +1,13 @@
 {
   "name": "teamcast",
-  "version": "0.9.3",
+  "version": "0.9.3-a",
   "description": "YAML-driven CLI to design, validate, and generate multi-target agent teams for Claude Code and Codex",
   "type": "module",
   "bin": {
     "teamcast": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/clean-dist.mjs && tsc",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",

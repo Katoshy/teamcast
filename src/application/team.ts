@@ -5,7 +5,6 @@ import { createPolicies } from '../team-templates/policies.js';
 import { buildPresetManifest } from '../team-templates/presets.js';
 import { createRoleAgent, getRoleRuntimeDefaults, isTeamRoleName } from '../team-templates/roles.js';
 import { createManifestForTarget, normalizeManifest } from '../manifest/normalize.js';
-import type { TargetContext } from '../renderers/target-context.js';
 import { getTarget } from '../renderers/registry.js';
 
 export type InitTargetName = 'claude' | 'codex';

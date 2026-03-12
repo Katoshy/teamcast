@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import type { CoreAgent } from '../core/types.js';
 import { createManifestForTarget } from '../manifest/normalize.js';

@@ -7,7 +7,6 @@ import type {
   SkillDefinition,
   TeamCastPlugin,
 } from './types.js';
-import type { CanonicalTool } from '../tools/types.js';
 import type { PoliciesConfig } from '../manifest/types.js';
 import { mergePolicies } from './merge-policies.js';
 import type { Preset, PresetMeta } from '../presets/types.js';
