@@ -17,18 +17,18 @@ describe('manifest normalization', () => {
     const manifest: TeamCastManifest = {
       version: '2',
       project: { name: 'normalize-claude' },
-      settings: {
-        generate_docs: false,
-      },
-      policies: {
-        permissions: {
-          rules: {
-            allow: ['Bash(npm run *)'],
-            deny: ['Write(.env*)', 'Edit(.env*)'],
+      claude: {
+        settings: {
+          generate_docs: false,
+        },
+        policies: {
+          permissions: {
+            rules: {
+              allow: ['Bash(npm run *)'],
+              deny: ['Write(.env*)', 'Edit(.env*)'],
+            },
           },
         },
-      },
-      claude: {
         agents: {
           developer: {
             description: 'Builds the feature',
@@ -185,6 +185,24 @@ describe('manifest normalization', () => {
           },
         },
       },
+      policies: {
+        permissions: {
+          rules: {
+            allow: ['Bash(npm run *)'],
+            ask: undefined,
+            deny: ['Write(.env*)', 'Edit(.env*)'],
+          },
+          default_mode: undefined,
+        },
+        sandbox: undefined,
+        hooks: undefined,
+        network: undefined,
+        assertions: undefined,
+      },
+      settings: {
+        generate_docs: false,
+        generate_local_settings: false,
+      },
     });
   });
 
@@ -270,11 +288,11 @@ describe('manifest normalization', () => {
         template: 'review-template',
       },
     });
-    expect(manifest.settings).toEqual({
+    expect(manifest.claude?.settings).toEqual({
       generate_docs: false,
       generate_local_settings: false,
     });
-    expect(manifest.policies?.permissions?.rules?.deny).toEqual(['Write(.env*)', 'Edit(.env*)']);
+    expect(manifest.claude?.policies?.permissions?.rules?.deny).toEqual(['Write(.env*)', 'Edit(.env*)']);
     expect(manifest.preset_meta).toEqual({
       author: 'teamcast',
       tags: ['review'],

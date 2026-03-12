@@ -1,9 +1,11 @@
-import type { Command } from 'commander';
 import chalk from 'chalk';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { importFromClaudeDir, importFromCodexDir } from '../importer/index.js';
-import { createManifestForTarget } from '../manifest/normalize.js';
+import { getDetectedImportHandlers } from '../importer/index.js';
+import {
+  getManifestTargetConfig,
+  setManifestTargetConfig,
+} from '../manifest/targets.js';
 import { writeManifest } from '../manifest/writer.js';
 import { detectProjectContext } from '../detector/index.js';
 import type { TeamCastManifest } from '../manifest/types.js';
@@ -21,45 +23,45 @@ import {
   printNextSteps,
 } from '../utils/chalk-helpers.js';
 import { promptConfirm } from '../utils/prompts.js';
+import { abortCli } from './errors.js';
 
 export async function runImportCommand(options: { yes?: boolean }): Promise<void> {
   const cwd = process.cwd();
 
   printHeader('Import');
 
-  const claudeDir = join(cwd, '.claude');
-  const codexDir = join(cwd, '.codex');
-  const hasClaude = existsSync(claudeDir);
-  const hasCodex = existsSync(codexDir);
-  if (!hasClaude && !hasCodex) {
+  const detectedHandlers = getDetectedImportHandlers(cwd);
+  if (detectedHandlers.length === 0) {
     printError('No target directories found', 'Expected .claude/ and/or .codex/.');
-    process.exit(1);
+    abortCli(1);
   }
 
   const manifestPath = join(cwd, 'teamcast.yaml');
   if (existsSync(manifestPath)) {
     printError('teamcast.yaml already exists', 'Use "teamcast generate" to update from existing manifest.');
-    process.exit(1);
+    abortCli(1);
   }
 
   const ctx = detectProjectContext(cwd);
   const projectName = ctx.name ?? 'my-project';
-  const importedTargets: Array<{ targetName: 'claude' | 'codex'; agentNames: string[] }> = [];
+  const importedTargets: Array<{ targetName: string; agentNames: string[] }> = [];
   let manifest: TeamCastManifest | undefined;
 
-  const mergeManifest = (nextManifest: TeamCastManifest) => {
+  const mergeManifest = (nextManifest: TeamCastManifest, targetName: 'claude' | 'codex') => {
+    const targetConfig = getManifestTargetConfig(nextManifest, targetName);
+    if (!targetConfig) {
+      return;
+    }
+
     manifest = manifest
-      ? {
-          ...manifest,
-          claude: nextManifest.claude ?? manifest.claude,
-          codex: nextManifest.codex ?? manifest.codex,
-        }
+      ? setManifestTargetConfig(manifest, targetName, targetConfig)
       : nextManifest;
   };
 
-  if (hasClaude) {
-    const result = importFromClaudeDir(cwd, projectName);
+  const formatTargetLabel = (targetName: string) => targetName.charAt(0).toUpperCase() + targetName.slice(1);
 
+  for (const handler of detectedHandlers) {
+    const result = handler.importFromDir(cwd, projectName);
     if (result.warnings.length > 0) {
       for (const warning of result.warnings) {
         printWarning(warning.file, warning.message);
@@ -67,51 +69,27 @@ export async function runImportCommand(options: { yes?: boolean }): Promise<void
       console.log('');
     }
 
-    const agents = result.team.claude?.agents ?? {};
+    const targetConfig = getManifestTargetConfig(result.team, handler.targetName);
+    const agents = targetConfig?.agents ?? {};
     const agentNames = Object.keys(agents);
     if (agentNames.length > 0) {
-      importedTargets.push({ targetName: 'claude', agentNames });
-      mergeManifest(result.team);
+      importedTargets.push({ targetName: handler.targetName, agentNames });
+      mergeManifest(result.team, handler.targetName);
 
-      console.log(chalk.dim(`  Claude: ${agentNames.length} agent${agentNames.length !== 1 ? 's' : ''}`));
+      console.log(chalk.dim(`  ${formatTargetLabel(handler.targetName)}: ${agentNames.length} agent${agentNames.length !== 1 ? 's' : ''}`));
       for (const name of agentNames) {
         const agent = agents[name];
         console.log(chalk.dim(`    ${name} - ${agent.description}`));
       }
 
-      if (result.team.claude?.policies) {
+      if (targetConfig?.policies) {
         const parts: string[] = [];
-        if (result.team.claude.policies.permissions) parts.push('permissions');
-        if (result.team.claude.policies.sandbox) parts.push('sandbox');
-        if (result.team.claude.policies.hooks) parts.push('hooks');
+        if (targetConfig.policies.permissions) parts.push('permissions');
+        if (targetConfig.policies.sandbox) parts.push('sandbox');
+        if (targetConfig.policies.hooks) parts.push('hooks');
         if (parts.length > 0) {
-          console.log(chalk.dim(`  Claude policies: ${parts.join(', ')}`));
+          console.log(chalk.dim(`  ${formatTargetLabel(handler.targetName)} policies: ${parts.join(', ')}`));
         }
-      }
-      console.log('');
-    }
-  }
-
-  if (hasCodex) {
-    const result = importFromCodexDir(cwd, projectName);
-
-    if (result.warnings.length > 0) {
-      for (const warning of result.warnings) {
-        printWarning(warning.file, warning.message);
-      }
-      console.log('');
-    }
-
-    const agents = result.team.codex?.agents ?? {};
-    const agentNames = Object.keys(agents);
-    if (agentNames.length > 0) {
-      importedTargets.push({ targetName: 'codex', agentNames });
-      mergeManifest(result.team);
-
-      console.log(chalk.dim(`  Codex: ${agentNames.length} agent${agentNames.length !== 1 ? 's' : ''}`));
-      for (const name of agentNames) {
-        const agent = agents[name];
-        console.log(chalk.dim(`    ${name} - ${agent.description}`));
       }
       console.log('');
     }
@@ -119,15 +97,15 @@ export async function runImportCommand(options: { yes?: boolean }): Promise<void
 
   if (!manifest || importedTargets.length === 0) {
     printError('No agents found', 'No importable agents were found in .claude/agents or .codex/agents.');
-    process.exit(1);
+    abortCli(1);
   }
 
-  const validation = evaluateTeam(manifest);
+  const validation = evaluateTeam(manifest, { cwd });
 
   if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
     printError('Imported configuration has errors', 'Fix the issues above and try again.');
-    process.exit(1);
+    abortCli(1);
   }
 
   if (!options.yes) {
@@ -145,7 +123,7 @@ export async function runImportCommand(options: { yes?: boolean }): Promise<void
     writeManifest(manifest, cwd);
   } catch (err) {
     printError('Failed to write teamcast.yaml', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   printSuccess('teamcast.yaml');
@@ -158,10 +136,4 @@ export async function runImportCommand(options: { yes?: boolean }): Promise<void
   ]);
 }
 
-export function registerImportCommand(program: Command): void {
-  program
-    .command('import')
-    .description('Import existing .claude/ and/or .codex/ configuration into teamcast.yaml')
-    .option('--yes', 'Skip confirmation prompt')
-    .action(runImportCommand);
-}
+export { registerImportCommand } from './registrars/import.js';

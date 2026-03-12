@@ -41,12 +41,6 @@
     "codex": {
       "$ref": "#/definitions/TargetConfig"
     },
-    "policies": {
-      "$ref": "#/definitions/PoliciesConfig"
-    },
-    "settings": {
-      "$ref": "#/definitions/GenerationSettings"
-    },
     "preset_meta": {
       "$ref": "#/definitions/PresetMeta"
     }

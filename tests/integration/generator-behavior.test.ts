@@ -9,6 +9,14 @@ const manifest: TeamCastManifest = {
   version: '2',
   project: { name: 'integration-app' },
   claude: {
+    policies: {
+      permissions: {
+        rules: {
+          deny: ['Write(.env*)', 'Edit(.env*)'],
+        },
+      },
+      sandbox: { enabled: true },
+    },
     agents: {
       developer: {
         description: 'Builds features',
@@ -17,14 +25,6 @@ const manifest: TeamCastManifest = {
         skills: ['test-first'],
       },
     },
-  },
-  policies: {
-    permissions: {
-      rules: {
-        deny: ['Write(.env*)', 'Edit(.env*)'],
-      },
-    },
-    sandbox: { enabled: true },
   },
 };
 

@@ -10,16 +10,16 @@ project:
   preset: feature-team
   description: Classic feature development team with orchestration, planning,
     coding, and review.
-policies:
-  fragments:
-    - allow-git-read
-    - allow-git-write
-    - ask-git-push
-    - deny-destructive-shell
-    - deny-network-downloads
-    - deny-env-files
-    - sandbox-default
 claude:
+  policies:
+    fragments:
+      - allow-git-read
+      - allow-git-write
+      - ask-git-push
+      - deny-destructive-shell
+      - deny-network-downloads
+      - deny-env-files
+      - sandbox-default
   agents:
     orchestrator:
       forge:

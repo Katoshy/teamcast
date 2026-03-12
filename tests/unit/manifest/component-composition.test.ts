@@ -26,9 +26,10 @@ describe('component composition', () => {
             ],
             instruction_fragments: ['development-workflow'],
         },
-      } },
-      policies: {
-        fragments: ['allow-git-read', 'deny-env-files', 'sandbox-default'],
+      },
+        policies: {
+          fragments: ['allow-git-read', 'deny-env-files', 'sandbox-default'],
+        },
       },
     };
 

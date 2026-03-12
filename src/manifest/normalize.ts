@@ -18,6 +18,7 @@ import type {
 import { expandSkills } from '../core/skill-resolver.js';
 import type { TargetContext } from '../renderers/target-context.js';
 import { applyDefaults } from './defaults.js';
+import { getManifestTargetConfig, isManifestTargetName } from './targets.js';
 import type {
   TeamCastManifest,
   AgentConfig,
@@ -221,7 +222,10 @@ function normalizeAgent(agentId: string, agent: AgentConfig, targetContext: Targ
 
 export function normalizeManifest(manifest: TeamCastManifest, targetContext: TargetContext): CoreTeam {
   const defaultedManifest = applyDefaults(manifest);
-  const targetConfig = (defaultedManifest as unknown as Record<string, unknown>)[targetContext.name] as TargetConfig | undefined;
+  if (!isManifestTargetName(targetContext.name)) {
+    throw new Error(`Unsupported target name: ${targetContext.name}`);
+  }
+  const targetConfig = getManifestTargetConfig(defaultedManifest, targetContext.name);
   const agents = targetConfig?.agents ?? {};
 
   return {
@@ -233,8 +237,8 @@ export function normalizeManifest(manifest: TeamCastManifest, targetContext: Tar
         normalizeAgent(agentId, agent as AgentConfig, targetContext),
       ]),
     ),
-    policies: mapPolicies(defaultedManifest.policies),
-    settings: mapSettings(defaultedManifest.settings),
+    policies: mapPolicies(targetConfig?.policies),
+    settings: mapSettings(targetConfig?.settings),
     presetMeta: mapPresetMeta(defaultedManifest.preset_meta),
   };
 }
@@ -316,6 +320,8 @@ export function denormalizeTarget(team: CoreTeam, targetName: string): TargetCon
         },
       ]),
     ),
+    policies: denormalizePolicies(team.policies),
+    settings: denormalizeSharedSettings(team.settings),
   };
 }
 
@@ -336,8 +342,6 @@ export function createManifestForTarget(team: CoreTeam, targetName: string): Tea
       description: team.project.description,
     },
     [targetName]: denormalizeTarget(team, targetName),
-    policies: denormalizePolicies(team.policies),
-    settings: denormalizeSharedSettings(team.settings),
     preset_meta: team.presetMeta
       ? {
           author: team.presetMeta.author,

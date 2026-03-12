@@ -1,8 +1,6 @@
-import type { Command } from 'commander';
 import chalk from 'chalk';
 import { readFileSync, existsSync } from 'fs';
 import { parse } from 'yaml';
-import { listPresets } from '../presets/index.js';
 import { writeManifest } from '../manifest/writer.js';
 import { generate } from '../generator/index.js';
 import { detectProjectContext } from '../detector/index.js';
@@ -13,11 +11,13 @@ import {
   teamHasBlockingIssues,
   printManifestValidation,
 } from '../application/validate-team.js';
-import { defaultRegistry } from '../plugins/index.js';
+import { detectPluginNames } from '../plugins/catalog.js';
 import {
   buildManifestFromPreset,
   type InitTargetSelection,
 } from '../application/team.js';
+import { listPresetMetas } from '../team-templates/presets.js';
+import { abortCli } from './errors.js';
 import {
   printHeader,
   printSuccess,
@@ -38,7 +38,7 @@ function parseInitTargetSelection(value: string | undefined): InitTargetSelectio
   }
 
   printError('Invalid --target', 'Use one of: claude, codex, both');
-  process.exit(1);
+  abortCli(1);
 }
 
 export async function runInitCommand(options: { preset?: string; from?: string; target?: string; yes?: boolean }): Promise<void> {
@@ -64,16 +64,7 @@ export async function runInitCommand(options: { preset?: string; from?: string; 
   });
 }
 
-export function registerInitCommand(program: Command): void {
-  program
-    .command('init')
-    .description('Initialize an agent team configuration in the current project')
-    .option('--preset <name>', 'Skip the wizard and use a preset directly')
-    .option('--from <path>', 'Initialize from a custom YAML manifest file')
-    .option('--target <name>', 'Generate claude, codex, or both targets')
-    .option('--yes', 'Accept all defaults without prompting')
-    .action(runInitCommand);
-}
+export { registerInitCommand } from './registrars/init.js';
 
 async function initWithPreset(
   presetName: string,
@@ -91,31 +82,31 @@ async function initWithPreset(
     printError('Unknown preset', String(err));
     console.log('');
     console.log('Available presets:');
-    for (const entry of listPresets()) {
+    for (const entry of listPresetMetas()) {
       console.log(`  ${chalk.bold(entry.name)}  ${chalk.dim(entry.description)}`);
     }
-    process.exit(1);
+    abortCli(1);
   }
 
   const projectName = detectedName ?? 'my-project';
   const manifest = buildManifestFromPreset(presetName, projectName, targetSelection);
   
-  const detectedPlugins = defaultRegistry.getDetectedPlugins(cwd).map(p => p.name);
+  const detectedPlugins = detectPluginNames(cwd);
   if (detectedPlugins.length > 0) {
     manifest.plugins = detectedPlugins;
   }
-  const validation = evaluateTeam(manifest);
+  const validation = evaluateTeam(manifest, { cwd });
 
   if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
-    process.exit(1);
+    abortCli(1);
   }
 
   try {
     writeManifest(manifest, cwd);
   } catch (err) {
     printError('Failed to write teamcast.yaml', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   printHeader('Generate');
@@ -125,7 +116,7 @@ async function initWithPreset(
     files = generate(manifest, { cwd });
   } catch (err) {
     printError('Generation failed', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   for (const file of files) {
@@ -151,7 +142,7 @@ async function initFromFile(
 
   if (!existsSync(filePath)) {
     printError('File not found', filePath);
-    process.exit(1);
+    abortCli(1);
   }
 
   let raw: string;
@@ -159,7 +150,7 @@ async function initFromFile(
     raw = readFileSync(filePath, 'utf-8');
   } catch (err) {
     printError('Failed to read file', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   let parsed: unknown;
@@ -167,7 +158,7 @@ async function initFromFile(
     parsed = parse(raw);
   } catch (err) {
     printError('Failed to parse YAML', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   const schemaResult = validateSchema(parsed);
@@ -176,7 +167,7 @@ async function initFromFile(
     for (const error of schemaResult.errors) {
       console.error(chalk.dim(`  ${error.path}: ${error.message}`));
     }
-    process.exit(1);
+    abortCli(1);
   }
 
   const manifest = applyDefaults(schemaResult.data);
@@ -184,18 +175,18 @@ async function initFromFile(
     manifest.project.name = detectedName;
   }
 
-  const validation = evaluateTeam(manifest);
+  const validation = evaluateTeam(manifest, { cwd });
 
   if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
-    process.exit(1);
+    abortCli(1);
   }
 
   try {
     writeManifest(manifest, cwd);
   } catch (err) {
     printError('Failed to write teamcast.yaml', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   printHeader('Generate');
@@ -205,7 +196,7 @@ async function initFromFile(
     files = generate(manifest, { cwd });
   } catch (err) {
     printError('Generation failed', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   for (const file of files) {

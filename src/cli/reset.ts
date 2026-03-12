@@ -1,4 +1,3 @@
-import type { Command } from 'commander';
 import chalk from 'chalk';
 import { existsSync, rmSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
@@ -149,16 +148,4 @@ export async function runCleanCommand(options: { yes?: boolean }): Promise<void>
   console.log('');
 }
 
-export function registerResetCommand(program: Command): void {
-  program
-    .command('reset')
-    .description('Delete generated files, keep teamcast.yaml')
-    .option('--yes', 'Skip confirmation')
-    .action(runResetCommand);
-
-  program
-    .command('clean')
-    .description('Delete all generated files and teamcast.yaml')
-    .option('--yes', 'Skip confirmation')
-    .action(runCleanCommand);
-}
+export { registerResetCommand } from './registrars/reset.js';

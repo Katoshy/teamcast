@@ -24,6 +24,10 @@ export function ensureBuiltinTargetsRegistered(): void {
 }
 
 export function registerTarget(name: string, factory: TargetFactory): void {
+  ensureBuiltinTargetsRegistered();
+  if (registry.has(name)) {
+    throw new Error(`Target renderer "${name}" is already registered`);
+  }
   registry.set(name, factory);
 }
 

@@ -1,4 +1,3 @@
-import type { Command } from 'commander';
 import chalk from 'chalk';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import {
@@ -6,6 +5,7 @@ import {
   teamHasBlockingIssues,
   printManifestValidation,
 } from '../application/validate-team.js';
+import { abortCli } from './errors.js';
 
 export function runValidateCommand(options: { strict?: boolean; format?: string }): void {
   const cwd = process.cwd();
@@ -23,12 +23,12 @@ export function runValidateCommand(options: { strict?: boolean; format?: string 
           for (const d of err.details) console.error(chalk.dim(`  ${d}`));
         }
       }
-      process.exit(1);
+      abortCli(1);
     }
     throw err;
   }
 
-  const validation = evaluateTeam(manifest);
+  const validation = evaluateTeam(manifest, { cwd });
 
   if (options.format === 'json') {
     process.stdout.write(JSON.stringify(validation.validationResults, null, 2) + '\n');
@@ -41,15 +41,8 @@ export function runValidateCommand(options: { strict?: boolean; format?: string 
     (options.strict && validation.validationResults.some((result) => result.severity === 'warning'));
 
   if (shouldFail) {
-    process.exit(1);
+    abortCli(1);
   }
 }
 
-export function registerValidateCommand(program: Command): void {
-  program
-    .command('validate')
-    .description('Validate the agent team configuration for conflicts and security issues')
-    .option('--strict', 'Exit with error code on warnings too')
-    .option('--format <format>', 'output format: text or json', 'text')
-    .action(runValidateCommand);
-}
+export { registerValidateCommand } from './registrars/validate.js';

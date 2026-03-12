@@ -13,11 +13,11 @@ describe('manifest io', () => {
     const manifest: TeamCastManifest = {
       version: '2',
       project: { name: 'multi-target-app' },
-      settings: {
-        generate_docs: true,
-        generate_local_settings: false,
-      },
       claude: {
+        settings: {
+          generate_docs: true,
+          generate_local_settings: false,
+        },
         agents: {
           developer: {
             description: 'Claude developer',
@@ -26,6 +26,10 @@ describe('manifest io', () => {
         },
       },
       codex: {
+        settings: {
+          generate_docs: true,
+          generate_local_settings: false,
+        },
         agents: {
           developer: {
             description: 'Codex developer',

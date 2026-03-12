@@ -43,6 +43,7 @@ vi.mock('../../../src/application/validate-team.js', () => ({
   printManifestValidation,
 }));
 
+import { CLIAbortError } from '../../../src/cli/errors.js';
 import { registerManageCommands } from '../../../src/cli/manage.js';
 import inquirer from 'inquirer';
 
@@ -82,20 +83,14 @@ describe('manage command', () => {
   });
 
   it('requires --target when mutating a multi-target manifest', async () => {
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
-      throw new Error(`exit:${code ?? 0}`);
-    }) as typeof process.exit);
-
     const program = new Command();
     registerManageCommands(program);
 
     await expect(
       program.parseAsync(['node', 'test', 'edit', 'agent', 'developer', '--description', 'Changed']),
-    ).rejects.toThrow('exit:1');
+    ).rejects.toThrow(CLIAbortError);
 
     expect(writeManifest).not.toHaveBeenCalled();
-
-    exitSpy.mockRestore();
   });
 
   it('updates only the requested target block when --target is provided', async () => {

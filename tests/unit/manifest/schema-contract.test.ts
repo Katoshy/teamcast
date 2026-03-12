@@ -41,16 +41,30 @@ describe('manifest schema contract', () => {
   it('rejects unsupported hook async flags', () => {
     const result = validateSchema({
       ...baseManifest,
-      policies: {
-        hooks: {
-          pre_tool_use: [
-            {
-              matcher: 'Bash',
-              command: 'echo pre',
-              async: true,
-            },
-          ],
+      claude: {
+        ...baseManifest.claude,
+        policies: {
+          hooks: {
+            pre_tool_use: [
+              {
+                matcher: 'Bash',
+                command: 'echo pre',
+                async: true,
+              },
+            ],
+          },
         },
+      },
+    });
+
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects root-level policies blocks', () => {
+    const result = validateSchema({
+      ...baseManifest,
+      policies: {
+        sandbox: { enabled: true },
       },
     });
 

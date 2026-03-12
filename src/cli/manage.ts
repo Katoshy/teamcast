@@ -1,12 +1,15 @@
-import type { Command } from 'commander';
 import chalk from 'chalk';
 import { existsSync, rmSync } from 'fs';
 import { join } from 'path';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { writeManifest } from '../manifest/writer.js';
 import { expandSkills } from '../core/skill-resolver.js';
-import { defaultRegistry } from '../plugins/index.js';
 import { generate } from '../generator/index.js';
+import {
+  getSkillDefinition,
+  listModelDefinitions,
+  listSkillDefinitions,
+} from '../plugins/catalog.js';
 import {
   printSuccess,
   printError,
@@ -33,16 +36,17 @@ import {
   promptCheckbox,
 } from '../utils/prompts.js';
 import type { AgentSkill } from '../core/skills.js';
+import { abortCli } from './errors.js';
 
 function formatSkillLabel(skillId: string, description?: string): string {
-  const skillDef = defaultRegistry.getSkills()[skillId];
+  const skillDef = getSkillDefinition(skillId);
   const label = skillDef ? skillDef.description : skillId;
   const shortLabel = label.split(' ')[0] ?? skillId;
   return `${shortLabel.padEnd(16)}`;
 }
 
 function getSupportedSkills(targetContext: TargetContext): string[] {
-  const allSkills = Object.keys(defaultRegistry.getSkills());
+  const allSkills = listSkillDefinitions().map((skill) => skill.id);
   return allSkills.filter((skill) => (targetContext.skillMap[skill as AgentSkill]?.length ?? 0) > 0);
 }
 import {
@@ -88,12 +92,11 @@ function parseReasoningEffort(value: string | undefined): ReasoningEffort | null
   }
 
   printError('Invalid reasoning effort', 'Use one of: low, medium, high, xhigh');
-  process.exit(1);
+  abortCli(1);
 }
 
 async function promptTargetModel(targetContext: TargetContext, currentModel?: string): Promise<string | null | undefined> {
-  const models = Object.values(defaultRegistry.getModels());
-  const targetModels = models.filter((m) => !m.target || m.target === targetContext.name);
+  const targetModels = listModelDefinitions(targetContext.name);
 
   if (targetModels.length > 0) {
     const choices = targetModels.map((m) => ({
@@ -203,7 +206,7 @@ function loadManifestOrExit(cwd: string): TeamCastManifest {
           console.error(chalk.dim(`  ${detail}`));
         }
       }
-      process.exit(1);
+      abortCli(1);
     }
     throw err;
   }
@@ -219,7 +222,7 @@ function resolveTargetNameOrExit(manifest: TeamCastManifest, explicitTarget?: st
 
   if (targetNames.length === 0) {
     printError('No targets defined', 'Add a target block such as "claude:" or "codex:" first.');
-    process.exit(1);
+    abortCli(1);
   }
 
   if (explicitTarget) {
@@ -228,7 +231,7 @@ function resolveTargetNameOrExit(manifest: TeamCastManifest, explicitTarget?: st
         'Unknown target',
         `"${explicitTarget}" is not defined in teamcast.yaml. Available targets: ${targetNames.join(', ')}`,
       );
-      process.exit(1);
+      abortCli(1);
     }
     return explicitTarget;
   }
@@ -238,7 +241,7 @@ function resolveTargetNameOrExit(manifest: TeamCastManifest, explicitTarget?: st
       'Target is required',
       `This manifest defines multiple targets (${targetNames.join(', ')}). Re-run with --target <name>.`,
     );
-    process.exit(1);
+    abortCli(1);
   }
 
   return targetNames[0];
@@ -249,11 +252,11 @@ function normalizeTargetTeam(manifest: TeamCastManifest, targetName: string): Co
   return normalizeManifest(applyDefaults(manifest), targetContext);
 }
 
-function validateManifestOrExit(manifest: TeamCastManifest) {
-  const validation = evaluateTeam(manifest);
+function validateManifestOrExit(manifest: TeamCastManifest, cwd: string) {
+  const validation = evaluateTeam(manifest, { cwd });
   if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
-    process.exit(1);
+    abortCli(1);
   }
 
   return validation;
@@ -284,13 +287,13 @@ function applyManifestChanges(
   options?: { orphanedAgentName?: string },
 ): void {
   const nextManifest = replaceManifestTarget(manifest, targetName, team);
-  const validation = validateManifestOrExit(nextManifest);
+  const validation = validateManifestOrExit(nextManifest, cwd);
 
   try {
     writeManifest(nextManifest, cwd);
   } catch (err) {
     printError('Failed to write teamcast.yaml', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   if (options?.orphanedAgentName) {
@@ -305,7 +308,7 @@ function applyManifestChanges(
     files = generate(nextManifest, { cwd });
   } catch (err) {
     printError('Generation failed', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   printGeneratedFiles(files.map((file) => file.path));
@@ -326,7 +329,7 @@ function resolveTemplateAgent(name: string, template: string, targetContext: Tar
   if (!isTeamRoleName(template)) {
     const available = listRoleTemplates().map((role) => role.name).join(', ');
     printError('Unknown role template', `"${template}". Available templates: ${available}`);
-    process.exit(1);
+    abortCli(1);
   }
 
   return {
@@ -342,7 +345,7 @@ function applyEditOptions(current: CoreAgent, options: EditAgentOptions): CoreAg
     const parsed = parseInt(options.maxTurns.trim(), 10);
     if (Number.isNaN(parsed) || parsed <= 0) {
       printError('Invalid --max-turns', 'Must be a positive integer');
-      process.exit(1);
+      abortCli(1);
     }
     nextMaxTurns = parsed;
   }
@@ -364,7 +367,7 @@ export async function runAddAgentCommand(name: string, options: AddAgentOptions)
 
   if (team.agents[name]) {
     console.error(chalk.red(`\nAgent "${name}" already exists.`));
-    process.exit(1);
+    abortCli(1);
   }
 
   printHeader(`Add agent ${name}`);
@@ -389,7 +392,7 @@ export async function runCreateSkillCommand(name: string, options: TargetedOptio
       'Invalid skill name',
       `"${name}" - must start with a letter, lowercase alphanumeric and hyphens only.`,
     );
-    process.exit(1);
+    abortCli(1);
   }
 
   const allSkills = collectSkills(team);
@@ -401,7 +404,7 @@ export async function runCreateSkillCommand(name: string, options: TargetedOptio
       `Skill "${name}" already exists`,
       owners.length > 0 ? `Assigned to: ${owners.join(', ')}` : 'Defined but not assigned',
     );
-    process.exit(1);
+    abortCli(1);
   }
 
   printHeader(`Create skill ${name}`);
@@ -438,7 +441,7 @@ export async function runAssignSkillCommand(name: string, options: TargetedOptio
       `Skill "${name}" does not exist`,
       `Available skills: ${allSkills.size > 0 ? [...allSkills].join(', ') : '(none)'}. Use "create skill" first.`,
     );
-    process.exit(1);
+    abortCli(1);
   }
 
   const alreadyAssigned = agentNames.filter((agentName) => team.agents[agentName].runtime.skillDocs?.includes(name));
@@ -446,7 +449,7 @@ export async function runAssignSkillCommand(name: string, options: TargetedOptio
 
   if (available.length === 0) {
     printError(`Skill "${name}" is already assigned to all agents`, alreadyAssigned.join(', '));
-    process.exit(1);
+    abortCli(1);
   }
 
   printHeader(`Assign skill ${name}`);
@@ -479,7 +482,7 @@ export async function runRemoveAgentCommand(name: string, options: RemoveAgentOp
   if (!team.agents[name]) {
     console.error(chalk.red(`\nAgent "${name}" not found.`));
     console.error(chalk.dim(`Available agents: ${Object.keys(team.agents).join(', ')}`));
-    process.exit(1);
+    abortCli(1);
   }
 
   const confirmed = options.yes ?? await promptConfirm({
@@ -515,7 +518,7 @@ export async function runEditAgentCommand(name: string, options: EditAgentOption
   if (!agent) {
     console.error(chalk.red(`\nAgent "${name}" not found.`));
     console.error(chalk.dim(`Available agents: ${Object.keys(team.agents).join(', ')}`));
-    process.exit(1);
+    abortCli(1);
   }
 
   printHeader(`Edit agent ${name}`);
@@ -545,53 +548,7 @@ export async function runEditAgentCommand(name: string, options: EditAgentOption
   printCommandSuccess(`Agent "${name}" updated and configuration regenerated`);
 }
 
-export function registerManageCommands(program: Command): void {
-  const addCmd = program.command('add').description('Add a resource to the team (subcommands: agent)');
-
-  addCmd
-    .command('agent <name>')
-    .description('Add a new agent to the team')
-    .option('--template <role>', 'Create agent from a built-in role template')
-    .option('--target <name>', 'Target block to modify')
-    .action(runAddAgentCommand);
-
-  const createCmd = program.command('create').description('Create a new resource');
-
-  createCmd
-    .command('skill <name>')
-    .description('Create a new skill (generates stub file in .claude/skills/)')
-    .option('--target <name>', 'Target block to modify')
-    .action(runCreateSkillCommand);
-
-  const assignCmd = program.command('assign').description('Assign a resource to agents');
-
-  assignCmd
-    .command('skill <name>')
-    .description('Assign an existing skill to one or more agents')
-    .option('--target <name>', 'Target block to modify')
-    .action(runAssignSkillCommand);
-
-  const removeCmd = program.command('remove').description('Remove a resource from the team (subcommands: agent)');
-
-  removeCmd
-    .command('agent <name>')
-    .description('Remove an agent from the team')
-    .option('--yes', 'Skip confirmation')
-    .option('--target <name>', 'Target block to modify')
-    .action(runRemoveAgentCommand);
-
-  const editCmd = program.command('edit').description('Edit a resource in the team (subcommands: agent)');
-
-  editCmd
-    .command('agent <name>')
-    .description('Edit an existing agent configuration')
-    .option('--description <text>', 'Update the agent description')
-    .option('--model <model>', 'Update the model')
-    .option('--reasoning-effort <level>', 'Update Codex reasoning effort (low|medium|high|xhigh)')
-    .option('--max-turns <number>', 'Update max turns')
-    .option('--target <name>', 'Target block to modify')
-    .action(runEditAgentCommand);
-}
+export { registerManageCommands } from './registrars/manage.js';
 
 async function promptAgentConfig(name: string, targetContext: TargetContext): Promise<CoreAgent> {
   const description = await promptInput({
@@ -604,8 +561,8 @@ async function promptAgentConfig(name: string, targetContext: TargetContext): Pr
   const supportedSkills = getSupportedSkills(targetContext);
   const selectedSkills = await promptCheckbox<string>({
     message: `Skills for ${name}:`,
-    choices: supportedSkills.map((skill) => ({
-      name: formatSkillLabel(skill, defaultRegistry.getSkills()[skill]?.description),
+      choices: supportedSkills.map((skill) => ({
+      name: formatSkillLabel(skill, getSkillDefinition(skill)?.description),
       value: skill,
       checked: ['read_files', 'write_files'].includes(skill), // default selection
     })),
