@@ -11,8 +11,7 @@ export function generate(
   manifest: TeamCastManifest,
   options: BuildGeneratedOutputsOptions,
 ) {
-  const rawManifest = applyDefaults(manifest);
-  injectEnvironmentPolicies(rawManifest, options.cwd);
+  const rawManifest = injectEnvironmentPolicies(applyDefaults(manifest), options.cwd);
   
   const rawManifestRecord = rawManifest as unknown as Record<string, unknown>;
   const registeredTargets = getRegisteredTargetNames();

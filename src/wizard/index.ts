@@ -11,7 +11,7 @@ import { stepAgentCustomization } from './steps/agent-customization.js';
 import { normalizeManifest, replaceManifestTarget } from '../manifest/normalize.js';
 import { getTarget, getRegisteredTargetNames } from '../renderers/registry.js';
 import { evaluateTeam, teamHasBlockingIssues, printManifestValidation } from '../application/validate-team.js';
-import { defaultRegistry } from '../plugins/index.js';
+import { detectPluginNames } from '../plugins/catalog.js';
 import {
   printSuccess,
   printError,
@@ -19,6 +19,7 @@ import {
   printCommandSuccess,
   printNextSteps,
 } from '../utils/chalk-helpers.js';
+import { abortCli } from '../cli/errors.js';
 
 export interface WizardOptions {
   cwd: string;
@@ -65,14 +66,14 @@ export async function runWizard(options: WizardOptions): Promise<void> {
     rawManifest = replaceManifestTarget(rawManifest, targetName, customizedTeam);
   }
 
-  const detectedPlugins = defaultRegistry.getDetectedPlugins(cwd).map(p => p.name);
+  const detectedPlugins = detectPluginNames(cwd);
   if (detectedPlugins.length > 0) {
     rawManifest.plugins = detectedPlugins;
   }
-  const validation = evaluateTeam(rawManifest);
+  const validation = evaluateTeam(rawManifest, { cwd });
   if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
-    process.exit(1);
+    abortCli(1);
   }
 
   const confirmed = await stepConfirmGenerate(rawManifest, cwd, skipConfirm || nonInteractive);
@@ -85,7 +86,7 @@ export async function runWizard(options: WizardOptions): Promise<void> {
     writeManifest(rawManifest, cwd);
   } catch (err) {
     printError('Failed to write teamcast.yaml', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   let files;
@@ -93,7 +94,7 @@ export async function runWizard(options: WizardOptions): Promise<void> {
     files = generate(rawManifest, { cwd });
   } catch (err) {
     printError('Generation failed', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   console.log('');

@@ -1,4 +1,3 @@
-import type { Command } from 'commander';
 import chalk from 'chalk';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { generate } from '../generator/index.js';
@@ -15,6 +14,7 @@ import {
   printCommandSuccess,
   printBulletList,
 } from '../utils/chalk-helpers.js';
+import { abortCli } from './errors.js';
 
 export async function runGenerateCommand(options: { dryRun?: boolean }): Promise<void> {
   const cwd = process.cwd();
@@ -31,15 +31,15 @@ export async function runGenerateCommand(options: { dryRun?: boolean }): Promise
           console.error(chalk.dim(`  ${detail}`));
         }
       }
-      process.exit(1);
+      abortCli(1);
     }
     throw err;
   }
 
-  const validation = evaluateTeam(manifest);
+  const validation = evaluateTeam(manifest, { cwd });
   if (teamHasBlockingIssues(validation)) {
     printManifestValidation(validation);
-    process.exit(1);
+    abortCli(1);
   }
 
   if (dryRun) {
@@ -54,7 +54,7 @@ export async function runGenerateCommand(options: { dryRun?: boolean }): Promise
     files = generate(manifest, { cwd, dryRun });
   } catch (err) {
     printError('Generation failed', String(err));
-    process.exit(1);
+    abortCli(1);
   }
 
   for (const file of files) {
@@ -75,10 +75,4 @@ export async function runGenerateCommand(options: { dryRun?: boolean }): Promise
   printManifestValidation(validation);
 }
 
-export function registerGenerateCommand(program: Command): void {
-  program
-    .command('generate')
-    .description('Generate target config files from teamcast.yaml')
-    .option('--dry-run', 'Preview files without writing to disk')
-    .action(runGenerateCommand);
-}
+export { registerGenerateCommand } from './registrars/generate.js';

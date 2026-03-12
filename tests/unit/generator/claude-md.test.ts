@@ -78,13 +78,15 @@ describe('renderClaudeMd', () => {
   it('includes security boundaries from policies', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      claude: { agents: { dev: { description: 'Dev' } } },
-      policies: {
-        sandbox: { enabled: true },
-        permissions: {
-          rules: {
-            allow: ['Bash(npm test)'],
-            deny: ['Bash(rm -rf *)'],
+      claude: {
+        agents: { dev: { description: 'Dev' } },
+        policies: {
+          sandbox: { enabled: true },
+          permissions: {
+            rules: {
+              allow: ['Bash(npm test)'],
+              deny: ['Bash(rm -rf *)'],
+            },
           },
         },
       },

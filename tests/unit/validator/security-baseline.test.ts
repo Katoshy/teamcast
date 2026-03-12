@@ -21,9 +21,12 @@ describe('checkSecurityBaseline', () => {
   it('does not warn when .env deny rule exists', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      policies: {
-        permissions: { rules: { deny: ['Write(.env*)', 'Edit(.env*)'] } },
-        sandbox: { enabled: true },
+      claude: {
+        ...base.claude,
+        policies: {
+          permissions: { rules: { deny: ['Write(.env*)', 'Edit(.env*)'] } },
+          sandbox: { enabled: true },
+        },
       },
     };
     const results = checkSecurityBaseline(normalizeManifest(manifest, claudeTarget));
@@ -33,7 +36,10 @@ describe('checkSecurityBaseline', () => {
   it('warns when sandbox is disabled', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      policies: { sandbox: { enabled: false } },
+      claude: {
+        ...base.claude,
+        policies: { sandbox: { enabled: false } },
+      },
     };
     const warnings = checkSecurityBaseline(normalizeManifest(manifest, claudeTarget)).filter((r) => r.severity === 'warning');
     expect(warnings.some((w) => w.message.toLowerCase().includes('sandbox'))).toBe(true);
@@ -53,8 +59,11 @@ describe('checkSecurityBaseline', () => {
   it('errors on dangerously-skip-permissions in allow rules', () => {
     const manifest: TeamCastManifest = {
       ...base,
-      policies: {
-        permissions: { rules: { allow: ['Bash(--dangerously-skip-permissions)'] } },
+      claude: {
+        ...base.claude,
+        policies: {
+          permissions: { rules: { allow: ['Bash(--dangerously-skip-permissions)'] } },
+        },
       },
     };
     const errors = checkSecurityBaseline(normalizeManifest(manifest, claudeTarget)).filter((r) => r.severity === 'error');

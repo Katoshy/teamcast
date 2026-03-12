@@ -1,10 +1,10 @@
-import type { Command } from 'commander';
 import chalk from 'chalk';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { applyDefaults } from '../manifest/defaults.js';
 import { normalizeManifest } from '../manifest/normalize.js';
 import { buildExplanation } from '../explainer/index.js';
 import { getRegisteredTargetNames, getTarget } from '../renderers/registry.js';
+import { abortCli } from './errors.js';
 
 export function runExplainCommand(): void {
   const cwd = process.cwd();
@@ -18,7 +18,7 @@ export function runExplainCommand(): void {
       if (err.details?.length) {
         for (const d of err.details) console.error(chalk.dim(`  ${d}`));
       }
-      process.exit(1);
+      abortCli(1);
     }
     throw err;
   }
@@ -45,9 +45,4 @@ export function runExplainCommand(): void {
   }
 }
 
-export function registerExplainCommand(program: Command): void {
-  program
-    .command('explain')
-    .description('Show a human-readable view of the agent team architecture')
-    .action(runExplainCommand);
-}
+export { registerExplainCommand } from './registrars/explain.js';

@@ -2,6 +2,7 @@
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
+import { isCLIAbortError } from './cli/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,4 +36,11 @@ program
 
 registerAllCommands(program);
 
-await program.parseAsync(process.argv);
+try {
+  await program.parseAsync(process.argv);
+} catch (error) {
+  if (isCLIAbortError(error)) {
+    process.exit(error.exitCode);
+  }
+  throw error;
+}

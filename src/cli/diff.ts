@@ -1,8 +1,8 @@
-import type { Command } from 'commander';
 import chalk from 'chalk';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { diffManifest } from '../diff/index.js';
 import { printHeader, printCommandSuccess, printDim } from '../utils/chalk-helpers.js';
+import { abortCli } from './errors.js';
 
 export function runDiffCommand(): void {
   const cwd = process.cwd();
@@ -13,7 +13,7 @@ export function runDiffCommand(): void {
   } catch (err) {
     if (err instanceof ManifestError) {
       console.error(chalk.red(`\nError: ${err.message}`));
-      process.exit(1);
+      abortCli(1);
     }
     throw err;
   }
@@ -59,9 +59,4 @@ export function runDiffCommand(): void {
   console.log('');
 }
 
-export function registerDiffCommand(program: Command): void {
-  program
-    .command('diff')
-    .description('Show differences between teamcast.yaml and generated files on disk')
-    .action(runDiffCommand);
-}
+export { registerDiffCommand } from './registrars/diff.js';

@@ -8,15 +8,15 @@ project:
   name: placeholder
   preset: solo-dev
   description: Single enhanced developer agent with safe defaults for individual developers.
-policies:
-  fragments:
-    - allow-git-read
-    - allow-git-write
-    - ask-git-push
-    - deny-destructive-shell
-    - deny-env-files
-    - sandbox-default
 claude:
+  policies:
+    fragments:
+      - allow-git-read
+      - allow-git-write
+      - ask-git-push
+      - deny-destructive-shell
+      - deny-env-files
+      - sandbox-default
   agents:
     developer:
       description: Full-stack developer agent. Reads, writes, edits files and runs

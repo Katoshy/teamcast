@@ -2,8 +2,8 @@ import type { CoreAgent, CoreTeam, ReasoningEffort } from '../core/types.js';
 import type { AgentConfig, TeamCastManifest, TargetConfig } from '../manifest/types.js';
 import type { TeamRoleName } from '../team-templates/roles.js';
 import { createPolicies } from '../team-templates/policies.js';
+import { buildPresetManifest } from '../team-templates/presets.js';
 import { createRoleAgent, getRoleRuntimeDefaults, isTeamRoleName } from '../team-templates/roles.js';
-import { applyPreset, loadPreset } from '../presets/index.js';
 import { createManifestForTarget, normalizeManifest } from '../manifest/normalize.js';
 import type { TargetContext } from '../renderers/target-context.js';
 import { getTarget } from '../renderers/registry.js';
@@ -90,6 +90,70 @@ function cloneTargetConfig(
         })(),
       ]),
     ),
+    policies: targetConfig.policies
+      ? {
+          ...targetConfig.policies,
+          fragments: targetConfig.policies.fragments ? [...targetConfig.policies.fragments] : undefined,
+          permissions: targetConfig.policies.permissions
+            ? {
+                ...targetConfig.policies.permissions,
+                allow: targetConfig.policies.permissions.allow ? [...targetConfig.policies.permissions.allow] : undefined,
+                ask: targetConfig.policies.permissions.ask ? [...targetConfig.policies.permissions.ask] : undefined,
+                deny: targetConfig.policies.permissions.deny ? [...targetConfig.policies.permissions.deny] : undefined,
+                rules: targetConfig.policies.permissions.rules
+                  ? {
+                      allow: targetConfig.policies.permissions.rules.allow
+                        ? [...targetConfig.policies.permissions.rules.allow]
+                        : undefined,
+                      ask: targetConfig.policies.permissions.rules.ask
+                        ? [...targetConfig.policies.permissions.rules.ask]
+                        : undefined,
+                      deny: targetConfig.policies.permissions.rules.deny
+                        ? [...targetConfig.policies.permissions.rules.deny]
+                        : undefined,
+                    }
+                  : undefined,
+              }
+            : undefined,
+          sandbox: targetConfig.policies.sandbox
+            ? {
+                ...targetConfig.policies.sandbox,
+                excluded_commands: targetConfig.policies.sandbox.excluded_commands
+                  ? [...targetConfig.policies.sandbox.excluded_commands]
+                  : undefined,
+                network: targetConfig.policies.sandbox.network
+                  ? {
+                      allow_unix_sockets: targetConfig.policies.sandbox.network.allow_unix_sockets
+                        ? [...targetConfig.policies.sandbox.network.allow_unix_sockets]
+                        : undefined,
+                      allow_local_binding: targetConfig.policies.sandbox.network.allow_local_binding,
+                    }
+                  : undefined,
+              }
+            : undefined,
+          hooks: targetConfig.policies.hooks
+            ? {
+                pre_tool_use: targetConfig.policies.hooks.pre_tool_use?.map((entry) => ({ ...entry })),
+                post_tool_use: targetConfig.policies.hooks.post_tool_use?.map((entry) => ({ ...entry })),
+                notification: targetConfig.policies.hooks.notification?.map((entry) => ({ ...entry })),
+              }
+            : undefined,
+          network: targetConfig.policies.network
+            ? {
+                allowed_domains: targetConfig.policies.network.allowed_domains
+                  ? [...targetConfig.policies.network.allowed_domains]
+                  : undefined,
+              }
+            : undefined,
+          assertions: targetConfig.policies.assertions ? [...targetConfig.policies.assertions] : undefined,
+        }
+      : undefined,
+    settings: targetConfig.settings
+      ? {
+          generate_docs: targetConfig.settings.generate_docs,
+          generate_local_settings: targetConfig.settings.generate_local_settings,
+        }
+      : undefined,
   };
 }
 
@@ -108,16 +172,21 @@ export function buildManifestFromPreset(
   projectName: string,
   selection: InitTargetSelection = 'claude',
 ): TeamCastManifest {
-  const preset = loadPreset(presetName);
-  const manifest = applyPreset(preset, projectName);
+  const presetManifest = buildPresetManifest(presetName);
+  const manifest: TeamCastManifest = {
+    ...presetManifest,
+    project: {
+      ...presetManifest.project,
+      name: projectName,
+    },
+  };
   const sourceTarget = manifest.claude ?? manifest.codex;
   const targetNames = resolveInitTargets(selection);
 
   return {
     version: '2',
     project: { ...manifest.project },
-    policies: manifest.policies ? { ...manifest.policies } : undefined,
-    settings: manifest.settings ? { ...manifest.settings } : undefined,
+    plugins: manifest.plugins ? [...manifest.plugins] : undefined,
     preset_meta: manifest.preset_meta ? { ...manifest.preset_meta } : undefined,
     claude: targetNames.includes('claude')
       ? cloneTargetConfig(manifest.claude ?? sourceTarget, {

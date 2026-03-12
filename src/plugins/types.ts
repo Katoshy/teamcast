@@ -1,5 +1,5 @@
 import type { CanonicalTool } from '../tools/types.js';
-import type { PoliciesConfig, TargetConfig } from '../manifest/types.js';
+import type { PoliciesConfig } from '../manifest/types.js';
 import type { Preset } from '../presets/types.js';
 
 export interface WizardPrompt {
@@ -21,6 +21,11 @@ export interface SkillDefinition {
   id: string;
   description: string;
 }
+
+export type PluginToolMap = Record<string, CanonicalTool>;
+export type PluginModelMap = Record<string, ModelDefinition>;
+export type PluginSkillMap = Record<string, SkillDefinition>;
+export type PluginPresetMap = Record<string, Preset>;
 
 export interface TeamCastPlugin {
   /**
@@ -60,17 +65,17 @@ export interface TeamCastPlugin {
   /**
    * New canonical tools registered by this plugin
    */
-  tools?: Record<string, CanonicalTool>;
+  tools?: PluginToolMap;
 
   /**
    * LLM Models registered by this plugin
    */
-  models?: Record<string, ModelDefinition>;
+  models?: PluginModelMap;
 
   /**
    * Role skills provided by this plugin
    */
-  skills?: Record<string, SkillDefinition>;
+  skills?: PluginSkillMap;
 
   /**
    * System Prompt fragments injected into agents
@@ -80,5 +85,5 @@ export interface TeamCastPlugin {
   /**
    * Exported presets
    */
-  presets?: Record<string, Preset>;
+  presets?: PluginPresetMap;
 }

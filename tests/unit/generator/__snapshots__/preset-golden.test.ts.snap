@@ -140,7 +140,13 @@ Provide clear, actionable recommendations. Do not modify files yourself.
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git log)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx *)",
+      "Bash(npm install)",
+      "Bash(node *)"
     ],
     "ask": [
       "Bash(git push *)"
@@ -156,7 +162,11 @@ Provide clear, actionable recommendations. Do not modify files yourself.
   },
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": true
+    "autoAllowBashIfSandboxed": true,
+    "excludedCommands": [
+      "rm -rf /",
+      "mkfs"
+    ]
   }
 }
 ",
@@ -219,6 +229,12 @@ Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast gene
 - \`Bash(git diff *)\`
 - \`Bash(git add *)\`
 - \`Bash(git commit *)\`
+- \`Bash(git log)\`
+- \`Bash(npm run *)\`
+- \`Bash(npm test *)\`
+- \`Bash(npx *)\`
+- \`Bash(npm install)\`
+- \`Bash(node *)\`
 
 **Prohibited operations:**
 - \`Bash(rm -rf *)\`
@@ -260,7 +276,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
 
 ---
 
@@ -396,7 +412,13 @@ Do not modify any files.
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git log)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx *)",
+      "Bash(npm install)",
+      "Bash(node *)"
     ],
     "ask": [
       "Bash(git push *)"
@@ -412,7 +434,11 @@ Do not modify any files.
   },
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": true
+    "autoAllowBashIfSandboxed": true,
+    "excludedCommands": [
+      "rm -rf /",
+      "mkfs"
+    ]
   }
 }
 ",
@@ -474,6 +500,12 @@ Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast gene
 - \`Bash(git diff *)\`
 - \`Bash(git add *)\`
 - \`Bash(git commit *)\`
+- \`Bash(git log)\`
+- \`Bash(npm run *)\`
+- \`Bash(npm test *)\`
+- \`Bash(npx *)\`
+- \`Bash(npm install)\`
+- \`Bash(node *)\`
 
 **Prohibited operations:**
 - \`Bash(rm -rf *)\`
@@ -515,7 +547,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
 
 ---
 
@@ -687,7 +719,13 @@ If you find critical issues, block the PR and explain what must be fixed. Do not
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git log)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx *)",
+      "Bash(npm install)",
+      "Bash(node *)"
     ],
     "ask": [
       "Bash(git push *)"
@@ -705,7 +743,11 @@ If you find critical issues, block the PR and explain what must be fixed. Do not
   },
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": true
+    "autoAllowBashIfSandboxed": true,
+    "excludedCommands": [
+      "rm -rf /",
+      "mkfs"
+    ]
   }
 }
 ",
@@ -777,6 +819,12 @@ Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast gene
 - \`Bash(git diff *)\`
 - \`Bash(git add *)\`
 - \`Bash(git commit *)\`
+- \`Bash(git log)\`
+- \`Bash(npm run *)\`
+- \`Bash(npm test *)\`
+- \`Bash(npx *)\`
+- \`Bash(npm install)\`
+- \`Bash(node *)\`
 
 **Prohibited operations:**
 - \`Bash(rm -rf *)\`
@@ -821,7 +869,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Bash(eval *), Bash(exec *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
 
 ---
 
@@ -881,7 +929,13 @@ Follow existing code style. Keep changes minimal and focused.
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git log)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx *)",
+      "Bash(npm install)",
+      "Bash(node *)"
     ],
     "ask": [
       "Bash(git push *)"
@@ -895,7 +949,11 @@ Follow existing code style. Keep changes minimal and focused.
   },
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": true
+    "autoAllowBashIfSandboxed": true,
+    "excludedCommands": [
+      "rm -rf /",
+      "mkfs"
+    ]
   }
 }
 ",
@@ -926,6 +984,12 @@ Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast gene
 - \`Bash(git diff *)\`
 - \`Bash(git add *)\`
 - \`Bash(git commit *)\`
+- \`Bash(git log)\`
+- \`Bash(npm run *)\`
+- \`Bash(npm test *)\`
+- \`Bash(npx *)\`
+- \`Bash(npm install)\`
+- \`Bash(node *)\`
 
 **Prohibited operations:**
 - \`Bash(rm -rf *)\`
@@ -956,7 +1020,7 @@ This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
 
 ---
 

@@ -117,8 +117,6 @@ export interface TeamCastManifest {
   version: '2';
   project: ProjectConfig;
   plugins?: string[];
-  policies?: PoliciesConfig;
-  settings?: GenerationSettings;
   preset_meta?: PresetMeta;
   
   // Platform Targets

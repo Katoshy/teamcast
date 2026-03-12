@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import type { CoreTeam } from '../../core/types.js';
 import type { TeamCastManifest } from '../../manifest/types.js';
-import { listPresets } from '../../presets/index.js';
+import { listPresetMetas } from '../../team-templates/presets.js';
 import { stepCustomTeam } from './custom-team.js';
 import { promptList } from '../../utils/prompts.js';
 import type { InitTargetSelection } from '../../application/team.js';
@@ -42,7 +42,7 @@ export async function stepTeamSelection(
   });
 
   if (mode === 'preset') {
-    const presets = listPresets();
+    const presets = listPresetMetas();
     const presetName = await promptList<string>({
       message: 'Select a preset:',
       choices: presets.map((preset) => ({

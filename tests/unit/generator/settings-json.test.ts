@@ -23,12 +23,15 @@ describe('renderSettingsJson', () => {
   it('includes allow/ask/deny rules from permissions', () => {
     const manifest: TeamCastManifest = {
       ...baseManifest,
-      policies: {
-        permissions: {
-          rules: {
-            allow: ['Bash(npm run *)'],
-            ask: ['Bash(git push *)'],
-            deny: ['Bash(rm -rf *)'],
+      claude: {
+        ...baseManifest.claude,
+        policies: {
+          permissions: {
+            rules: {
+              allow: ['Bash(npm run *)'],
+              ask: ['Bash(git push *)'],
+              deny: ['Bash(rm -rf *)'],
+            },
           },
         },
       },
@@ -46,9 +49,12 @@ describe('renderSettingsJson', () => {
   it('converts network.allowed_domains to WebFetch rules', () => {
     const manifest: TeamCastManifest = {
       ...baseManifest,
-      policies: {
-        network: {
-          allowed_domains: ['github.com', 'docs.python.org', '*.npmjs.org'],
+      claude: {
+        ...baseManifest.claude,
+        policies: {
+          network: {
+            allowed_domains: ['github.com', 'docs.python.org', '*.npmjs.org'],
+          },
         },
       },
     };
@@ -64,10 +70,13 @@ describe('renderSettingsJson', () => {
   it('maps sandbox fields with camelCase renaming', () => {
     const manifest: TeamCastManifest = {
       ...baseManifest,
-      policies: {
-        sandbox: {
-          enabled: true,
-          auto_allow_bash: true,
+      claude: {
+        ...baseManifest.claude,
+        policies: {
+          sandbox: {
+            enabled: true,
+            auto_allow_bash: true,
+          },
         },
       },
     };
@@ -83,10 +92,13 @@ describe('renderSettingsJson', () => {
   it('maps hooks to PascalCase keys', () => {
     const manifest: TeamCastManifest = {
       ...baseManifest,
-      policies: {
-        hooks: {
-          pre_tool_use: [{ matcher: 'Bash', command: 'echo pre' }],
-          post_tool_use: [{ matcher: 'Write', command: 'npx prettier --write' }],
+      claude: {
+        ...baseManifest.claude,
+        policies: {
+          hooks: {
+            pre_tool_use: [{ matcher: 'Bash', command: 'echo pre' }],
+            post_tool_use: [{ matcher: 'Write', command: 'npx prettier --write' }],
+          },
         },
       },
     };
