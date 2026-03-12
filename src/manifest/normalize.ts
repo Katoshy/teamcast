@@ -1,6 +1,5 @@
 import {
   normalizeInstructionBlocks,
-  type InstructionBlock,
 } from '../core/instructions.js';
 import {
   mergeRuntimeWithTraits,

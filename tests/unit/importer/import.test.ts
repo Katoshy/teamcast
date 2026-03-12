@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { importFromClaudeDir, importFromCodexDir } from '../../../src/importer/index.js';
+import { importFromClaudeDir } from '../../../src/importer/claude.js';
+import { importFromCodexDir } from '../../../src/importer/codex.js';
 
 let TMP: string;
 

@@ -1,6 +1,5 @@
 import type { SkillToolMap } from '../../core/skill-resolver.js';
 import type { AgentSkill } from '../../core/skills.js';
-import { CODEX_TOOLS } from './tools.js';
 
 export const CODEX_SKILL_MAP: SkillToolMap = {
   read_files: ['read_file', 'search_codebase'],

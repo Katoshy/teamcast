@@ -6,9 +6,7 @@ import { writeManifest } from '../manifest/writer.js';
 import { expandSkills } from '../core/skill-resolver.js';
 import { generate } from '../generator/index.js';
 import {
-  getSkillDefinition,
   listModelDefinitions,
-  listSkillDefinitions,
 } from '../plugins/catalog.js';
 import {
   printSuccess,
@@ -36,19 +34,8 @@ import {
   promptCheckbox,
 } from '../utils/prompts.js';
 import type { AgentSkill } from '../core/skills.js';
+import { formatSkillLabel, getSupportedSkills } from '../utils/skill-prompt-options.js';
 import { abortCli } from './errors.js';
-
-function formatSkillLabel(skillId: string, description?: string): string {
-  const skillDef = getSkillDefinition(skillId);
-  const label = skillDef ? skillDef.description : skillId;
-  const shortLabel = label.split(' ')[0] ?? skillId;
-  return `${shortLabel.padEnd(16)}`;
-}
-
-function getSupportedSkills(targetContext: TargetContext): string[] {
-  const allSkills = listSkillDefinitions().map((skill) => skill.id);
-  return allSkills.filter((skill) => (targetContext.skillMap[skill as AgentSkill]?.length ?? 0) > 0);
-}
 import {
   createRoleAgent,
   isTeamRoleName,
@@ -561,8 +548,8 @@ async function promptAgentConfig(name: string, targetContext: TargetContext): Pr
   const supportedSkills = getSupportedSkills(targetContext);
   const selectedSkills = await promptCheckbox<string>({
     message: `Skills for ${name}:`,
-      choices: supportedSkills.map((skill) => ({
-      name: formatSkillLabel(skill, getSkillDefinition(skill)?.description),
+    choices: supportedSkills.map((skill) => ({
+      name: formatSkillLabel(skill),
       value: skill,
       checked: ['read_files', 'write_files'].includes(skill), // default selection
     })),

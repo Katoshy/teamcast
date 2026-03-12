@@ -1,6 +1,6 @@
 import type { ManifestTargetName } from '../manifest/targets.js';
-import { claudeImportHandler, importFromClaudeDir } from './claude.js';
-import { codexImportHandler, importFromCodexDir } from './codex.js';
+import { claudeImportHandler } from './claude.js';
+import { codexImportHandler } from './codex.js';
 import type { ImportHandler, ImportResult, ImportWarning } from './types.js';
 
 const registry = new Map<ManifestTargetName, ImportHandler>();
@@ -50,5 +50,4 @@ export function importTargetFromDir(
   return handler.importFromDir(cwd, projectName);
 }
 
-export { importFromClaudeDir, importFromCodexDir };
 export type { ImportHandler, ImportResult, ImportWarning };
