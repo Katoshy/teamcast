@@ -29,6 +29,21 @@ function runCli(
 }
 
 describe('CLI behavior', () => {
+  it('--version prints the package version', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'teamcast-version-'));
+
+    try {
+      const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8')) as { version: string };
+      const result = runCli(['--version'], cwd);
+
+      expect(result.status).toBe(0);
+      expect(result.stdout.trim()).toBe(pkg.version);
+      expect(result.stderr).toBe('');
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('init --yes completes non-interactively and generates the default preset', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'teamcast-init-'));
 

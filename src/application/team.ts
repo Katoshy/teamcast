@@ -6,7 +6,6 @@ import { createRoleAgent, getRoleRuntimeDefaults, isTeamRoleName } from '../team
 import { applyPreset, loadPreset } from '../presets/index.js';
 import { createManifestForTarget, normalizeManifest } from '../manifest/normalize.js';
 import type { TargetContext } from '../renderers/target-context.js';
-import '../renderers/index.js';
 import { getTarget } from '../renderers/registry.js';
 
 export type InitTargetName = 'claude' | 'codex';

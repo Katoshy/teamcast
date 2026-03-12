@@ -26,7 +26,6 @@ import {
   teamHasBlockingIssues,
   printManifestValidation,
 } from '../application/validate-team.js';
-import { confirm, checkbox } from '@inquirer/prompts';
 import {
   promptConfirm,
   promptInput,
@@ -356,6 +355,196 @@ function applyEditOptions(current: CoreAgent, options: EditAgentOptions): CoreAg
   });
 }
 
+export async function runAddAgentCommand(name: string, options: AddAgentOptions): Promise<void> {
+  const cwd = process.cwd();
+  const manifest = loadManifestOrExit(cwd);
+  const targetName = resolveTargetNameOrExit(manifest, options.target);
+  const targetContext = getTarget(targetName);
+  const team = normalizeTargetTeam(manifest, targetName);
+
+  if (team.agents[name]) {
+    console.error(chalk.red(`\nAgent "${name}" already exists.`));
+    process.exit(1);
+  }
+
+  printHeader(`Add agent ${name}`);
+
+  const agent = options.template
+    ? resolveTemplateAgent(name, options.template, targetContext)
+    : await promptAgentConfig(name, targetContext);
+  const nextTeam = addAgentToTeam(team, name, agent);
+
+  applyManifestChanges(cwd, manifest, targetName, nextTeam);
+  printCommandSuccess(`Agent "${name}" added and configuration regenerated`);
+}
+
+export async function runCreateSkillCommand(name: string, options: TargetedOption): Promise<void> {
+  const cwd = process.cwd();
+  const manifest = loadManifestOrExit(cwd);
+  const targetName = resolveTargetNameOrExit(manifest, options.target);
+  const team = normalizeTargetTeam(manifest, targetName);
+
+  if (!/^[a-z][a-z0-9-]*$/.test(name)) {
+    printError(
+      'Invalid skill name',
+      `"${name}" - must start with a letter, lowercase alphanumeric and hyphens only.`,
+    );
+    process.exit(1);
+  }
+
+  const allSkills = collectSkills(team);
+  if (allSkills.has(name)) {
+    const owners = Object.entries(team.agents)
+      .filter(([, agent]) => agent.runtime.skillDocs?.includes(name))
+      .map(([agentName]) => agentName);
+    printError(
+      `Skill "${name}" already exists`,
+      owners.length > 0 ? `Assigned to: ${owners.join(', ')}` : 'Defined but not assigned',
+    );
+    process.exit(1);
+  }
+
+  printHeader(`Create skill ${name}`);
+
+  if (allSkills.size > 0) {
+    console.log(chalk.dim(`  Existing skills: ${[...allSkills].join(', ')}`));
+    console.log('');
+  }
+
+  const agentNames = Object.keys(team.agents);
+  const owner = await promptList<string>({
+    message: 'Which agent should own this skill?',
+    choices: agentNames.map((agentName) => ({
+      name: `${agentName} - ${team.agents[agentName].description}`,
+      value: agentName,
+    })),
+  });
+
+  const nextTeam = assignSkillToAgents(team, name, [owner]);
+  applyManifestChanges(cwd, manifest, targetName, nextTeam);
+  printCommandSuccess(`Skill "${name}" created and assigned to ${owner}`);
+}
+
+export async function runAssignSkillCommand(name: string, options: TargetedOption): Promise<void> {
+  const cwd = process.cwd();
+  const manifest = loadManifestOrExit(cwd);
+  const targetName = resolveTargetNameOrExit(manifest, options.target);
+  const team = normalizeTargetTeam(manifest, targetName);
+  const agentNames = Object.keys(team.agents);
+
+  const allSkills = collectSkills(team);
+  if (!allSkills.has(name)) {
+    printError(
+      `Skill "${name}" does not exist`,
+      `Available skills: ${allSkills.size > 0 ? [...allSkills].join(', ') : '(none)'}. Use "create skill" first.`,
+    );
+    process.exit(1);
+  }
+
+  const alreadyAssigned = agentNames.filter((agentName) => team.agents[agentName].runtime.skillDocs?.includes(name));
+  const available = agentNames.filter((agentName) => !team.agents[agentName].runtime.skillDocs?.includes(name));
+
+  if (available.length === 0) {
+    printError(`Skill "${name}" is already assigned to all agents`, alreadyAssigned.join(', '));
+    process.exit(1);
+  }
+
+  printHeader(`Assign skill ${name}`);
+
+  if (alreadyAssigned.length > 0) {
+    console.log(chalk.dim(`  Already assigned to: ${alreadyAssigned.join(', ')}`));
+    console.log('');
+  }
+
+  const selectedAgents = await promptCheckbox<string>({
+    message: 'Assign to which agents?',
+    choices: available.map((agentName) => ({
+      name: `${agentName} - ${team.agents[agentName].description}`,
+      value: agentName,
+    })),
+    validate: (selected: string[]) => selected.length > 0 || 'Select at least one agent',
+  });
+
+  const nextTeam = assignSkillToAgents(team, name, selectedAgents);
+  applyManifestChanges(cwd, manifest, targetName, nextTeam);
+  printCommandSuccess(`Skill "${name}" assigned to ${selectedAgents.join(', ')}`);
+}
+
+export async function runRemoveAgentCommand(name: string, options: RemoveAgentOptions): Promise<void> {
+  const cwd = process.cwd();
+  const manifest = loadManifestOrExit(cwd);
+  const targetName = resolveTargetNameOrExit(manifest, options.target);
+  const team = normalizeTargetTeam(manifest, targetName);
+
+  if (!team.agents[name]) {
+    console.error(chalk.red(`\nAgent "${name}" not found.`));
+    console.error(chalk.dim(`Available agents: ${Object.keys(team.agents).join(', ')}`));
+    process.exit(1);
+  }
+
+  const confirmed = options.yes ?? await promptConfirm({
+    message: `Remove agent "${name}"? This will also remove it from any handoffs.`,
+    default: false,
+  });
+
+  if (!confirmed) {
+    console.log(chalk.dim('Aborted.'));
+    return;
+  }
+
+  const nextTeam = removeAgentFromTeam(team, name);
+  applyManifestChanges(
+    cwd,
+    manifest,
+    targetName,
+    nextTeam,
+    { orphanedAgentName: name },
+  );
+
+  printCommandSuccess(`Agent "${name}" removed and configuration regenerated`);
+}
+
+export async function runEditAgentCommand(name: string, options: EditAgentOptions): Promise<void> {
+  const cwd = process.cwd();
+  const manifest = loadManifestOrExit(cwd);
+  const targetName = resolveTargetNameOrExit(manifest, options.target);
+  const targetContext = getTarget(targetName);
+  const team = normalizeTargetTeam(manifest, targetName);
+  const agent = team.agents[name];
+
+  if (!agent) {
+    console.error(chalk.red(`\nAgent "${name}" not found.`));
+    console.error(chalk.dim(`Available agents: ${Object.keys(team.agents).join(', ')}`));
+    process.exit(1);
+  }
+
+  printHeader(`Edit agent ${name}`);
+  console.log(chalk.dim(`  description: ${agent.description}`));
+  console.log(chalk.dim(`  model: ${agent.runtime.model ?? 'unspecified'}`));
+  if (agent.runtime.reasoningEffort) {
+    console.log(chalk.dim(`  reasoning_effort: ${agent.runtime.reasoningEffort}`));
+  }
+  if (agent.runtime.tools?.length) {
+    console.log(chalk.dim(`  tools: ${agent.runtime.tools.join(', ')}`));
+  }
+  if (agent.runtime.disallowedTools?.length) {
+    console.log(chalk.dim(`  disallowed_tools: ${agent.runtime.disallowedTools.join(', ')}`));
+  }
+  console.log('');
+
+  const hasDirectEdits =
+    options.description !== undefined ||
+    options.model !== undefined ||
+    options.reasoningEffort !== undefined ||
+    options.maxTurns !== undefined;
+  const updated = hasDirectEdits
+    ? applyEditOptions(agent, options)
+    : await promptEditAgent(agent, targetContext);
+
+  applyManifestChanges(cwd, manifest, targetName, editAgentInTeam(team, name, updated));
+  printCommandSuccess(`Agent "${name}" updated and configuration regenerated`);
+}
+
 export function registerManageCommands(program: Command): void {
   const addCmd = program.command('add').description('Add a resource to the team (subcommands: agent)');
 
@@ -364,28 +553,7 @@ export function registerManageCommands(program: Command): void {
     .description('Add a new agent to the team')
     .option('--template <role>', 'Create agent from a built-in role template')
     .option('--target <name>', 'Target block to modify')
-    .action(async (name: string, options: AddAgentOptions) => {
-      const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
-      const targetName = resolveTargetNameOrExit(manifest, options.target);
-      const targetContext = getTarget(targetName);
-      const team = normalizeTargetTeam(manifest, targetName);
-
-      if (team.agents[name]) {
-        console.error(chalk.red(`\nAgent "${name}" already exists.`));
-        process.exit(1);
-      }
-
-      printHeader(`Add agent ${name}`);
-
-      const agent = options.template
-        ? resolveTemplateAgent(name, options.template, targetContext)
-        : await promptAgentConfig(name, targetContext);
-      const nextTeam = addAgentToTeam(team, name, agent);
-
-      applyManifestChanges(cwd, manifest, targetName, nextTeam);
-      printCommandSuccess(`Agent "${name}" added and configuration regenerated`);
-    });
+    .action(runAddAgentCommand);
 
   const createCmd = program.command('create').description('Create a new resource');
 
@@ -393,52 +561,7 @@ export function registerManageCommands(program: Command): void {
     .command('skill <name>')
     .description('Create a new skill (generates stub file in .claude/skills/)')
     .option('--target <name>', 'Target block to modify')
-    .action(async (name: string, options: TargetedOption) => {
-      const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
-      const targetName = resolveTargetNameOrExit(manifest, options.target);
-      const team = normalizeTargetTeam(manifest, targetName);
-
-      if (!/^[a-z][a-z0-9-]*$/.test(name)) {
-        printError(
-          'Invalid skill name',
-          `"${name}" - must start with a letter, lowercase alphanumeric and hyphens only.`,
-        );
-        process.exit(1);
-      }
-
-      const allSkills = collectSkills(team);
-      if (allSkills.has(name)) {
-        const owners = Object.entries(team.agents)
-          .filter(([, agent]) => agent.runtime.skillDocs?.includes(name))
-          .map(([agentName]) => agentName);
-        printError(
-          `Skill "${name}" already exists`,
-          owners.length > 0 ? `Assigned to: ${owners.join(', ')}` : 'Defined but not assigned',
-        );
-        process.exit(1);
-      }
-
-      printHeader(`Create skill ${name}`);
-
-      if (allSkills.size > 0) {
-        console.log(chalk.dim(`  Existing skills: ${[...allSkills].join(', ')}`));
-        console.log('');
-      }
-
-      const agentNames = Object.keys(team.agents);
-      const owner = await promptList<string>({
-        message: 'Which agent should own this skill?',
-        choices: agentNames.map((agentName) => ({
-          name: `${agentName} - ${team.agents[agentName].description}`,
-          value: agentName,
-        })),
-      });
-
-      const nextTeam = assignSkillToAgents(team, name, [owner]);
-      applyManifestChanges(cwd, manifest, targetName, nextTeam);
-      printCommandSuccess(`Skill "${name}" created and assigned to ${owner}`);
-    });
+    .action(runCreateSkillCommand);
 
   const assignCmd = program.command('assign').description('Assign a resource to agents');
 
@@ -446,50 +569,7 @@ export function registerManageCommands(program: Command): void {
     .command('skill <name>')
     .description('Assign an existing skill to one or more agents')
     .option('--target <name>', 'Target block to modify')
-    .action(async (name: string, options: TargetedOption) => {
-      const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
-      const targetName = resolveTargetNameOrExit(manifest, options.target);
-      const team = normalizeTargetTeam(manifest, targetName);
-      const agentNames = Object.keys(team.agents);
-
-      const allSkills = collectSkills(team);
-      if (!allSkills.has(name)) {
-        printError(
-          `Skill "${name}" does not exist`,
-          `Available skills: ${allSkills.size > 0 ? [...allSkills].join(', ') : '(none)'}. Use "create skill" first.`,
-        );
-        process.exit(1);
-      }
-
-      const alreadyAssigned = agentNames.filter((agentName) => team.agents[agentName].runtime.skillDocs?.includes(name));
-      const available = agentNames.filter((agentName) => !team.agents[agentName].runtime.skillDocs?.includes(name));
-
-      if (available.length === 0) {
-        printError(`Skill "${name}" is already assigned to all agents`, alreadyAssigned.join(', '));
-        process.exit(1);
-      }
-
-      printHeader(`Assign skill ${name}`);
-
-      if (alreadyAssigned.length > 0) {
-        console.log(chalk.dim(`  Already assigned to: ${alreadyAssigned.join(', ')}`));
-        console.log('');
-      }
-
-      const selectedAgents = await promptCheckbox<string>({
-        message: 'Assign to which agents?',
-        choices: available.map((agentName) => ({
-          name: `${agentName} - ${team.agents[agentName].description}`,
-          value: agentName,
-        })),
-        validate: (selected: string[]) => selected.length > 0 || 'Select at least one agent',
-      });
-
-      const nextTeam = assignSkillToAgents(team, name, selectedAgents);
-      applyManifestChanges(cwd, manifest, targetName, nextTeam);
-      printCommandSuccess(`Skill "${name}" assigned to ${selectedAgents.join(', ')}`);
-    });
+    .action(runAssignSkillCommand);
 
   const removeCmd = program.command('remove').description('Remove a resource from the team (subcommands: agent)');
 
@@ -498,39 +578,7 @@ export function registerManageCommands(program: Command): void {
     .description('Remove an agent from the team')
     .option('--yes', 'Skip confirmation')
     .option('--target <name>', 'Target block to modify')
-    .action(async (name: string, options: RemoveAgentOptions) => {
-      const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
-      const targetName = resolveTargetNameOrExit(manifest, options.target);
-      const team = normalizeTargetTeam(manifest, targetName);
-
-      if (!team.agents[name]) {
-        console.error(chalk.red(`\nAgent "${name}" not found.`));
-        console.error(chalk.dim(`Available agents: ${Object.keys(team.agents).join(', ')}`));
-        process.exit(1);
-      }
-
-      const confirmed = options.yes ?? await promptConfirm({
-        message: `Remove agent "${name}"? This will also remove it from any handoffs.`,
-        default: false,
-      });
-
-      if (!confirmed) {
-        console.log(chalk.dim('Aborted.'));
-        return;
-      }
-
-      const nextTeam = removeAgentFromTeam(team, name);
-      applyManifestChanges(
-        cwd,
-        manifest,
-        targetName,
-        nextTeam,
-        { orphanedAgentName: name },
-      );
-
-      printCommandSuccess(`Agent "${name}" removed and configuration regenerated`);
-    });
+    .action(runRemoveAgentCommand);
 
   const editCmd = program.command('edit').description('Edit a resource in the team (subcommands: agent)');
 
@@ -542,46 +590,7 @@ export function registerManageCommands(program: Command): void {
     .option('--reasoning-effort <level>', 'Update Codex reasoning effort (low|medium|high|xhigh)')
     .option('--max-turns <number>', 'Update max turns')
     .option('--target <name>', 'Target block to modify')
-    .action(async (name: string, options: EditAgentOptions) => {
-      const cwd = process.cwd();
-      const manifest = loadManifestOrExit(cwd);
-      const targetName = resolveTargetNameOrExit(manifest, options.target);
-      const targetContext = getTarget(targetName);
-      const team = normalizeTargetTeam(manifest, targetName);
-      const agent = team.agents[name];
-
-      if (!agent) {
-        console.error(chalk.red(`\nAgent "${name}" not found.`));
-        console.error(chalk.dim(`Available agents: ${Object.keys(team.agents).join(', ')}`));
-        process.exit(1);
-      }
-
-      printHeader(`Edit agent ${name}`);
-      console.log(chalk.dim(`  description: ${agent.description}`));
-      console.log(chalk.dim(`  model: ${agent.runtime.model ?? 'unspecified'}`));
-      if (agent.runtime.reasoningEffort) {
-        console.log(chalk.dim(`  reasoning_effort: ${agent.runtime.reasoningEffort}`));
-      }
-      if (agent.runtime.tools?.length) {
-        console.log(chalk.dim(`  tools: ${agent.runtime.tools.join(', ')}`));
-      }
-      if (agent.runtime.disallowedTools?.length) {
-        console.log(chalk.dim(`  disallowed_tools: ${agent.runtime.disallowedTools.join(', ')}`));
-      }
-      console.log('');
-
-      const hasDirectEdits =
-        options.description !== undefined ||
-        options.model !== undefined ||
-        options.reasoningEffort !== undefined ||
-        options.maxTurns !== undefined;
-      const updated = hasDirectEdits
-        ? applyEditOptions(agent, options)
-        : await promptEditAgent(agent, targetContext);
-
-      applyManifestChanges(cwd, manifest, targetName, editAgentInTeam(team, name, updated));
-      printCommandSuccess(`Agent "${name}" updated and configuration regenerated`);
-    });
+    .action(runEditAgentCommand);
 }
 
 async function promptAgentConfig(name: string, targetContext: TargetContext): Promise<CoreAgent> {
