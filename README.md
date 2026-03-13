@@ -33,6 +33,7 @@ teamcast validate
 ```
 
 After `generate`, your project will have files for the selected target(s):
+
 - Claude target:
   - `.claude/agents/<name>.md` - one file per agent
   - `.claude/skills/<skill>/SKILL.md` - one stub file per unique skill
@@ -53,27 +54,30 @@ TeamCast now uses a canonical manifest shape with target-specific blocks:
 - `claude.agents.<name>` - native Claude Code runtime fields and doc outputs
 - `codex.agents.<name>` - native Codex runtime fields and TOML outputs
 - `<target>.agents.<name>.forge` - TeamCast-only metadata such as delegation graph
+- `plugins` - active project plugins such as `node-env`, `python-env`, workflow packs, and policy profiles
+
+Internal `core-*` plugins power TeamCast catalogs such as models, tools, presets, and skills. They are not serialized into `teamcast.yaml`.
 
 Legacy flat manifests are still accepted and normalized automatically, but new writes use the canonical shape.
 
 ## Command Summary
 
-| Command | Description |
-|---------|-------------|
-| `init` | Initialize `teamcast.yaml` and generate files |
-| `generate` | Generate target files from `teamcast.yaml` |
-| `validate` | Validate the team configuration |
-| `validate --format json` | Machine-readable validation output for CI pipelines |
-| `explain` | Print a human-readable view of the team architecture |
-| `diff` | Show what generated files would change |
-| `add agent <name>` | Add a new agent |
-| `edit agent <name>` | Edit an existing agent |
-| `remove agent <name>` | Remove an agent and clean up handoffs |
-| `create skill <name>` | Create a new skill and assign it to one agent |
-| `assign skill <name>` | Assign an existing skill to more agents |
-| `import` | Import an existing `.claude/` setup into `teamcast.yaml` |
-| `reset` | Delete generated files, keep `teamcast.yaml` |
-| `clean` | Delete generated files and `teamcast.yaml` |
+| Command                  | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `init`                   | Initialize `teamcast.yaml` and generate files            |
+| `generate`               | Generate target files from `teamcast.yaml`               |
+| `validate`               | Validate the team configuration                          |
+| `validate --format json` | Machine-readable validation output for CI pipelines      |
+| `explain`                | Print a human-readable view of the team architecture     |
+| `diff`                   | Show what generated files would change                   |
+| `add agent <name>`       | Add a new agent                                          |
+| `edit agent <name>`      | Edit an existing agent                                   |
+| `remove agent <name>`    | Remove an agent and clean up handoffs                    |
+| `create skill <name>`    | Create a new skill and assign it to one agent            |
+| `assign skill <name>`    | Assign an existing skill to more agents                  |
+| `import`                 | Import an existing `.claude/` setup into `teamcast.yaml` |
+| `reset`                  | Delete generated files, keep `teamcast.yaml`             |
+| `clean`                  | Delete generated files and `teamcast.yaml`               |
 
 Useful options:
 
@@ -92,12 +96,12 @@ teamcast clean --yes            # skip clean confirmation
 
 ## Presets
 
-| Preset | Description |
-|--------|-------------|
-| `feature-team` | orchestrator -> planner -> developer -> reviewer |
-| `solo-dev` | single developer agent with broad tool access |
-| `research-and-build` | orchestrator -> researcher -> planner -> developer |
-| `secure-dev` | orchestrator -> planner -> developer -> security-auditor -> reviewer |
+| Preset               | Description                                                          |
+| -------------------- | -------------------------------------------------------------------- |
+| `feature-team`       | orchestrator -> planner -> developer -> reviewer                     |
+| `solo-dev`           | single developer agent with broad tool access                        |
+| `research-and-build` | orchestrator -> researcher -> planner -> developer                   |
+| `secure-dev`         | orchestrator -> planner -> developer -> security-auditor -> reviewer |
 
 The built-in preset files live in `templates/presets/` and are valid TeamCast YAML. Use them as a reference when creating custom presets, or copy one as a starting point:
 
@@ -134,14 +138,19 @@ Interactive wizard flow:
 6. `Customize agents before generating?`
    - if yes, each agent gets:
    - `Model for <agent>:`
-7. Preview:
+   - `Reasoning effort [codex]:` for Codex agents
+7. `Select project plugins to activate:`
+   - suggested project plugins are pre-selected when they are detected
+   - internal `core-*` plugins are not shown here
+8. Preview:
    - shows the files that will be created
    - asks `Generate these files?`
 
 Important limitations of the wizard:
 
 - It does not let you rename individual agents.
-- It does not ask for custom `claude.instructions`.
+- It does not ask for custom `instruction_blocks` or `instruction_fragments`.
+- It does not ask for plugin-specific configuration prompts.
 - It does not ask for custom `claude.skills`, `forge.handoffs`, `claude.max_turns`, or exact tool lists.
 - Those values come from built-in presets or role templates.
 - If you want deeper customization, edit `teamcast.yaml` after init and run `teamcast generate`.
@@ -201,6 +210,7 @@ How those answers map into the manifest:
 What `add agent` does not ask for:
 
 - `claude.instructions`
+- `instruction_blocks`
 - `claude.skills`
 - `forge.handoffs`
 - `claude.max_turns`
@@ -208,7 +218,7 @@ What `add agent` does not ask for:
 - `claude.mcp_servers`
 - a fully custom `claude.tools` / `claude.disallowed_tools` list
 
-That means a custom agent added this way starts with a minimal prompt. To make it useful, edit `teamcast.yaml` and add fields such as `claude.instructions`, `claude.skills`, and `forge.handoffs`.
+That means a custom agent added this way starts with a minimal prompt. To make it useful, edit `teamcast.yaml` and add fields such as `instruction_blocks`, `instruction_fragments`, `skills`, and `forge.handoffs`.
 
 ### `edit agent <name>`
 
@@ -246,7 +256,7 @@ Interactive questions:
 
 Important limitations:
 
-- `edit agent` does not edit `claude.instructions`, `claude.skills`, `forge.handoffs`, `claude.permission_mode`, or `claude.mcp_servers`.
+- `edit agent` does not edit `instruction_blocks`, `instruction_fragments`, `skills`, `forge.handoffs`, `permission_mode`, or `mcp_servers`.
 - If you pass any direct flags such as `--description`, `--model`, or `--max-turns`, the command updates only those fields and skips the interactive tool editor.
 
 ### `remove agent <name>`
@@ -356,16 +366,16 @@ policies:
 
 Available rules:
 
-| Rule | Parameters | Description |
-|------|-----------|-------------|
-| `require_sandbox_with_execute` | — | Any agent with `execute` skill must have sandbox enabled |
-| `no_unrestricted_execute` | — | `execute` skill must have a permission scope (e.g. `Bash(npm *)`) |
-| `require_skill` | `skill` | All agents must have the specified skill |
-| `deny_skill_for_role` | `agent`, `skill` | A named agent must not have the specified skill |
-| `forbid_skill_combination` | `skills[]` | No single agent may hold all listed skills at once |
-| `max_agents` | `count` | Team must not exceed the given number of agents |
-| `require_instruction_block` | `kind` | All agents must include an instruction block of the given kind |
-| `require_delegation_chain` | — | At least one agent must have the `delegate` skill |
+| Rule                           | Parameters       | Description                                                       |
+| ------------------------------ | ---------------- | ----------------------------------------------------------------- |
+| `require_sandbox_with_execute` | —                | Any agent with `execute` skill must have sandbox enabled          |
+| `no_unrestricted_execute`      | —                | `execute` skill must have a permission scope (e.g. `Bash(npm *)`) |
+| `require_skill`                | `skill`          | All agents must have the specified skill                          |
+| `deny_skill_for_role`          | `agent`, `skill` | A named agent must not have the specified skill                   |
+| `forbid_skill_combination`     | `skills[]`       | No single agent may hold all listed skills at once                |
+| `max_agents`                   | `count`          | Team must not exceed the given number of agents                   |
+| `require_instruction_block`    | `kind`           | All agents must include an instruction block of the given kind    |
+| `require_delegation_chain`     | —                | At least one agent must have the `delegate` skill                 |
 
 The `secure-dev` preset includes several security assertions by default.
 
@@ -457,6 +467,8 @@ For Claude targets, TeamCast renders `.claude/agents/<name>.md`, `CLAUDE.md`, an
 
 For Codex targets, TeamCast renders `.codex/agents/<name>.toml` plus `.codex/config.toml` from `codex.agents.<name>`.
 
+`.codex/config.toml` is the workspace-level agent index. Concrete agent runtime config lives in `.codex/agents/<name>.toml`.
+
 Native Claude Code fields are rendered into frontmatter:
 
 - `description`
@@ -469,14 +481,25 @@ Native Claude Code fields are rendered into frontmatter:
 - `mcpServers`
 - `background`
 
-`claude.instructions` becomes the markdown body.
+`instruction_blocks` and `instruction_fragments` compose the markdown body for Claude agents and the instruction sections embedded in Codex `developer_instructions`.
 
 `forge` metadata is not rendered into the agent markdown. It is used by TeamCast for validation, workflow docs, and delegation modeling.
 
+Codex agent TOML uses these native fields:
+
+- `model`
+- `model_reasoning_effort`
+- `sandbox_mode`
+- `developer_instructions`
+
+`tools`, `disallowed_tools`, `skills`, and `forge.handoffs` are encoded as structured sections inside `developer_instructions`.
+
+Project plugins may inject policies and instruction guidance at validation/generation time, but they do not become the source of truth for agent runtime models.
+
 This is important for custom agents:
 
-- role templates and presets come with built-in `claude.instructions`
-- `add agent <name>` without `--template` does not ask for `claude.instructions`
+- role templates and presets come with built-in `instruction_blocks` / `instruction_fragments`
+- `add agent <name>` without `--template` does not ask for `instruction_blocks`
 - a custom agent created from `add agent` therefore starts with a very minimal prompt until you edit `teamcast.yaml`
 
 ## Configuration
@@ -486,113 +509,120 @@ Everything is defined in `teamcast.yaml` at the root of your project.
 ### Minimal Example
 
 ```yaml
-version: "1"
+version: "2"
 project:
   name: my-project
 
-agents:
-  developer:
-    claude:
+claude:
+  agents:
+    developer:
       description: Implements features and fixes bugs
       model: sonnet
       tools: [Read, Write, Edit, Bash, Grep, Glob]
       disallowed_tools: [WebFetch, WebSearch]
-      instructions: |
-        Implement the requested changes.
-        Write tests when behavior changes.
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            Implement the requested changes.
+            Write tests when behavior changes.
 ```
 
 ### Full Example
 
 ```yaml
-version: "1"
+version: "2"
 project:
   name: my-project
   description: TypeScript/Node.js web app
 
-agents:
-  orchestrator:
-    claude:
+claude:
+  agents:
+    orchestrator:
       description: Coordinates the team and delegates tasks
       model: opus
       tools: [Read, Grep, Glob, Agent]
       disallowed_tools: [Edit, Write, Bash]
       max_turns: 30
-      instructions: |
-        You are the coordinator for the project.
-        Read the request, break it into subtasks, and delegate to the right agents.
-        Never modify files yourself.
-    forge:
-      handoffs: [planner, developer, reviewer]
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            You are the coordinator for the project.
+            Read the request, break it into subtasks, and delegate to the right agents.
+            Never modify files yourself.
+      forge:
+        handoffs: [planner, developer, reviewer]
 
-  planner:
-    claude:
+    planner:
       description: Analyzes codebase and produces implementation plans
       model: sonnet
       tools: [Read, Grep, Glob, WebFetch, WebSearch]
       disallowed_tools: [Edit, Write, Bash]
-      instructions: |
-        Read the codebase and produce a step-by-step implementation plan.
-        Never modify files.
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            Read the codebase and produce a step-by-step implementation plan.
+            Never modify files.
 
-  developer:
-    claude:
+    developer:
       description: Implements features based on the plan
       model: sonnet
       tools: [Read, Write, Edit, Bash, Grep, Glob]
       disallowed_tools: [WebFetch, WebSearch]
       skills: [test-first, clean-code]
-      instructions: |
-        Implement the plan, write tests, and verify the result.
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            Implement the plan, write tests, and verify the result.
 
-  reviewer:
-    claude:
+    reviewer:
       description: Reviews code for quality and security issues
       model: sonnet
       tools: [Read, Grep, Glob, Bash]
       disallowed_tools: [Edit, Write]
-      instructions: |
-        Review the implementation for correctness, style, and security.
-        Do not modify files yourself.
+      instruction_blocks:
+        - kind: behavior
+          content: |
+            Review the implementation for correctness, style, and security.
+            Do not modify files yourself.
 
-policies:
-  permissions:
-    allow:
-      - "Bash(npm run *)"
-      - "Bash(npm test)"
-      - "Bash(git status)"
-      - "Bash(git diff *)"
-      - "Bash(git commit *)"
-    ask:
-      - "Bash(git push *)"
-    deny:
-      - "Bash(rm -rf *)"
-      - "Bash(git push --force *)"
-      - "Write(.env*)"
-  sandbox:
-    enabled: true
-    auto_allow_bash: true
+  policies:
+    permissions:
+      allow:
+        - "Bash(npm run *)"
+        - "Bash(npm test)"
+        - "Bash(git status)"
+        - "Bash(git diff *)"
+        - "Bash(git commit *)"
+      ask:
+        - "Bash(git push *)"
+      deny:
+        - "Bash(rm -rf *)"
+        - "Bash(git push --force *)"
+        - "Write(.env*)"
+    sandbox:
+      enabled: true
+      auto_allow_bash: true
 
-settings:
-  default_model: sonnet
-  generate_docs: true
-  generate_local_settings: true
+  settings:
+    generate_docs: true
+    generate_local_settings: true
 ```
 
 ### Agent Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `claude.description` | string | Required. Shown in the Claude Code subagent picker |
-| `claude.model` | `opus \| sonnet \| haiku \| inherit` | Model alias to use |
-| `claude.tools` | string[] | Native Claude Code tool allow-list |
-| `claude.disallowed_tools` | string[] | Native Claude Code tool deny-list |
-| `claude.skills` | string[] | Skill names. Each unique skill generates `.claude/skills/<skill>/SKILL.md` |
-| `claude.max_turns` | number | Maximum agentic turns |
-| `claude.mcp_servers` | object[] | MCP server definitions |
-| `claude.permission_mode` | `default \| acceptEdits \| bypassPermissions \| plan \| dontAsk` | Claude Code permission mode |
-| `claude.instructions` | string | Freeform instructions used as the markdown body |
-| `forge.handoffs` | string[] | Other agents this agent can delegate to. Requires `Agent` in `claude.tools` |
+| Field                     | Type                                                             | Description                                                                                    |
+| ------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `claude.description`      | string                                                           | Required. Shown in the Claude Code subagent picker                                             |
+| `claude.model`            | `opus \| sonnet \| haiku \| inherit`                             | Model alias to use                                                                             |
+| `claude.tools`            | string[]                                                         | Native Claude Code tool allow-list                                                             |
+| `claude.disallowed_tools` | string[]                                                         | Native Claude Code tool deny-list                                                              |
+| `claude.skills`           | string[]                                                         | Skill names. Each unique skill generates `.claude/skills/<skill>/SKILL.md`                     |
+| `claude.max_turns`        | number                                                           | Maximum agentic turns                                                                          |
+| `claude.mcp_servers`      | object[]                                                         | MCP server definitions                                                                         |
+| `claude.permission_mode`  | `default \| acceptEdits \| bypassPermissions \| plan \| dontAsk` | Claude Code permission mode                                                                    |
+| `instruction_blocks`      | object[]                                                         | Structured instruction blocks rendered into Claude markdown and Codex `developer_instructions` |
+| `instruction_fragments`   | string[]                                                         | Named instruction fragments composed with `instruction_blocks`                                 |
+| `forge.handoffs`          | string[]                                                         | Other agents this agent can delegate to. Requires `Agent` in `claude.tools`                    |
 
 Available Claude Code tools:
 
@@ -602,16 +632,16 @@ Available Claude Code tools:
 
 Instead of listing raw tool names, you can specify platform-agnostic skills in `claude.tools`. TeamCast expands each skill to the appropriate Claude Code tools automatically.
 
-| Skill | Expands to |
-|-------|-----------|
-| `read_files` | `Read`, `Grep`, `Glob` |
-| `write_files` | `Write`, `Edit`, `MultiEdit` |
-| `execute` | `Bash` |
-| `search` | `Glob`, `Grep` |
-| `web` | `WebFetch`, `WebSearch` |
-| `delegate` | `Agent` |
-| `interact` | `AskUserQuestion`, `TodoWrite`, `TodoRead` |
-| `notebook` | `NotebookEdit` |
+| Skill         | Expands to                                 |
+| ------------- | ------------------------------------------ |
+| `read_files`  | `Read`, `Grep`, `Glob`                     |
+| `write_files` | `Write`, `Edit`, `MultiEdit`               |
+| `execute`     | `Bash`                                     |
+| `search`      | `Glob`, `Grep`                             |
+| `web`         | `WebFetch`, `WebSearch`                    |
+| `delegate`    | `Agent`                                    |
+| `interact`    | `AskUserQuestion`, `TodoWrite`, `TodoRead` |
+| `notebook`    | `NotebookEdit`                             |
 
 Example:
 

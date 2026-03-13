@@ -36,4 +36,6 @@ Read the changed files carefully. Check for:
 - Code style and readability
 - Test coverage
 
+To run tests, use `npm test`. To execute scripts, use `npm run <script>`.
+
 Provide clear, actionable recommendations. Do not modify files yourself.

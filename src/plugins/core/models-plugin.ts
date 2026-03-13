@@ -1,6 +1,7 @@
 import type { TeamCastPlugin } from '../types.js';
 
 export const coreModelsPlugin: TeamCastPlugin = {
+  scope: 'core-catalog',
   name: 'core-models',
   version: '1.0.0',
   description: 'Registers default Anthropic and Codex models',

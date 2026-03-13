@@ -10,7 +10,11 @@ import {
 } from '../validator/reporter.js';
 import type { ValidationResult } from '../validator/types.js';
 import { getTarget, getRegisteredTargetNames } from '../renderers/registry.js';
-import { injectEnvironmentPolicies } from '../plugins/inject.js';
+import {
+  applyProjectPluginInstructionFragments,
+  getActiveProjectPluginNames,
+  injectEnvironmentPolicies,
+} from '../plugins/inject.js';
 
 export interface TeamValidationSummary {
   schemaErrors: Array<{ path: string; message: string }>;
@@ -33,6 +37,7 @@ export function evaluateTeam(
 
   const rawManifest = applyDefaults(schemaResult.data);
   const resolvedManifest = options?.cwd ? injectEnvironmentPolicies(rawManifest, options.cwd) : rawManifest;
+  const activeProjectPlugins = options?.cwd ? getActiveProjectPluginNames(resolvedManifest, options.cwd) : [];
   const activeTargets = getRegisteredTargetNames().filter(
     (targetName) =>
       isManifestTargetName(targetName) &&
@@ -43,7 +48,11 @@ export function evaluateTeam(
 
   for (const targetName of activeTargets) {
     const targetContext = getTarget(targetName);
-    const team = normalizeManifest(resolvedManifest, targetContext);
+    const team = applyProjectPluginInstructionFragments(
+      normalizeManifest(resolvedManifest, targetContext),
+      targetContext,
+      activeProjectPlugins,
+    );
     const targetResults = runValidation(team, targetContext);
     const prefix = activeTargets.length > 1 ? `[${targetName}] ` : '';
     policyAssertionCount += team.policies?.assertions?.length ?? 0;

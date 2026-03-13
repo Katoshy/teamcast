@@ -3,6 +3,8 @@ import { join } from 'path';
 import type { TeamCastPlugin } from '../types.js';
 
 export const nodeEnvPlugin: TeamCastPlugin = {
+  scope: 'project-plugin',
+  kind: 'environment',
   name: 'node-env',
   version: '1.0.0',
   description: 'Node.js environment profile, auto-detected via package.json',

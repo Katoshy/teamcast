@@ -23,7 +23,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(npm run *), Bash(npm test *), Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
 
 ---
 

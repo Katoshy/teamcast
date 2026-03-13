@@ -3,6 +3,8 @@ import { join } from 'path';
 import type { TeamCastPlugin } from '../types.js';
 
 export const pythonEnvPlugin: TeamCastPlugin = {
+  scope: 'project-plugin',
+  kind: 'environment',
   name: 'python-env',
   version: '1.0.0',
   description: 'Python environment profile, auto-detected via pyproject.toml or requirements.txt',

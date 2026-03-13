@@ -5,13 +5,18 @@ import { buildGeneratedOutputs } from '../application/build-generated-files.js';
 
 import { getRegisteredTargetNames, getTarget } from '../renderers/registry.js';
 import { normalizeManifest } from '../manifest/normalize.js';
-import { injectEnvironmentPolicies } from '../plugins/inject.js';
+import {
+  applyProjectPluginInstructionFragments,
+  getActiveProjectPluginNames,
+  injectEnvironmentPolicies,
+} from '../plugins/inject.js';
 
 export function generate(
   manifest: TeamCastManifest,
   options: BuildGeneratedOutputsOptions,
 ) {
   const rawManifest = injectEnvironmentPolicies(applyDefaults(manifest), options.cwd);
+  const activeProjectPlugins = getActiveProjectPluginNames(rawManifest, options.cwd);
   
   const rawManifestRecord = rawManifest as unknown as Record<string, unknown>;
   const registeredTargets = getRegisteredTargetNames();
@@ -20,7 +25,11 @@ export function generate(
   for (const targetName of registeredTargets) {
     if (rawManifestRecord[targetName]) {
       const targetContext = getTarget(targetName);
-      const coreTeam = normalizeManifest(rawManifest, targetContext);
+      const coreTeam = applyProjectPluginInstructionFragments(
+        normalizeManifest(rawManifest, targetContext),
+        targetContext,
+        activeProjectPlugins,
+      );
       const targetFiles = buildGeneratedOutputs(coreTeam, targetName, options);
       allGeneratedFiles.push(...targetFiles);
     }

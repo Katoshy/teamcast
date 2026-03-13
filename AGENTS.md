@@ -53,12 +53,16 @@ Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generat
 ## Access Control
 
 **Permitted operations:**
-- `Bash(npm run *)`
-- `Bash(npm test *)`
 - `Bash(git status)`
 - `Bash(git diff *)`
 - `Bash(git add *)`
 - `Bash(git commit *)`
+- `Bash(git log)`
+- `Bash(npm run *)`
+- `Bash(npm test *)`
+- `Bash(npx *)`
+- `Bash(npm install)`
+- `Bash(node *)`
 
 **Prohibited operations:**
 - `Bash(rm -rf *)`

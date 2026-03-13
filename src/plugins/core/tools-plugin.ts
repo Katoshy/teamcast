@@ -1,6 +1,7 @@
 import type { TeamCastPlugin } from '../types.js';
 
 export const coreToolsPlugin: TeamCastPlugin = {
+  scope: 'core-catalog',
   name: 'core-tools',
   version: '1.0.0',
   description: 'Provides basic system tools and default skills',

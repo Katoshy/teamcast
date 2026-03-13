@@ -4,14 +4,23 @@ import {
   setManifestTargetConfig,
   type ManifestTargetName,
 } from '../manifest/targets.js';
+import type { InstructionBlock } from '../core/instructions.js';
+import type { CoreTeam } from '../core/types.js';
 import type { PoliciesConfig, TargetConfig, TeamCastManifest } from '../manifest/types.js';
 import { defaultRegistry } from './index.js';
 import { mergePolicies } from './merge-policies.js';
+import { agentHasSkill } from '../core/skill-resolver.js';
+import type { TargetContext } from '../renderers/target-context.js';
+
+export function getActiveProjectPluginNames(manifest: TeamCastManifest, cwd: string): string[] {
+  const detectedNames = defaultRegistry.getDetectedPlugins(cwd, 'project-plugin').map((plugin) => plugin.name);
+  const userPlugins = manifest.plugins ?? [];
+  return [...new Set([...detectedNames, ...userPlugins])];
+}
 
 export function getActivePluginNames(manifest: TeamCastManifest, cwd: string): string[] {
-  const detectedNames = defaultRegistry.getDetectedPlugins(cwd).map((plugin) => plugin.name);
-  const userPlugins = manifest.plugins ?? [];
-  return ['core-tools', ...new Set([...detectedNames, ...userPlugins])];
+  const corePluginNames = defaultRegistry.getPluginsByScope('core-catalog').map((plugin) => plugin.name);
+  return [...new Set([...corePluginNames, ...getActiveProjectPluginNames(manifest, cwd)])];
 }
 
 export function resolveTargetPolicies(
@@ -71,4 +80,88 @@ export function injectEnvironmentPolicies(manifest: TeamCastManifest, cwd: strin
   }
 
   return resolvedManifest;
+}
+
+function collectProjectPluginInstructionFragments(activePluginNames: string[]): string[] {
+  return [...new Set(
+    defaultRegistry
+      .getPluginsByScope('project-plugin')
+      .filter((plugin) => activePluginNames.includes(plugin.name))
+      .flatMap((plugin) => Object.values(plugin.instruction_fragments ?? {}))
+      .map((content) => content.trim())
+      .filter((content) => content.length > 0),
+  )];
+}
+
+function appendWorkflowInstructions(blocks: InstructionBlock[], fragmentContents: string[]): InstructionBlock[] {
+  const normalizedContents = fragmentContents
+    .map((content) => content.trim())
+    .filter((content) => content.length > 0);
+  if (normalizedContents.length === 0) {
+    return blocks;
+  }
+
+  const nextBlocks = blocks.map((block) => ({ ...block }));
+  const workflowIndex = nextBlocks.findIndex((block) => block.kind === 'workflow');
+
+  if (workflowIndex >= 0) {
+    const existing = nextBlocks[workflowIndex];
+    const missingContents = normalizedContents.filter((content) => !existing.content.includes(content));
+    if (missingContents.length === 0) {
+      return blocks;
+    }
+
+    nextBlocks[workflowIndex] = {
+      ...existing,
+      content: `${existing.content.trim()}\n\n${missingContents.join('\n\n')}`.trim(),
+    };
+    return nextBlocks;
+  }
+
+  nextBlocks.push({
+    kind: 'workflow',
+    content: normalizedContents.join('\n\n'),
+  });
+  return nextBlocks;
+}
+
+export function applyProjectPluginInstructionFragments(
+  team: CoreTeam,
+  targetContext: TargetContext,
+  activePluginNames: string[],
+): CoreTeam {
+  const fragmentContents = collectProjectPluginInstructionFragments(activePluginNames);
+  if (fragmentContents.length === 0) {
+    return team;
+  }
+
+  let changed = false;
+  const agents = Object.fromEntries(
+    Object.entries(team.agents).map(([agentId, agent]) => {
+      if (!agentHasSkill(agent.runtime.tools ?? [], 'execute', targetContext.skillMap)) {
+        return [agentId, agent];
+      }
+
+      const nextInstructions = appendWorkflowInstructions(agent.instructions, fragmentContents);
+      if (nextInstructions === agent.instructions) {
+        return [agentId, agent];
+      }
+
+      changed = true;
+      return [
+        agentId,
+        {
+          ...agent,
+          instructions: nextInstructions,
+        },
+      ];
+    }),
+  );
+
+  return changed
+    ? {
+        ...team,
+        agents,
+      }
+    : team;
 }

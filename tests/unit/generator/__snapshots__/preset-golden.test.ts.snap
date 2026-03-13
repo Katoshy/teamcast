@@ -45,6 +45,8 @@ You are the developer. Your job is to implement the plan precisely.
 
 Always start with tests. Follow the existing code style. Do not access the internet.
 
+To run tests, use \`npm test\`. To execute scripts, use \`npm run <script>\`.
+
 When done, summarize what you changed and why.
 ",
     ".claude/agents/orchestrator.md": "---
@@ -131,6 +133,8 @@ Read the changed files carefully. Check for:
 - Security vulnerabilities
 - Code style and readability
 - Test coverage
+
+To run tests, use \`npm test\`. To execute scripts, use \`npm run <script>\`.
 
 Provide clear, actionable recommendations. Do not modify files yourself.
 ",
@@ -328,6 +332,8 @@ skills:
 You are the developer. Implement the plan provided to you.
 
 You do not have internet access - ask the orchestrator to delegate research if you need information.
+
+To run tests, use \`npm test\`. To execute scripts, use \`npm run <script>\`.
 
 Always write tests alongside code.
 ",
@@ -609,6 +615,8 @@ You are the developer. Write secure code:
 - Never log sensitive data
 
 Always write security-focused tests alongside regular tests.
+
+To run tests, use \`npm test\`. To execute scripts, use \`npm run <script>\`.
 ",
     ".claude/agents/orchestrator.md": "---
 name: orchestrator
@@ -683,6 +691,8 @@ skills:
 You are the reviewer. Code has already passed security audit.
 
 Focus on code quality, readability, test coverage, and maintainability. Do not modify files yourself.
+
+To run tests, use \`npm test\`. To execute scripts, use \`npm run <script>\`.
 ",
     ".claude/agents/security-auditor.md": "---
 name: security-auditor
@@ -712,6 +722,8 @@ You are the security auditor. Review all code changes for:
 - Known vulnerable dependencies
 
 If you find critical issues, block the PR and explain what must be fixed. Do not modify files yourself.
+
+To run tests, use \`npm test\`. To execute scripts, use \`npm run <script>\`.
 ",
     ".claude/settings.json": "{
   "permissions": {
@@ -920,6 +932,8 @@ You are a capable full-stack developer. Handle the task end-to-end.
 3. Make a plan
 4. Implement with tests
 5. Verify the result
+
+To run tests, use \`npm test\`. To execute scripts, use \`npm run <script>\`.
 
 Follow existing code style. Keep changes minimal and focused.
 ",

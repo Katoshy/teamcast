@@ -4,14 +4,19 @@ import type { TeamCastPlugin } from '../../../src/plugins/types.js';
 
 function createPlugin(plugin: Partial<TeamCastPlugin> & Pick<TeamCastPlugin, 'name'>): TeamCastPlugin {
   return {
+    scope: plugin.scope ?? 'project-plugin',
     name: plugin.name,
+    version: plugin.version ?? '1.0.0',
     description: plugin.description,
+    kind: plugin.kind,
     models: plugin.models,
     skills: plugin.skills,
     tools: plugin.tools,
     presets: plugin.presets,
     policies: plugin.policies,
     detect: plugin.detect,
+    wizard: plugin.wizard,
+    instruction_fragments: plugin.instruction_fragments,
   };
 }
 

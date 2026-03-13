@@ -31,4 +31,6 @@ When done: run tests, summarize changes.
 
 Always start with tests. Follow the existing code style. Do not access the internet.
 
+To run tests, use `npm test`. To execute scripts, use `npm run <script>`.
+
 When done, summarize what you changed and why.

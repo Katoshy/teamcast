@@ -2,13 +2,8 @@ import type { CanonicalTool } from '../tools/types.js';
 import type { PoliciesConfig } from '../manifest/types.js';
 import type { Preset } from '../presets/types.js';
 
-export interface WizardPrompt {
-  name: string;
-  type: 'confirm' | 'input' | 'select';
-  message: string;
-  choices?: string[];
-  initial?: string | boolean | number;
-}
+export type PluginScope = 'core-catalog' | 'project-plugin';
+export type ProjectPluginKind = 'environment' | 'workflow' | 'domain' | 'policy-profile';
 
 export interface ModelDefinition {
   id: string;
@@ -29,6 +24,12 @@ export type PluginPresetMap = Record<string, Preset>;
 
 export interface TeamCastPlugin {
   /**
+   * Semantic scope for the plugin. Core catalog plugins are internal TeamCast
+   * registries; project plugins are serialized into teamcast.yaml.
+   */
+  scope: PluginScope;
+
+  /**
    * Unique identifier for the plugin (e.g., 'core-tools', 'python-env')
    */
   name: string;
@@ -44,6 +45,11 @@ export interface TeamCastPlugin {
   description: string;
 
   /**
+   * Optional category for project plugins.
+   */
+  kind?: ProjectPluginKind;
+
+  /**
    * Optional auto-detection logic.
    * If this returns true, the plugin is semi-automatically activated for the project context.
    */
@@ -54,7 +60,6 @@ export interface TeamCastPlugin {
    */
   wizard?: {
     suggest?: boolean;
-    prompts?: WizardPrompt[];
   };
 
   /**

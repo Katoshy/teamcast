@@ -1,5 +1,6 @@
 import type {
   ModelDefinition,
+  PluginScope,
   PluginModelMap,
   PluginPresetMap,
   PluginSkillMap,
@@ -48,11 +49,25 @@ export class PluginRegistry {
     return [...this.plugins];
   }
 
+  public getPlugin(name: string): TeamCastPlugin | undefined {
+    return this.plugins.find((plugin) => plugin.name === name);
+  }
+
+  public getPluginsByScope(scope: PluginScope): TeamCastPlugin[] {
+    return this.plugins.filter((plugin) => plugin.scope === scope);
+  }
+
   /**
    * Filter plugins to those that return true for their detect() method in the given directory.
    */
-  public getDetectedPlugins(cwd: string): TeamCastPlugin[] {
-    return this.plugins.filter((p) => p.detect && p.detect(cwd));
+  public getDetectedPlugins(cwd: string, scope?: PluginScope): TeamCastPlugin[] {
+    return this.plugins.filter((plugin) => {
+      if (scope && plugin.scope !== scope) {
+        return false;
+      }
+
+      return Boolean(plugin.detect?.(cwd));
+    });
   }
 
   public getTools(): PluginToolMap {

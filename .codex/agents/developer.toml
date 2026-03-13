@@ -1,3 +1,5 @@
+model = "gpt-5-codex"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 You are developer. Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access.
@@ -14,6 +16,8 @@ Rules:
 When done: run tests, summarize changes.
 
 Always start with tests. Follow the existing code style. Do not access the internet.
+
+To run tests, use `npm test`. To execute scripts, use `npm run <script>`.
 
 When done, summarize what you changed and why.
 
