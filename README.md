@@ -1,8 +1,8 @@
 # TeamCast
 
-CLI to design, generate, and validate Claude Code subagents from a single manifest.
+CLI to design, generate, and validate multi-target agent teams for Claude Code and Codex from a single manifest.
 
-Define your subagents in one `teamcast.yaml` file. TeamCast generates Claude Code config files, validates the configuration, and keeps generated output in sync with the manifest.
+Define your agent team in one `teamcast.yaml` file. TeamCast validates the manifest, generates `.claude/` and/or `.codex/` config files, and keeps generated output in sync with the source config.
 
 ## Install
 
@@ -23,29 +23,36 @@ npx teamcast <command>
 teamcast init
 
 # Or skip the wizard and use a preset directly
-teamcast init --preset feature-team
+teamcast init --preset feature-team --target both
 
-# Generate Claude Code config files from teamcast.yaml
+# Generate files for the targets defined in teamcast.yaml
 teamcast generate
 
 # Validate the manifest
 teamcast validate
 ```
 
-After `generate`, your project will have:
-- `.claude/agents/<name>.md` - one file per agent
-- `.claude/skills/<skill>/SKILL.md` - one stub file per unique skill
-- `.claude/settings.json` - permissions and sandbox config
-- `.claude/settings.local.json` - local Claude settings when enabled
-- `CLAUDE.md` - team documentation for Claude Code
-- `AGENTS.md` - universal AI agent documentation
+After `generate`, your project will have files for the selected target(s):
+- Claude target:
+  - `.claude/agents/<name>.md` - one file per agent
+  - `.claude/skills/<skill>/SKILL.md` - one stub file per unique skill
+  - `.claude/settings.json` - permissions and sandbox config
+  - `.claude/settings.local.json` - local Claude settings when enabled
+  - `CLAUDE.md` - team documentation for Claude Code
+  - `AGENTS.md` - shared agent documentation generated alongside the Claude docs target
+- Codex target:
+  - `.codex/config.toml` - workspace-level Codex config
+  - `.codex/agents/<name>.toml` - one TOML config per agent
 
-## Native Claude Code Model
+Use `teamcast init --target claude|codex|both` to choose which outputs are generated up front.
 
-TeamCast now uses a canonical agent shape that separates:
+## Target Model
 
-- `agents.<name>.claude` - native Claude Code subagent runtime fields
-- `agents.<name>.forge` - TeamCast-only metadata such as delegation graph
+TeamCast now uses a canonical manifest shape with target-specific blocks:
+
+- `claude.agents.<name>` - native Claude Code runtime fields and doc outputs
+- `codex.agents.<name>` - native Codex runtime fields and TOML outputs
+- `<target>.agents.<name>.forge` - TeamCast-only metadata such as delegation graph
 
 Legacy flat manifests are still accepted and normalized automatically, but new writes use the canonical shape.
 
@@ -54,7 +61,7 @@ Legacy flat manifests are still accepted and normalized automatically, but new w
 | Command | Description |
 |---------|-------------|
 | `init` | Initialize `teamcast.yaml` and generate files |
-| `generate` | Generate Claude Code files from `teamcast.yaml` |
+| `generate` | Generate target files from `teamcast.yaml` |
 | `validate` | Validate the team configuration |
 | `validate --format json` | Machine-readable validation output for CI pipelines |
 | `explain` | Print a human-readable view of the team architecture |
@@ -73,6 +80,7 @@ Useful options:
 ```bash
 teamcast init --preset <name>   # skip wizard and use a preset
 teamcast init --from <path>     # initialize from an existing YAML file
+teamcast init --target <name>   # generate claude, codex, or both
 teamcast init --yes             # non-interactive init, uses defaults
 teamcast generate --dry-run     # preview generated files without writing
 teamcast validate --strict      # fail on warnings as well as errors
@@ -109,20 +117,24 @@ Interactive wizard flow:
 1. `Project name:`
    - default is auto-detected from the current directory
    - must match lowercase letters, numbers, and hyphens
-2. `How do you want to set up your agent team?`
+2. `Which target configs should TeamCast generate?`
+   - `Claude`
+   - `Codex`
+   - `Both`
+3. `How do you want to set up your agent team?`
    - `Use a preset`
    - `Custom team`
    - `Single agent`
-3. If you choose `Use a preset`:
+4. If you choose `Use a preset`:
    - `Select a preset:`
-4. If you choose `Custom team`:
+5. If you choose `Custom team`:
    - `Select roles for your team:`
    - available roles: `orchestrator`, `planner`, `researcher`, `developer`, `tester`, `reviewer`, `security-auditor`
    - if `orchestrator` is selected with other roles, handoffs are auto-wired to the other selected agents
-5. `Customize agents before generating?`
+6. `Customize agents before generating?`
    - if yes, each agent gets:
    - `Model for <agent>:`
-6. Preview:
+7. Preview:
    - shows the files that will be created
    - asks `Generate these files?`
 
@@ -139,6 +151,7 @@ Non-interactive `init` flows:
 - `teamcast init --preset <name>`
   - skips the wizard
   - loads the preset
+  - uses the selected `--target` value, or `claude` if omitted
   - uses the detected directory name as `project.name`
   - writes `teamcast.yaml`
   - generates files immediately
@@ -440,7 +453,9 @@ Use `--yes` to skip confirmation.
 
 Everything is defined in `teamcast.yaml` at the root of your project.
 
-For each agent, TeamCast renders `.claude/agents/<name>.md` from `agents.<name>.claude`.
+For Claude targets, TeamCast renders `.claude/agents/<name>.md`, `CLAUDE.md`, and `AGENTS.md` from `claude.agents.<name>`.
+
+For Codex targets, TeamCast renders `.codex/agents/<name>.toml` plus `.codex/config.toml` from `codex.agents.<name>`.
 
 Native Claude Code fields are rendered into frontmatter:
 
