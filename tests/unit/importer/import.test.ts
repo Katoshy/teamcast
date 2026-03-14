@@ -229,7 +229,7 @@ describe('importFromClaudeDir', () => {
     expect((result.team.claude?.agents.reader as any).disallowed_tools).toEqual(['Write', 'Edit', 'Bash']);
   });
 
-  it('reverse-maps canonical tools to AgentSkill names when all tools for a skill are present', () => {
+  it('reverse-maps canonical tools to CapabilityId names when all tools for a skill are present', () => {
     setupClaudeDir({
       'fullstack.md': [
         '---',

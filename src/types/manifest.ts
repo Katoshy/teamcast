@@ -32,10 +32,6 @@ export {
 export { CAPABILITY_IDS, isCapability } from '../registry/capabilities.js';
 export type { CapabilityId } from '../registry/types.js';
 
-// Backward-compat aliases (deprecated)
-export { CAPABILITY_IDS as AGENT_SKILLS, isCapability as isAgentSkill } from '../registry/capabilities.js';
-export type { CapabilityId as AgentSkill } from '../registry/types.js';
-
 // Renderers and targets
 export type { TargetContext } from '../renderers/target-context.js';
 export { getTarget, getDefaultTarget } from '../renderers/registry.js';

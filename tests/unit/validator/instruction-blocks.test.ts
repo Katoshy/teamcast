@@ -3,9 +3,9 @@ import { checkInstructionBlocks } from '../../../src/validator/checks/instructio
 import type { CoreTeam } from '../../../src/core/types.js';
 import { CLAUDE_SKILL_MAP } from '../../../src/renderers/claude/skill-map.js';
 import { CODEX_SKILL_MAP } from '../../../src/renderers/codex/skill-map.js';
-import type { SkillToolMap } from '../../../src/core/skill-resolver.js';
+import type { CapabilityToolMap } from '../../../src/core/capability-resolver.js';
 
-const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
+const skillMap = CLAUDE_SKILL_MAP as CapabilityToolMap;
 
 function makeTeam(agents: CoreTeam['agents']): CoreTeam {
   return {

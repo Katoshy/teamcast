@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { evaluatePolicyAssertions } from '../../../src/core/policy-evaluator.js';
 import { CLAUDE_SKILL_MAP } from '../../../src/renderers/claude/skill-map.js';
-import type { SkillToolMap } from '../../../src/core/skill-resolver.js';
+import type { CapabilityToolMap } from '../../../src/core/capability-resolver.js';
 import type { CoreTeam } from '../../../src/core/types.js';
 import type { PolicyAssertion } from '../../../src/core/assertions.js';
 
-const skillMap = CLAUDE_SKILL_MAP as SkillToolMap;
+const skillMap = CLAUDE_SKILL_MAP as CapabilityToolMap;
 
 function makeTeam(
   agents: CoreTeam['agents'],

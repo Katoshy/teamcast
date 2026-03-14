@@ -1,6 +1,10 @@
 import type { PoliciesConfig } from '../manifest/types.js';
 
 /**
+ * @deprecated Use `composePolicies` from `src/core/compose-policies.ts` instead.
+ * This function works with raw manifest types (PoliciesConfig) and will be
+ * removed when the plugins layer is fully migrated in Stage 3.
+ *
  * Deep merges multiple policy objects together.
  * Arrays are concatenated (and deduplicated for strings).
  * Scalar fields use last-defined-wins.
