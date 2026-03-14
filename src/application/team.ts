@@ -185,7 +185,6 @@ export function buildManifestFromPreset(
   return {
     version: '2',
     project: { ...manifest.project },
-    plugins: manifest.plugins ? [...manifest.plugins] : undefined,
     preset_meta: manifest.preset_meta ? { ...manifest.preset_meta } : undefined,
     claude: targetNames.includes('claude')
       ? cloneTargetConfig(manifest.claude ?? sourceTarget, {

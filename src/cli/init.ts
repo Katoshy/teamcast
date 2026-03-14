@@ -25,7 +25,7 @@ import {
   printNextSteps,
 } from '../utils/chalk-helpers.js';
 import { runWizard } from '../wizard/index.js';
-import { resolveDetectedEnvironments } from '../wizard/steps/plugin-selection.js';
+import { resolveDetectedEnvironments } from '../wizard/steps/environment-selection.js';
 
 function parseInitTargetSelection(value: string | undefined): InitTargetSelection {
   if (!value) {

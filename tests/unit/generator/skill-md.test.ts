@@ -23,7 +23,7 @@ describe('renderSkillMd', () => {
     expect(renderSkillMd(normalizeManifest(applyDefaults(manifest), claudeTarget))).toHaveLength(0);
   });
 
-  it('generates one stub per unique skill name', () => {
+  it('generates one SKILL.md per unique skill name', () => {
     const manifest: TeamCastManifest = {
       ...base,
       claude: { agents: {
@@ -32,15 +32,16 @@ describe('renderSkillMd', () => {
       } },
     };
     const files = renderSkillMd(normalizeManifest(applyDefaults(manifest), claudeTarget));
+    const skillMdFiles = files.filter((f) => f.path.endsWith('SKILL.md'));
     // test-first, clean-code, security-check — 3 unique skills
-    expect(files).toHaveLength(3);
-    const paths = files.map((f) => f.path);
+    expect(skillMdFiles).toHaveLength(3);
+    const paths = skillMdFiles.map((f) => f.path);
     expect(paths).toContain('.claude/skills/test-first/SKILL.md');
     expect(paths).toContain('.claude/skills/clean-code/SKILL.md');
     expect(paths).toContain('.claude/skills/security-check/SKILL.md');
   });
 
-  it('generates title from kebab-case skill name', () => {
+  it('renders frontmatter with name and description for builtin skills', () => {
     const manifest: TeamCastManifest = {
       ...base,
       claude: { agents: {
@@ -48,19 +49,53 @@ describe('renderSkillMd', () => {
       } },
     };
     const files = renderSkillMd(normalizeManifest(applyDefaults(manifest), claudeTarget));
-    expect(files[0].content).toContain('# Test First');
+    const content = files.find((f) => f.path.endsWith('SKILL.md'))!.content;
+    expect(content).toMatch(/^---\n/);
+    expect(content).toContain('name: Test First');
+    expect(content).toContain('description: ');
+    expect(content).toMatch(/---\n\n# Test First/);
   });
 
-  it('includes standard stub sections', () => {
+  it('renders instructions from builtin skill definition', () => {
     const manifest: TeamCastManifest = {
       ...base,
       claude: { agents: {
-        dev: { description: 'Dev', skills: ['my-skill'] },
+        dev: { description: 'Dev', skills: ['test-first'] },
       } },
     };
-    const content = renderSkillMd(normalizeManifest(applyDefaults(manifest), claudeTarget))[0].content;
+    const files = renderSkillMd(normalizeManifest(applyDefaults(manifest), claudeTarget));
+    const content = files.find((f) => f.path.endsWith('SKILL.md'))!.content;
+    expect(content).toContain('## Instructions');
+    expect(content).toContain('failing test');
+  });
+
+  it('generates stub with frontmatter for unknown skills', () => {
+    const manifest: TeamCastManifest = {
+      ...base,
+      claude: { agents: {
+        dev: { description: 'Dev', skills: ['my-custom-skill'] },
+      } },
+    };
+    const files = renderSkillMd(normalizeManifest(applyDefaults(manifest), claudeTarget));
+    const content = files[0].content;
+    expect(content).toMatch(/^---\n/);
+    expect(content).toContain('name: My Custom Skill');
     expect(content).toContain('## When to use this skill');
     expect(content).toContain('## Steps');
     expect(content).toContain('## Output');
+  });
+
+  it('renders allowed-tools in frontmatter when skill has them', () => {
+    // Register a temporary skill with allowed_tools to test frontmatter
+    const manifest: TeamCastManifest = {
+      ...base,
+      claude: { agents: {
+        dev: { description: 'Dev', skills: ['security-check'] },
+      } },
+    };
+    const files = renderSkillMd(normalizeManifest(applyDefaults(manifest), claudeTarget));
+    const content = files.find((f) => f.path.endsWith('SKILL.md'))!.content;
+    // security-check has no allowed_tools, so frontmatter should NOT contain allowed-tools
+    expect(content).not.toContain('allowed-tools');
   });
 });

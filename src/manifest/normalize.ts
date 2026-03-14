@@ -22,11 +22,14 @@ import type {
   BaseAgentConfig,
   GenerationSettings,
   HooksConfig,
+  ManifestSkillBlock,
   PoliciesConfig,
   PresetMeta,
   ProjectConfig,
   TargetConfig,
 } from './types.js';
+import { defaultRegistry } from '../registry/index.js';
+import type { SkillDefinition } from '../registry/types.js';
 
 function cloneArray<T>(value: T[] | undefined): T[] | undefined {
   return value ? [...value] : undefined;
@@ -151,6 +154,32 @@ function mapSettings(settings: GenerationSettings | undefined): CoreTeam['settin
   };
 }
 
+function registerInlineSkillBlocks(blocks: ManifestSkillBlock[] | undefined): string[] {
+  if (!blocks?.length) return [];
+
+  const names: string[] = [];
+  for (const block of blocks) {
+    const id = block.name;
+    // Only register if not already known (builtin takes precedence)
+    if (!defaultRegistry.getSkill(id)) {
+      const skill: SkillDefinition = {
+        id,
+        name: block.name
+          .split('-')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' '),
+        description: block.description,
+        instructions: block.instructions,
+        source: 'user',
+        allowed_tools: block.allowed_tools,
+      };
+      defaultRegistry.registerSkills({ [id]: skill });
+    }
+    names.push(id);
+  }
+  return names;
+}
+
 function buildAgentRuntime(
   agent: BaseAgentConfig,
   resolvedTools: string[] | undefined,
@@ -193,7 +222,16 @@ function normalizeAgent(agentId: string, agent: AgentConfig, targetContext: Targ
     targetContext,
   );
 
+  const inlineSkillNames = registerInlineSkillBlocks(agent.skill_blocks);
+
   const baseRuntime = buildAgentRuntime(agent, resolvedTools, resolvedDisallowedTools);
+
+  // Merge inline skill_blocks names into skillDocs
+  if (inlineSkillNames.length > 0) {
+    const existing = baseRuntime.skillDocs ?? [];
+    baseRuntime.skillDocs = [...new Set([...existing, ...inlineSkillNames])];
+  }
+
   const runtime = usesStructuredComposition
     ? mergeRuntimeWithTraits(baseRuntime, agent.capability_traits, targetContext.skillMap)
     : baseRuntime;

@@ -4,6 +4,7 @@
 import type { ModelDefinition, SkillDefinition, CapabilityDefinition } from './types.js';
 import { CAPABILITIES } from './capabilities.js';
 import { MODEL_CATALOG } from './models.js';
+import { BUILTIN_SKILLS } from './skills.js';
 import { listCapabilityTraits } from './traits.js';
 import { listPolicyFragments } from './policy-fragments.js';
 import { listInstructionFragments } from './instruction-fragments.js';
@@ -17,7 +18,7 @@ export class Registry {
   constructor() {
     this.models = { ...MODEL_CATALOG };
     this.skills = Object.fromEntries(
-      CAPABILITIES.map((cap) => [cap.id, { id: cap.id, description: cap.description }]),
+      BUILTIN_SKILLS.map((skill) => [skill.id, skill]),
     );
   }
 

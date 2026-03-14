@@ -8,36 +8,20 @@ import type { EnvironmentId } from '../registry/types.js';
 import { agentHasCapability } from './capability-resolver.js';
 import type { TargetContext } from '../renderers/target-context.js';
 
-const PLUGIN_TO_ENV: Record<string, EnvironmentId> = {
-  'node-env': 'node',
-  'python-env': 'python',
-};
-
 /**
  * Resolves environment IDs from the manifest, combining:
  * 1. Explicit `project.environments`
  * 2. Auto-detected environments from cwd
- * 3. Compat: `plugins: [node-env]` → `environments: [node]`
  */
 export function resolveEnvironmentIds(manifest: TeamCastManifest, cwd: string): EnvironmentId[] {
   const ids = new Set<EnvironmentId>();
 
-  // Explicit environments
   for (const env of manifest.project.environments ?? []) {
     if (isEnvironmentId(env)) {
       ids.add(env);
     }
   }
 
-  // Compat: convert old plugins to environments
-  for (const plugin of manifest.plugins ?? []) {
-    const envId = PLUGIN_TO_ENV[plugin];
-    if (envId) {
-      ids.add(envId);
-    }
-  }
-
-  // Auto-detect from cwd
   for (const envId of detectEnvironments(cwd)) {
     ids.add(envId);
   }
@@ -156,7 +140,6 @@ function resolveTargetPolicies(
 
 /**
  * Injects environment policies into all targets of the manifest.
- * Replaces the old `injectEnvironmentPolicies` from plugins/inject.ts.
  */
 export function resolveEnvironmentPolicies(manifest: TeamCastManifest, cwd: string): TeamCastManifest {
   const envIds = resolveEnvironmentIds(manifest, cwd);
@@ -219,7 +202,6 @@ function appendWorkflowInstructions(blocks: InstructionBlock[], fragmentContents
 
 /**
  * Appends environment instruction fragments to agents with execute capability.
- * Replaces `applyProjectPluginInstructionFragments` from plugins/inject.ts.
  */
 export function applyEnvironmentInstructions(
   team: CoreTeam,

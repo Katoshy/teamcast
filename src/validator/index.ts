@@ -13,6 +13,8 @@ import { checkTraitCapabilities } from './checks/trait-capability.js';
 import { checkCapabilityTools } from './checks/capability-tools.js';
 import { checkPolicyCoherence } from './checks/policy-coherence.js';
 import { checkCapabilityPolicyCross } from './checks/capability-policy.js';
+import { checkSkillRequirements } from './checks/skill-requirements.js';
+import { checkMcpServers } from './checks/mcp.js';
 import { checkTeamGraphEnhanced } from './checks/team-graph-enhanced.js';
 import type { TargetContext } from '../renderers/target-context.js';
 import type { CapabilityToolMap } from '../registry/types.js';
@@ -30,6 +32,8 @@ const CHECKERS = (skillMap: CapabilityToolMap, targetName: string): Checker[] =>
   checkSecurityBaseline,
   checkPolicyCoherence,                                 // Phase 4
   (team) => checkCapabilityPolicyCross(team, skillMap), // Phase 5
+  (team) => checkSkillRequirements(team, skillMap, targetName), // Phase 6
+  (team) => checkMcpServers(team, targetName),                 // Phase 10
   (team) => checkInstructionBlocks(team, skillMap),
   (team) => evaluatePolicyAssertions(team, skillMap),
 ];

@@ -19,6 +19,8 @@ const CATEGORY_ORDER: CategoryMeta[] = [
   { label: 'Security', okDescription: 'sandbox and permissions checked' },
   { label: 'Policy coherence', okDescription: 'no contradictions in policies' },
   { label: 'Capability-policy', okDescription: 'capabilities align with policies' },
+  { label: 'Skills', okDescription: 'skill requirements satisfied' },
+  { label: 'MCP', okDescription: 'MCP server configuration valid' },
   { label: 'Instruction blocks', okDescription: 'all blocks valid' },
   { label: 'policy', okDescription: 'Policy assertions' },
 ];

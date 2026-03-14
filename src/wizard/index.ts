@@ -8,7 +8,7 @@ import { stepTargetSelection } from './steps/target-selection.js';
 import { stepTeamSelection } from './steps/team-selection.js';
 import { stepConfirmGenerate } from './steps/confirm-generate.js';
 import { stepAgentCustomization } from './steps/agent-customization.js';
-import { stepEnvironmentSelection } from './steps/plugin-selection.js';
+import { stepEnvironmentSelection } from './steps/environment-selection.js';
 import { normalizeManifest, replaceManifestTarget } from '../manifest/normalize.js';
 import { getTarget, getRegisteredTargetNames } from '../renderers/registry.js';
 import { evaluateTeam, teamHasBlockingIssues, printManifestValidation } from '../application/validate-team.js';

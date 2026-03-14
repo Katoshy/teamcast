@@ -1,6 +1,6 @@
 import type { PlatformRenderer, RenderedFile, TeamRenderSpec } from '../types.js';
 import { renderAllAgentMd } from './agent-md.js';
-import { renderAgentsMd, renderClaudeMd } from './docs.js';
+import { renderClaudeMd } from './docs.js';
 import { renderSettingsJson, renderSettingsLocalJson } from './settings.js';
 import { renderSkillMd } from './skill-md.js';
 import { CLAUDE_SKILL_MAP, reverseMapToolsToSkills } from './skill-map.js';
@@ -22,7 +22,6 @@ export class ClaudeRenderer implements PlatformRenderer {
 
     if (team.settings?.generateDocs !== false) {
       files.push(renderClaudeMd(team));
-      files.push(renderAgentsMd(team));
     }
 
     return files;

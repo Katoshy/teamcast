@@ -4,6 +4,8 @@ import type { PlatformRenderer, RenderedFile, TeamRenderSpec } from '../types.js
 import type { TargetContext } from '../target-context.js';
 import { CODEX_SKILL_MAP, reverseMapToolsToSkills } from './skill-map.js';
 import { CODEX_TOOLS } from './tools.js';
+import { renderCodexSkillMd } from './skill-md.js';
+import { renderCodexAgentsMd } from './agents-md.js';
 
 function escapeTomlString(value: string): string {
   return value
@@ -105,6 +107,9 @@ export class CodexRenderer implements PlatformRenderer {
       path: `.codex/config.toml`,
       content: `${configLines.join('\n')}\n`,
     });
+
+    files.push(...renderCodexSkillMd(team));
+    files.push(renderCodexAgentsMd(team));
 
     return files;
   }

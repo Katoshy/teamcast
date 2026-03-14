@@ -132,11 +132,30 @@ export interface ModelDefinition {
   features: string[];
 }
 
-// --- Skill (plugin-level, not to be confused with CapabilityId) ---
+// --- Skill (agent skill doc, not to be confused with CapabilityId) ---
+
+export type SkillSource = 'builtin' | 'user' | 'extension';
 
 export interface SkillDefinition {
   id: string;
+  name: string;
   description: string;
+  instructions: string;
+  source: SkillSource;
+  required_capabilities?: CapabilityId[];
+  allowed_tools?: string[];
+  required_mcp_servers?: string[];
+  reference_files?: Record<string, string>;
+  scripts?: Record<string, string>;
+  compatibility?: {
+    targets?: string[];
+  };
+  conflicts_with?: string[];
+  metadata?: {
+    author?: string;
+    version?: string;
+    tags?: string[];
+  };
 }
 
 // --- Environment ---

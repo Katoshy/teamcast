@@ -14,6 +14,13 @@ export interface ManifestInstructionBlock {
   content: string;
 }
 
+export interface ManifestSkillBlock {
+  name: string;
+  description: string;
+  instructions: string;
+  allowed_tools?: string[];
+}
+
 export interface BaseAgentConfig {
   description: string;
   /** Target-native model identifier (e.g. Claude alias or Codex model name). */
@@ -31,6 +38,7 @@ export interface BaseAgentConfig {
   permission_mode?: PermissionMode;
   instruction_fragments?: InstructionFragmentId[];
   instruction_blocks?: ManifestInstructionBlock[];
+  skill_blocks?: ManifestSkillBlock[];
   background?: boolean;
 }
 
@@ -112,9 +120,8 @@ export interface PresetMeta {
 export interface TeamCastManifest {
   version: '2';
   project: ProjectConfig;
-  plugins?: string[];
   preset_meta?: PresetMeta;
-  
+
   // Platform Targets
   claude?: TargetConfig;
   codex?: TargetConfig;

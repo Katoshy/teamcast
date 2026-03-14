@@ -13,7 +13,7 @@ import inquirer from 'inquirer';
 import {
   resolveDetectedEnvironments,
   stepEnvironmentSelection,
-} from '../../../src/wizard/steps/plugin-selection.js';
+} from '../../../src/wizard/steps/environment-selection.js';
 
 const mockedPrompt = vi.mocked(inquirer.prompt);
 

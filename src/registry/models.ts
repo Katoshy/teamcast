@@ -1,4 +1,4 @@
-// Model catalog — moved from src/plugins/core/models-plugin.ts.
+// Model catalog — builtin model definitions.
 
 import type { ModelDefinition } from './types.js';
 
