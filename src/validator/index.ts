@@ -8,9 +8,9 @@ import { checkInstructionBlocks } from './checks/instruction-blocks.js';
 import { checkRuntimeModelWarnings } from './checks/runtime-models.js';
 import { evaluatePolicyAssertions } from '../core/policy-evaluator.js';
 import type { TargetContext } from '../renderers/target-context.js';
-import type { SkillToolMap } from '../core/skill-resolver.js';
+import type { CapabilityToolMap } from '../registry/types.js';
 
-const CHECKERS = (skillMap: SkillToolMap, targetName: string): Checker[] => [
+const CHECKERS = (skillMap: CapabilityToolMap, targetName: string): Checker[] => [
   (team) => checkHandoffGraph(team, skillMap),
   (team) => checkToolConflicts(team, skillMap),
   (team) => checkRoleWarnings(team, skillMap),

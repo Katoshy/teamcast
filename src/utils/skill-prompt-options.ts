@@ -1,4 +1,4 @@
-import type { AgentSkill } from '../core/skills.js';
+import type { CapabilityId } from '../registry/types.js';
 import type { TargetContext } from '../renderers/target-context.js';
 import { getSkillDefinition, listSkillDefinitions } from '../plugins/catalog.js';
 
@@ -11,5 +11,5 @@ export function formatSkillLabel(skillId: string): string {
 
 export function getSupportedSkills(targetContext: TargetContext): string[] {
   const allSkills = listSkillDefinitions().map((skill) => skill.id);
-  return allSkills.filter((skill) => (targetContext.skillMap[skill as AgentSkill]?.length ?? 0) > 0);
+  return allSkills.filter((skill) => (targetContext.skillMap[skill as CapabilityId]?.length ?? 0) > 0);
 }

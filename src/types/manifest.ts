@@ -27,10 +27,14 @@ export {
   renderInstructionBlocks,
 } from '../core/instructions.js';
 
-// Skill types
-// Abstract capability skills that map to renderer-specific tool tokens.
-export { AGENT_SKILLS, isAgentSkill } from '../core/skills.js';
-export type { AgentSkill } from '../core/skills.js';
+// Capability types
+// Abstract capabilities that map to renderer-specific tool tokens.
+export { CAPABILITY_IDS, isCapability } from '../registry/capabilities.js';
+export type { CapabilityId } from '../registry/types.js';
+
+// Backward-compat aliases (deprecated)
+export { CAPABILITY_IDS as AGENT_SKILLS, isCapability as isAgentSkill } from '../registry/capabilities.js';
+export type { CapabilityId as AgentSkill } from '../registry/types.js';
 
 // Renderers and targets
 export type { TargetContext } from '../renderers/target-context.js';

@@ -1,9 +1,10 @@
 import { INSTRUCTION_BLOCK_KINDS } from '../../core/instructions.js';
-import { agentHasSkill, type SkillToolMap } from '../../core/skill-resolver.js';
+import { agentHasCapability } from '../../core/capability-resolver.js';
+import type { CapabilityToolMap } from '../../registry/types.js';
 import type { CoreTeam } from '../../core/types.js';
 import type { ValidationResult } from '../types.js';
 
-export function checkInstructionBlocks(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
+export function checkInstructionBlocks(team: CoreTeam, skillMap: CapabilityToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
 
   for (const [agentId, agent] of Object.entries(team.agents)) {
@@ -42,7 +43,7 @@ export function checkInstructionBlocks(team: CoreTeam, skillMap: SkillToolMap): 
     if (
       (skillMap.delegate?.length ?? 0) > 0 &&
       seenKinds.has('delegation') &&
-      !agentHasSkill(agent.runtime.tools ?? [], 'delegate', skillMap)
+      !agentHasCapability(agent.runtime.tools ?? [], 'delegate', skillMap)
     ) {
       results.push({
         severity: 'warning',

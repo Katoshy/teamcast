@@ -47,9 +47,9 @@ export interface AgentRuntime {
   disallowedTools?: string[];
   /**
    * Skill documentation references (free-form strings, e.g. 'test-first').
-   * These are distinct from AgentSkill abstract capability values, which appear
+   * These are distinct from CapabilityId abstract capability values, which appear
    * in the tools[] array and get expanded to CanonicalTool[] during normalization.
-   * Named skillDocs to disambiguate from AgentSkill abstract capabilities.
+   * Named skillDocs to disambiguate from CapabilityId abstract capabilities.
    */
   skillDocs?: string[];
   maxTurns?: number;

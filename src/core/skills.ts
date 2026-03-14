@@ -1,16 +1,9 @@
-export const AGENT_SKILLS = [
-  'read_files',
-  'write_files',
-  'execute',
-  'search',
-  'web',
-  'delegate',
-  'interact',
-  'notebook',
-] as const;
+// @deprecated — use imports from '../registry/capabilities.js' instead.
+// This file is kept for backward compatibility during migration.
 
-export type AgentSkill = typeof AGENT_SKILLS[number];
+export {
+  CAPABILITY_IDS as AGENT_SKILLS,
+  isCapability as isAgentSkill,
+} from '../registry/capabilities.js';
 
-export function isAgentSkill(value: string): value is AgentSkill {
-  return (AGENT_SKILLS as readonly string[]).includes(value);
-}
+export type { CapabilityId as AgentSkill } from '../registry/types.js';

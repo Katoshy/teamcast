@@ -1,12 +1,10 @@
 import {
   normalizeInstructionBlocks,
 } from '../core/instructions.js';
-import {
-  mergeRuntimeWithTraits,
-  resolveInstructionFragments,
-} from '../components/agent-fragments.js';
-import { composePoliciesFromFragments } from '../components/policy-fragments.js';
-import { isAgentSkill, type AgentSkill } from '../core/skills.js';
+import { mergeRuntimeWithTraits } from '../registry/traits.js';
+import { resolveInstructionFragments } from '../registry/instruction-fragments.js';
+import { composePoliciesFromFragments } from '../registry/policy-fragments.js';
+import { isCapability, type CapabilityId } from '../registry/capabilities.js';
 import type {
   AgentRuntime,
   CoreAgent,
@@ -14,7 +12,7 @@ import type {
   HookEntry,
   TeamPolicies,
 } from '../core/types.js';
-import { expandSkills } from '../core/skill-resolver.js';
+import { expandCapabilities } from '../core/capability-resolver.js';
 import type { TargetContext } from '../renderers/target-context.js';
 import { applyDefaults } from './defaults.js';
 import { getManifestTargetConfig, isManifestTargetName } from './targets.js';
@@ -38,15 +36,15 @@ function definedArray<T>(value: T[] | undefined): T[] | undefined {
   return value && value.length > 0 ? [...value] : undefined;
 }
 
-function separateSkillsAndTools(items: Array<AgentSkill | string> | undefined): {
-  skills: AgentSkill[];
+function separateSkillsAndTools(items: Array<CapabilityId | string> | undefined): {
+  skills: CapabilityId[];
   rawTools: string[];
 } {
-  const skills: AgentSkill[] = [];
+  const skills: CapabilityId[] = [];
   const rawTools: string[] = [];
 
   for (const item of items ?? []) {
-    if (isAgentSkill(item)) {
+    if (isCapability(item)) {
       skills.push(item);
     } else {
       rawTools.push(item);
@@ -57,11 +55,11 @@ function separateSkillsAndTools(items: Array<AgentSkill | string> | undefined): 
 }
 
 function resolveToolsFromSkillsAndRaw(
-  skills: AgentSkill[],
+  skills: CapabilityId[],
   rawTools: string[],
   targetContext: TargetContext,
 ): { tools: string[] | undefined } {
-  const expandedTools = skills.length > 0 ? expandSkills(skills, targetContext.skillMap) : [];
+  const expandedTools = skills.length > 0 ? expandCapabilities(skills, targetContext.skillMap) : [];
   const allTools = [...new Set([...expandedTools, ...rawTools])];
 
   return {
@@ -177,10 +175,10 @@ function normalizeAgent(agentId: string, agent: AgentConfig, targetContext: Targ
     'capability_traits' in agent;
 
   const { skills: toolsSkills, rawTools } = separateSkillsAndTools(
-    agent.tools as Array<AgentSkill | string> | undefined,
+    agent.tools as Array<CapabilityId | string> | undefined,
   );
   const { skills: disallowedSkills, rawTools: rawDisallowedTools } = separateSkillsAndTools(
-    agent.disallowed_tools as Array<AgentSkill | string> | undefined,
+    agent.disallowed_tools as Array<CapabilityId | string> | undefined,
   );
 
   const { tools: resolvedTools } = resolveToolsFromSkillsAndRaw(

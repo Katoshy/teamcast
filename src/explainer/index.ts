@@ -45,7 +45,7 @@ function formatAgentSection(agentId: string, agent: CoreTeam['agents'][string], 
     lines.push(`    ${chalk.dim('Blocked tools:')} ${agent.runtime.disallowedTools.join(', ')}`);
   }
 
-  // Skill doc references (runtime.skillDocs — distinct from abstract AgentSkill values)
+  // Skill doc references (runtime.skillDocs — distinct from abstract CapabilityId values)
   if (agent.runtime.skillDocs?.length) {
     lines.push(`    ${chalk.dim('Skill docs:')} ${agent.runtime.skillDocs.join(', ')}`);
   }

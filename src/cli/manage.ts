@@ -3,7 +3,7 @@ import { existsSync, rmSync } from 'fs';
 import { join } from 'path';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { writeManifest } from '../manifest/writer.js';
-import { expandSkills } from '../core/skill-resolver.js';
+import { expandCapabilities } from '../core/capability-resolver.js';
 import { generate } from '../generator/index.js';
 import {
   listModelDefinitions,
@@ -33,7 +33,7 @@ import {
   promptList,
   promptCheckbox,
 } from '../utils/prompts.js';
-import type { AgentSkill } from '../core/skills.js';
+import type { CapabilityId } from '../registry/types.js';
 import { formatSkillLabel, getSupportedSkills } from '../utils/skill-prompt-options.js';
 import { abortCli } from './errors.js';
 import {
@@ -556,7 +556,7 @@ async function promptAgentConfig(name: string, targetContext: TargetContext): Pr
   });
 
   const allow = selectedSkills.length > 0
-    ? expandSkills(selectedSkills as AgentSkill[], targetContext.skillMap)
+    ? expandCapabilities(selectedSkills as CapabilityId[], targetContext.skillMap)
     : [];
   const deny = await promptRestrictedTools(targetContext, allow, undefined);
 

@@ -9,7 +9,7 @@ import type { CoreTeam } from '../core/types.js';
 import type { PoliciesConfig, TargetConfig, TeamCastManifest } from '../manifest/types.js';
 import { defaultRegistry } from './index.js';
 import { mergePolicies } from './merge-policies.js';
-import { agentHasSkill } from '../core/skill-resolver.js';
+import { agentHasCapability } from '../core/capability-resolver.js';
 import type { TargetContext } from '../renderers/target-context.js';
 
 export function getActiveProjectPluginNames(manifest: TeamCastManifest, cwd: string): string[] {
@@ -138,7 +138,7 @@ export function applyProjectPluginInstructionFragments(
   let changed = false;
   const agents = Object.fromEntries(
     Object.entries(team.agents).map(([agentId, agent]) => {
-      if (!agentHasSkill(agent.runtime.tools ?? [], 'execute', targetContext.skillMap)) {
+      if (!agentHasCapability(agent.runtime.tools ?? [], 'execute', targetContext.skillMap)) {
         return [agentId, agent];
       }
 

@@ -1,10 +1,11 @@
-import { agentHasSkill, type SkillToolMap } from '../../core/skill-resolver.js';
+import { agentHasCapability } from '../../core/capability-resolver.js';
+import type { CapabilityToolMap } from '../../registry/types.js';
 import type { CoreTeam } from '../../core/types.js';
 import type { ValidationResult } from '../types.js';
 
 export function checkRoleWarnings(
   team: CoreTeam,
-  skillMap: SkillToolMap,
+  skillMap: CapabilityToolMap,
 ): ValidationResult[] {
   const results: ValidationResult[] = [];
 
@@ -13,7 +14,7 @@ export function checkRoleWarnings(
     const id = agentId.toLowerCase();
 
     if (id === 'orchestrator' || id.includes('coordinator')) {
-      if (agentHasSkill(tools, 'write_files', skillMap)) {
+      if (agentHasCapability(tools, 'write_files', skillMap)) {
         results.push({
           severity: 'warning',
           category: 'Role separation',
@@ -24,7 +25,7 @@ export function checkRoleWarnings(
     }
 
     if (id === 'developer' || id.includes('coder') || id.includes('implementer')) {
-      if (agentHasSkill(tools, 'web', skillMap)) {
+      if (agentHasCapability(tools, 'web', skillMap)) {
         results.push({
           severity: 'warning',
           category: 'Role separation',
@@ -35,7 +36,7 @@ export function checkRoleWarnings(
     }
 
     if (id === 'reviewer' || id.includes('review') || id.includes('auditor')) {
-      if (agentHasSkill(tools, 'write_files', skillMap)) {
+      if (agentHasCapability(tools, 'write_files', skillMap)) {
         results.push({
           severity: 'warning',
           category: 'Role separation',
@@ -46,7 +47,7 @@ export function checkRoleWarnings(
     }
 
     if (id === 'planner' || id === 'analyzer') {
-      if (agentHasSkill(tools, 'execute', skillMap)) {
+      if (agentHasCapability(tools, 'execute', skillMap)) {
         results.push({
           severity: 'warning',
           category: 'Role separation',

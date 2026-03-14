@@ -1,11 +1,10 @@
 import type { PlatformRenderer } from './types.js';
-import type { AgentSkill } from '../core/skills.js';
-import type { SkillToolMap } from '../core/skill-resolver.js';
+import type { CapabilityId, CapabilityToolMap } from '../registry/types.js';
 
 export interface TargetContext {
   name: string;
   renderer: PlatformRenderer;
-  skillMap: SkillToolMap;
+  skillMap: CapabilityToolMap;
   knownTools: string[];
-  reverseMapTools?: (tools: string[]) => { skills: AgentSkill[]; remainingTools: string[] };
+  reverseMapTools?: (tools: string[]) => { skills: CapabilityId[]; remainingTools: string[] };
 }

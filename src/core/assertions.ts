@@ -1,11 +1,11 @@
-import type { AgentSkill } from './skills.js';
+import type { CapabilityId } from '../registry/types.js';
 import type { InstructionBlockKind } from './instructions.js';
 
 export type PolicyAssertion =
   | { rule: 'require_sandbox_with_execute' }
-  | { rule: 'forbid_skill_combination'; skills: AgentSkill[] }
-  | { rule: 'require_skill'; skill: AgentSkill }
-  | { rule: 'deny_skill_for_role'; agent: string; skill: AgentSkill }
+  | { rule: 'forbid_skill_combination'; skills: CapabilityId[] }
+  | { rule: 'require_skill'; skill: CapabilityId }
+  | { rule: 'deny_skill_for_role'; agent: string; skill: CapabilityId }
   | { rule: 'max_agents'; count: number }
   | { rule: 'require_instruction_block'; kind: InstructionBlockKind }
   | { rule: 'require_delegation_chain' }

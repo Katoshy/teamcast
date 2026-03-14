@@ -5,12 +5,7 @@ import type {
   McpServerConfig,
   HookEntry,
 } from '../core/types.js';
-import type { AgentSkill } from '../core/skills.js';
-import type {
-  CapabilityTraitName,
-  InstructionFragmentName,
-} from '../components/agent-fragments.js';
-import type { PolicyFragmentName } from '../components/policy-fragments.js';
+import type { CapabilityId, CapabilityTraitId, InstructionFragmentId, PolicyFragmentId } from '../registry/types.js';
 import type { PolicyAssertion } from '../core/assertions.js';
 
 export interface ManifestInstructionBlock {
@@ -25,16 +20,16 @@ export interface BaseAgentConfig {
   model?: string;
   /** Target-native reasoning level for renderers that support it. */
   reasoning_effort?: ReasoningEffort;
-  capability_traits?: CapabilityTraitName[];
-  /** Accepts AgentSkill values (e.g. 'read_files') or specific tool names for the target renderer. */
-  tools?: Array<AgentSkill | string>;
-  disallowed_tools?: Array<AgentSkill | string>;
+  capability_traits?: CapabilityTraitId[];
+  /** Accepts CapabilityId values (e.g. 'read_files') or specific tool names for the target renderer. */
+  tools?: Array<CapabilityId | string>;
+  disallowed_tools?: Array<CapabilityId | string>;
   /** Free-form skill documentation references (e.g. 'test-first', 'clean-code'). */
   skills?: string[];
   max_turns?: number;
   mcp_servers?: McpServerConfig[];
   permission_mode?: PermissionMode;
-  instruction_fragments?: InstructionFragmentName[];
+  instruction_fragments?: InstructionFragmentId[];
   instruction_blocks?: ManifestInstructionBlock[];
   background?: boolean;
 }
@@ -88,7 +83,7 @@ export interface NetworkConfig {
 }
 
 export interface PoliciesConfig {
-  fragments?: PolicyFragmentName[];
+  fragments?: PolicyFragmentId[];
   permissions?: PermissionsConfig;
   sandbox?: SandboxConfig;
   hooks?: HooksConfig;

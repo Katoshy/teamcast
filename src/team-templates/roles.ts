@@ -1,14 +1,9 @@
 import type { InstructionBlock } from '../core/instructions.js';
 import type { CoreAgent, ReasoningEffort } from '../core/types.js';
 import type { TargetContext } from '../renderers/target-context.js';
-import type {
-  CapabilityTraitName,
-  InstructionFragmentName,
-} from '../components/agent-fragments.js';
-import {
-  mergeRuntimeWithTraits,
-  resolveInstructionFragments,
-} from '../components/agent-fragments.js';
+import type { CapabilityTraitId, InstructionFragmentId } from '../registry/types.js';
+import { mergeRuntimeWithTraits } from '../registry/traits.js';
+import { resolveInstructionFragments } from '../registry/instruction-fragments.js';
 
 export type TeamRoleName =
   | 'orchestrator'
@@ -23,10 +18,10 @@ export interface RoleTemplate {
   name: TeamRoleName;
   label: string;
   description: string;
-  capabilityTraits: CapabilityTraitName[];
+  capabilityTraits: CapabilityTraitId[];
   allow?: string[];
   deny?: string[];
-  instructionFragments: InstructionFragmentName[];
+  instructionFragments: InstructionFragmentId[];
   blocks?: InstructionBlock[];
   skillDocs?: string[];
   runtimeByTarget?: Partial<Record<'claude' | 'codex', {
