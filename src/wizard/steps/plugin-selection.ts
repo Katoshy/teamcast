@@ -1,51 +1,47 @@
 import chalk from 'chalk';
-import { getProjectPlugin, listSuggestedProjectPlugins } from '../../plugins/catalog.js';
+import { detectEnvironments, listEnvironments } from '../../registry/environments.js';
+import { isEnvironmentId } from '../../registry/types.js';
+import type { EnvironmentId } from '../../registry/types.js';
 import { promptCheckbox } from '../../utils/prompts.js';
 
-function mergePluginNames(...lists: Array<string[] | undefined>): string[] | undefined {
-  const merged = [...new Set(lists.flatMap((list) => list ?? []))];
-  return merged.length > 0 ? merged : undefined;
+function mergeEnvironmentIds(...lists: Array<string[] | undefined>): EnvironmentId[] {
+  return [...new Set(lists.flatMap((list) => list ?? []))].filter(isEnvironmentId);
 }
 
-export async function stepProjectPluginSelection(
+/**
+ * Wizard step: let the user select which runtime environments to activate.
+ */
+export async function stepEnvironmentSelection(
   cwd: string,
-  currentPlugins: string[] | undefined,
+  currentEnvironments: string[] | undefined,
   options?: { nonInteractive?: boolean },
 ): Promise<string[] | undefined> {
-  const suggestedPlugins = listSuggestedProjectPlugins(cwd);
-  const suggestedPluginNames = suggestedPlugins.map((plugin) => plugin.name);
+  const detectedIds = detectEnvironments(cwd);
 
   if (options?.nonInteractive) {
-    return mergePluginNames(currentPlugins, suggestedPluginNames);
+    const merged = mergeEnvironmentIds(currentEnvironments, detectedIds);
+    return merged.length > 0 ? merged : undefined;
   }
 
-  const managedPluginNames = mergePluginNames(currentPlugins, suggestedPluginNames);
-  if (!managedPluginNames) {
-    return undefined;
-  }
-
-  const suggestedSet = new Set(suggestedPluginNames);
-  const currentSet = new Set(currentPlugins ?? []);
+  const allEnvs = listEnvironments();
+  const currentSet = new Set(currentEnvironments ?? []);
+  const detectedSet = new Set(detectedIds);
 
   const selected = await promptCheckbox<string>({
-    message: 'Select project plugins to activate:',
-    choices: managedPluginNames.map((pluginName) => {
-      const plugin = getProjectPlugin(pluginName);
+    message: 'Select runtime environments to activate:',
+    choices: allEnvs.map((env) => {
       const tags: string[] = [];
-      if (plugin?.kind) {
-        tags.push(plugin.kind);
-      }
-      if (suggestedSet.has(pluginName)) {
-        tags.push('suggested');
+      if (detectedSet.has(env.id)) {
+        tags.push('detected');
       }
 
       return {
-        name: `${chalk.bold(pluginName)}  ${chalk.dim([
-          plugin?.description ?? 'Configured project plugin',
+        name: `${chalk.bold(env.id)}  ${chalk.dim([
+          env.description,
           ...tags,
         ].join(' | '))}`,
-        value: pluginName,
-        checked: currentSet.has(pluginName) || suggestedSet.has(pluginName),
+        value: env.id,
+        checked: currentSet.has(env.id) || detectedSet.has(env.id),
       };
     }),
   });
@@ -53,12 +49,13 @@ export async function stepProjectPluginSelection(
   return selected.length > 0 ? selected : undefined;
 }
 
-export function resolveDetectedProjectPlugins(
+/**
+ * Non-interactive: merge current environments with auto-detected ones.
+ */
+export function resolveDetectedEnvironments(
   cwd: string,
-  currentPlugins: string[] | undefined,
+  currentEnvironments: string[] | undefined,
 ): string[] | undefined {
-  return mergePluginNames(
-    currentPlugins,
-    listSuggestedProjectPlugins(cwd).map((plugin) => plugin.name),
-  );
+  const merged = mergeEnvironmentIds(currentEnvironments, detectEnvironments(cwd));
+  return merged.length > 0 ? merged : undefined;
 }

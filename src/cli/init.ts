@@ -25,7 +25,7 @@ import {
   printNextSteps,
 } from '../utils/chalk-helpers.js';
 import { runWizard } from '../wizard/index.js';
-import { resolveDetectedProjectPlugins } from '../wizard/steps/plugin-selection.js';
+import { resolveDetectedEnvironments } from '../wizard/steps/plugin-selection.js';
 
 function parseInitTargetSelection(value: string | undefined): InitTargetSelection {
   if (!value) {
@@ -90,7 +90,7 @@ async function initWithPreset(
 
   const projectName = detectedName ?? 'my-project';
   const manifest = buildManifestFromPreset(presetName, projectName, targetSelection);
-  manifest.plugins = resolveDetectedProjectPlugins(cwd, manifest.plugins);
+  manifest.project.environments = resolveDetectedEnvironments(cwd, manifest.project.environments);
   const validation = evaluateTeam(manifest, { cwd });
 
   if (teamHasBlockingIssues(validation)) {

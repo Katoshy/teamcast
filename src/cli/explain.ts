@@ -5,10 +5,10 @@ import { normalizeManifest } from '../manifest/normalize.js';
 import { buildExplanation } from '../explainer/index.js';
 import { getRegisteredTargetNames, getTarget } from '../renderers/registry.js';
 import {
-  applyProjectPluginInstructionFragments,
-  getActiveProjectPluginNames,
-  injectEnvironmentPolicies,
-} from '../plugins/inject.js';
+  applyEnvironmentInstructions,
+  resolveEnvironmentIds,
+  resolveEnvironmentPolicies,
+} from '../core/environment-resolver.js';
 import { abortCli } from './errors.js';
 
 export function runExplainCommand(): void {
@@ -30,8 +30,8 @@ export function runExplainCommand(): void {
 
   console.log('');
 
-  const rawManifest = injectEnvironmentPolicies(applyDefaults(manifest), cwd);
-  const activeProjectPlugins = getActiveProjectPluginNames(rawManifest, cwd);
+  const rawManifest = resolveEnvironmentPolicies(applyDefaults(manifest), cwd);
+  const envIds = resolveEnvironmentIds(rawManifest, cwd);
   const rawManifestRecord = rawManifest as unknown as Record<string, unknown>;
   const registeredTargets = getRegisteredTargetNames();
   let foundAny = false;
@@ -41,10 +41,10 @@ export function runExplainCommand(): void {
       foundAny = true;
       const targetContext = getTarget(targetName);
       console.log(chalk.cyan.bold(`\n=== Target: ${targetName.toUpperCase()} ===`));
-      const coreTeam = applyProjectPluginInstructionFragments(
+      const coreTeam = applyEnvironmentInstructions(
         normalizeManifest(rawManifest, targetContext),
         targetContext,
-        activeProjectPlugins,
+        envIds,
       );
       console.log(buildExplanation(coreTeam, targetContext));
     }

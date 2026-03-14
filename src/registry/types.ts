@@ -139,6 +139,27 @@ export interface SkillDefinition {
   description: string;
 }
 
+// --- Environment ---
+
+export type EnvironmentId = 'node' | 'python';
+
+export const ENVIRONMENT_IDS: readonly EnvironmentId[] = ['node', 'python'];
+
+export function isEnvironmentId(value: string): value is EnvironmentId {
+  return (ENVIRONMENT_IDS as readonly string[]).includes(value);
+}
+
+export interface EnvironmentDef {
+  id: EnvironmentId;
+  description: string;
+  detect: (cwd: string) => boolean;
+  policyRules: {
+    sandbox?: { enabled?: boolean };
+    allow?: string[];
+  };
+  instructionFragments: Record<string, string>;
+}
+
 // --- Capability-to-tool mapping ---
 
 export type CapabilityToolMap = Record<CapabilityId, string[]>;

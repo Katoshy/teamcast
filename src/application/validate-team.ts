@@ -11,10 +11,10 @@ import {
 import type { ValidationResult } from '../validator/types.js';
 import { getTarget, getRegisteredTargetNames } from '../renderers/registry.js';
 import {
-  applyProjectPluginInstructionFragments,
-  getActiveProjectPluginNames,
-  injectEnvironmentPolicies,
-} from '../plugins/inject.js';
+  applyEnvironmentInstructions,
+  resolveEnvironmentIds,
+  resolveEnvironmentPolicies,
+} from '../core/environment-resolver.js';
 
 export interface TeamValidationSummary {
   schemaErrors: Array<{ path: string; message: string }>;
@@ -36,8 +36,8 @@ export function evaluateTeam(
   }
 
   const rawManifest = applyDefaults(schemaResult.data);
-  const resolvedManifest = options?.cwd ? injectEnvironmentPolicies(rawManifest, options.cwd) : rawManifest;
-  const activeProjectPlugins = options?.cwd ? getActiveProjectPluginNames(resolvedManifest, options.cwd) : [];
+  const resolvedManifest = options?.cwd ? resolveEnvironmentPolicies(rawManifest, options.cwd) : rawManifest;
+  const envIds = options?.cwd ? resolveEnvironmentIds(resolvedManifest, options.cwd) : [];
   const activeTargets = getRegisteredTargetNames().filter(
     (targetName) =>
       isManifestTargetName(targetName) &&
@@ -48,10 +48,10 @@ export function evaluateTeam(
 
   for (const targetName of activeTargets) {
     const targetContext = getTarget(targetName);
-    const team = applyProjectPluginInstructionFragments(
+    const team = applyEnvironmentInstructions(
       normalizeManifest(resolvedManifest, targetContext),
       targetContext,
-      activeProjectPlugins,
+      envIds,
     );
     const targetResults = runValidation(team, targetContext);
     const prefix = activeTargets.length > 1 ? `[${targetName}] ` : '';

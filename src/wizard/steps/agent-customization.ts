@@ -3,7 +3,7 @@ import type { CoreTeam, ReasoningEffort } from '../../core/types.js';
 import type { CapabilityId } from '../../registry/types.js';
 import type { TargetContext } from '../../renderers/target-context.js';
 import { expandCapabilities } from '../../core/capability-resolver.js';
-import { listModelDefinitions } from '../../plugins/catalog.js';
+import { defaultRegistry } from '../../registry/index.js';
 import { promptConfirm, promptList, promptCheckbox, promptInput } from '../../utils/prompts.js';
 import { formatSkillLabel, getSupportedSkills } from '../../utils/skill-prompt-options.js';
 
@@ -58,7 +58,7 @@ async function promptRestrictedTools(
 }
 
 async function promptTargetModel(targetContext: TargetContext, currentModel?: string): Promise<string | undefined> {
-  const targetModels = listModelDefinitions(targetContext.name);
+  const targetModels = defaultRegistry.listModels(targetContext.name);
 
   if (targetModels.length > 0) {
     const choices = targetModels.map((m) => ({

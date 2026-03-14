@@ -100,6 +100,7 @@ export interface ProjectConfig {
   name: string;
   preset?: string;
   description?: string;
+  environments?: string[];
 }
 
 export interface PresetMeta {

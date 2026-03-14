@@ -1,23 +1,20 @@
-import { getPreset, listPresetMetas as listPluginPresetMetas } from '../plugins/catalog.js';
+import { listPresets, loadPreset } from '../presets/index.js';
 
 export type PresetName = string;
 
 export function listPresetMetas() {
-  return listPluginPresetMetas();
+  return listPresets();
 }
 
 export function isPresetName(value: string): value is PresetName {
-  return listPluginPresetMetas().some((preset) => preset.name === value);
+  return listPresets().some((preset) => preset.name === value);
 }
 
 export function getPresetMeta(name: string) {
-  return listPluginPresetMetas().find((preset) => preset.name === name);
+  return listPresets().find((preset) => preset.name === name);
 }
 
 export function buildPresetManifest(name: PresetName) {
-  const preset = getPreset(name);
-  if (!preset) {
-    throw new Error(`Unknown preset "${name}"`);
-  }
+  const preset = loadPreset(name);
   return preset.team;
 }

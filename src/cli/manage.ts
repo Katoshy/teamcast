@@ -5,9 +5,7 @@ import { readManifest, ManifestError } from '../manifest/reader.js';
 import { writeManifest } from '../manifest/writer.js';
 import { expandCapabilities } from '../core/capability-resolver.js';
 import { generate } from '../generator/index.js';
-import {
-  listModelDefinitions,
-} from '../plugins/catalog.js';
+import { defaultRegistry } from '../registry/index.js';
 import {
   printSuccess,
   printError,
@@ -83,7 +81,7 @@ function parseReasoningEffort(value: string | undefined): ReasoningEffort | null
 }
 
 async function promptTargetModel(targetContext: TargetContext, currentModel?: string): Promise<string | null | undefined> {
-  const targetModels = listModelDefinitions(targetContext.name);
+  const targetModels = defaultRegistry.listModels(targetContext.name);
 
   if (targetModels.length > 0) {
     const choices = targetModels.map((m) => ({
