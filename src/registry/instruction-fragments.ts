@@ -219,6 +219,10 @@ export function listInstructionFragments(): InstructionFragmentId[] {
   return Object.keys(INSTRUCTION_FRAGMENTS) as InstructionFragmentId[];
 }
 
+export function isInstructionFragmentId(value: string): value is InstructionFragmentId {
+  return Object.prototype.hasOwnProperty.call(INSTRUCTION_FRAGMENTS, value);
+}
+
 export function resolveInstructionFragments(
   fragments: InstructionFragmentId[] | undefined,
   extraBlocks: InstructionBlock[] = [],

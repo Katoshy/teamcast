@@ -131,6 +131,7 @@ function mapProject(project: ProjectConfig): CoreTeam['project'] {
     name: project.name,
     preset: project.preset,
     description: project.description,
+    environments: cloneArray(project.environments),
   };
 }
 

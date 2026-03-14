@@ -38,6 +38,10 @@ export function listPolicyFragments(): PolicyFragmentId[] {
   return Object.keys(POLICY_FRAGMENTS) as PolicyFragmentId[];
 }
 
+export function isPolicyFragmentId(value: string): value is PolicyFragmentId {
+  return Object.prototype.hasOwnProperty.call(POLICY_FRAGMENTS, value);
+}
+
 export function composePoliciesFromFragments(
   fragments: PolicyFragmentId[] | undefined,
   overrides: TeamPolicies = {},

@@ -15,6 +15,7 @@ import {
   resolveEnvironmentIds,
   resolveEnvironmentPolicies,
 } from '../core/environment-resolver.js';
+import { checkManifestRegistry } from '../validator/checks/manifest-registry.js';
 
 export interface TeamValidationSummary {
   schemaErrors: Array<{ path: string; message: string }>;
@@ -37,13 +38,16 @@ export function evaluateTeam(
 
   const rawManifest = applyDefaults(schemaResult.data);
   const resolvedManifest = options?.cwd ? resolveEnvironmentPolicies(rawManifest, options.cwd) : rawManifest;
+
+  const manifestRegistryResults = checkManifestRegistry(resolvedManifest);
+
   const envIds = options?.cwd ? resolveEnvironmentIds(resolvedManifest, options.cwd) : [];
   const activeTargets = getRegisteredTargetNames().filter(
     (targetName) =>
       isManifestTargetName(targetName) &&
       Boolean(getManifestTargetConfig(resolvedManifest, targetName)),
   );
-  const validationResults: ValidationResult[] = [];
+  const validationResults: ValidationResult[] = [...manifestRegistryResults];
   let policyAssertionCount = 0;
 
   for (const targetName of activeTargets) {

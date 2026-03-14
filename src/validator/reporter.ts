@@ -8,10 +8,17 @@ interface CategoryMeta {
 }
 
 const CATEGORY_ORDER: CategoryMeta[] = [
+  { label: 'Registry', okDescription: 'all references valid' },
+  { label: 'Environment', okDescription: 'environments valid' },
+  { label: 'Traits', okDescription: 'trait/capability composition valid' },
+  { label: 'Capabilities', okDescription: 'capability-to-tool mapping valid' },
   { label: 'Handoff graph', okDescription: 'delegation paths verified' },
+  { label: 'Team graph', okDescription: 'agent reachability verified' },
   { label: 'Tool conflicts', okDescription: 'no allow/deny overlaps' },
   { label: 'Role separation', okDescription: 'roles match capabilities' },
   { label: 'Security', okDescription: 'sandbox and permissions checked' },
+  { label: 'Policy coherence', okDescription: 'no contradictions in policies' },
+  { label: 'Capability-policy', okDescription: 'capabilities align with policies' },
   { label: 'Instruction blocks', okDescription: 'all blocks valid' },
   { label: 'policy', okDescription: 'Policy assertions' },
 ];

@@ -60,6 +60,10 @@ export function listCapabilityTraits(): CapabilityTraitId[] {
   return Object.keys(CAPABILITY_TRAITS) as CapabilityTraitId[];
 }
 
+export function isCapabilityTraitName(value: string): value is CapabilityTraitId {
+  return Object.prototype.hasOwnProperty.call(CAPABILITY_TRAITS, value);
+}
+
 export function getCapabilityTrait(id: CapabilityTraitId): TraitRecord {
   const trait = CAPABILITY_TRAITS[id];
   if (!trait) {

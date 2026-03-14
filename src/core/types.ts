@@ -132,6 +132,7 @@ export interface ProjectConfig {
   name: string;
   preset?: string;
   description?: string;
+  environments?: string[];
 }
 
 // --- Fully-normalized team manifest ---
