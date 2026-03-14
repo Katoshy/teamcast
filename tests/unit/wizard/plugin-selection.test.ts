@@ -11,17 +11,17 @@ vi.mock('inquirer', () => ({
 
 import inquirer from 'inquirer';
 import {
-  resolveDetectedProjectPlugins,
-  stepProjectPluginSelection,
+  resolveDetectedEnvironments,
+  stepEnvironmentSelection,
 } from '../../../src/wizard/steps/plugin-selection.js';
 
 const mockedPrompt = vi.mocked(inquirer.prompt);
 
-describe('stepProjectPluginSelection', () => {
+describe('stepEnvironmentSelection', () => {
   let cwd: string;
 
   beforeEach(() => {
-    cwd = mkdtempSync(join(tmpdir(), 'teamcast-plugin-step-'));
+    cwd = mkdtempSync(join(tmpdir(), 'teamcast-env-step-'));
     mockedPrompt.mockReset();
   });
 
@@ -29,22 +29,22 @@ describe('stepProjectPluginSelection', () => {
     rmSync(cwd, { recursive: true, force: true });
   });
 
-  it('auto-enables detected project plugins in non-interactive mode', async () => {
+  it('auto-enables detected environments in non-interactive mode', async () => {
     writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'demo-app' }, null, 2));
 
-    await expect(stepProjectPluginSelection(cwd, undefined, { nonInteractive: true })).resolves.toEqual(['node-env']);
+    await expect(stepEnvironmentSelection(cwd, undefined, { nonInteractive: true })).resolves.toEqual(['node']);
   });
 
-  it('lets users deselect detected project plugins interactively', async () => {
+  it('lets users deselect detected environments interactively', async () => {
     writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'demo-app' }, null, 2));
     mockedPrompt.mockResolvedValueOnce({ value: [] });
 
-    await expect(stepProjectPluginSelection(cwd, ['node-env'])).resolves.toBeUndefined();
+    await expect(stepEnvironmentSelection(cwd, ['node'])).resolves.toBeUndefined();
   });
 
-  it('merges detected plugins with preconfigured plugins', () => {
+  it('merges detected environments with preconfigured environments', () => {
     writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'demo-app' }, null, 2));
 
-    expect(resolveDetectedProjectPlugins(cwd, ['python-env'])).toEqual(['python-env', 'node-env']);
+    expect(resolveDetectedEnvironments(cwd, ['python'])).toEqual(['python', 'node']);
   });
 });

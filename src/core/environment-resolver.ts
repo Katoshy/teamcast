@@ -85,7 +85,13 @@ function mergePoliciesSimple(base: PoliciesConfig, extra: PoliciesConfig): Polic
     ...(extra.permissions?.rules?.deny ?? []),
   ])];
 
+  const mergedFragments = [...new Set([
+    ...(base.fragments ?? []),
+    ...(extra.fragments ?? []),
+  ])];
+
   return {
+    fragments: mergedFragments.length > 0 ? mergedFragments : undefined,
     permissions:
       mergedAllow.length || mergedAsk.length || mergedDeny.length || base.permissions?.default_mode || extra.permissions?.default_mode
         ? {

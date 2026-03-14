@@ -57,8 +57,8 @@ describe('CLI behavior', () => {
       expect(existsSync(join(cwd, 'CLAUDE.md'))).toBe(true);
       expect(existsSync(join(cwd, '.claude/agents/orchestrator.md'))).toBe(true);
       expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('preset: feature-team');
-      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('plugins:');
-      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('- node-env');
+      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('environments:');
+      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('- node');
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
