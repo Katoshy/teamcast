@@ -1,12 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)",
-      "Bash(npm test *)",
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx *)",
+      "Bash(npm install)",
+      "Bash(node *)"
     ],
     "ask": [
       "Bash(git push *)"

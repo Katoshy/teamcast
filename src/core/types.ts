@@ -47,11 +47,13 @@ export interface AgentRuntime {
   disallowedTools?: string[];
   /**
    * Skill documentation references (free-form strings, e.g. 'test-first').
-   * These are distinct from AgentSkill abstract capability values, which appear
+   * These are distinct from CapabilityId abstract capability values, which appear
    * in the tools[] array and get expanded to CanonicalTool[] during normalization.
-   * Named skillDocs to disambiguate from AgentSkill abstract capabilities.
+   * Named skillDocs to disambiguate from CapabilityId abstract capabilities.
    */
   skillDocs?: string[];
+  /** Instruction fragment IDs used by this agent, preserved for validation. */
+  instructionFragmentIds?: string[];
   maxTurns?: number;
   mcpServers?: McpServerConfig[];
   permissionMode?: PermissionMode;
@@ -132,6 +134,7 @@ export interface ProjectConfig {
   name: string;
   preset?: string;
   description?: string;
+  environments?: string[];
 }
 
 // --- Fully-normalized team manifest ---

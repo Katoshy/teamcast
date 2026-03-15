@@ -10,7 +10,12 @@ import {
 } from '../validator/reporter.js';
 import type { ValidationResult } from '../validator/types.js';
 import { getTarget, getRegisteredTargetNames } from '../renderers/registry.js';
-import { injectEnvironmentPolicies } from '../plugins/inject.js';
+import {
+  applyEnvironmentInstructions,
+  resolveEnvironmentIds,
+  resolveEnvironmentPolicies,
+} from '../core/environment-resolver.js';
+import { checkManifestRegistry } from '../validator/checks/manifest-registry.js';
 
 export interface TeamValidationSummary {
   schemaErrors: Array<{ path: string; message: string }>;
@@ -32,18 +37,26 @@ export function evaluateTeam(
   }
 
   const rawManifest = applyDefaults(schemaResult.data);
-  const resolvedManifest = options?.cwd ? injectEnvironmentPolicies(rawManifest, options.cwd) : rawManifest;
+  const resolvedManifest = options?.cwd ? resolveEnvironmentPolicies(rawManifest, options.cwd) : rawManifest;
+
+  const manifestRegistryResults = checkManifestRegistry(resolvedManifest);
+
+  const envIds = options?.cwd ? resolveEnvironmentIds(resolvedManifest, options.cwd) : [];
   const activeTargets = getRegisteredTargetNames().filter(
     (targetName) =>
       isManifestTargetName(targetName) &&
       Boolean(getManifestTargetConfig(resolvedManifest, targetName)),
   );
-  const validationResults: ValidationResult[] = [];
+  const validationResults: ValidationResult[] = [...manifestRegistryResults];
   let policyAssertionCount = 0;
 
   for (const targetName of activeTargets) {
     const targetContext = getTarget(targetName);
-    const team = normalizeManifest(resolvedManifest, targetContext);
+    const team = applyEnvironmentInstructions(
+      normalizeManifest(resolvedManifest, targetContext),
+      targetContext,
+      envIds,
+    );
     const targetResults = runValidation(team, targetContext);
     const prefix = activeTargets.length > 1 ? `[${targetName}] ` : '';
     policyAssertionCount += team.policies?.assertions?.length ?? 0;

@@ -36,4 +36,9 @@ Read the changed files carefully. Check for:
 - Code style and readability
 - Test coverage
 
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
+
 Provide clear, actionable recommendations. Do not modify files yourself.

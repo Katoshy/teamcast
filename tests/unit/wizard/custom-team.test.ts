@@ -91,7 +91,9 @@ describe('stepCustomTeam', () => {
     const result = await stepCustomTeam('test');
     const validation = runValidation(normalizeManifest(result, claudeTarget), claudeTarget);
 
-    expect(validation).toEqual([]);
+    // Info-level results are informational diagnostics, not blocking issues
+    const blocking = validation.filter((r) => r.severity === 'error' || r.severity === 'warning');
+    expect(blocking).toEqual([]);
   });
 
   it('can build both targets from one role selection', async () => {

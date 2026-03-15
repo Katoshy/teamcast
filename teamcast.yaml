@@ -3,20 +3,8 @@ project:
   name: teamcast
   preset: feature-team
   description: TeamCast development team. TypeScript/Node.js CLI project.
-plugins:
-  - node-env
-policies:
-  fragments:
-    - allow-git-read
-    - allow-git-write
-    - ask-git-push
-    - deny-destructive-shell
-    - deny-network-downloads
-    - deny-env-files
-    - sandbox-default
-settings:
-  generate_docs: true
-  generate_local_settings: true
+  environments:
+    - node
 preset_meta:
   tags:
     - team
@@ -24,6 +12,18 @@ preset_meta:
     - orchestration
   min_version: "2"
 claude:
+  policies:
+    fragments:
+      - allow-git-read
+      - allow-git-write
+      - ask-git-push
+      - deny-destructive-shell
+      - deny-network-downloads
+      - deny-env-files
+      - sandbox-default
+  settings:
+    generate_docs: true
+    generate_local_settings: true
   agents:
     orchestrator:
       forge:
@@ -139,6 +139,18 @@ claude:
         - feature-reviewer-checklist
         - feature-reviewer-style
 codex:
+  policies:
+    fragments:
+      - allow-git-read
+      - allow-git-write
+      - ask-git-push
+      - deny-destructive-shell
+      - deny-network-downloads
+      - deny-env-files
+      - sandbox-default
+  settings:
+    generate_docs: true
+    generate_local_settings: true
   agents:
     orchestrator:
       forge:
@@ -147,6 +159,8 @@ codex:
           - developer
           - reviewer
       description: Use for any feature request, bug fix, or refactoring in the TeamCast project that involves planning + implementation + review. Entry point for the team pipeline.
+      model: gpt-5.3-codex
+      reasoning_effort: high
       capability_traits:
         - base-read
         - delegation
@@ -176,6 +190,8 @@ codex:
         - feature-orchestrator-output
     planner:
       description: Use when a task requires deep codebase analysis before implementation. Reads src/ files, identifies patterns, and produces a step-by-step plan. Never modifies files.
+      model: gpt-5.3-codex
+      reasoning_effort: high
       capability_traits:
         - base-read
         - web-research
@@ -198,6 +214,8 @@ codex:
         - feature-planner-read-only
     developer:
       description: Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access.
+      model: gpt-5-codex
+      reasoning_effort: medium
       capability_traits:
         - base-read
         - file-authoring
@@ -224,6 +242,8 @@ codex:
         - feature-developer-summary
     reviewer:
       description: Use after implementation is complete. Reviews TypeScript types, ESM imports, test coverage, pure function integrity, and CLI output style. Read-only, provides recommendations only.
+      model: gpt-5.3-codex
+      reasoning_effort: high
       capability_traits:
         - base-read
         - command-execution

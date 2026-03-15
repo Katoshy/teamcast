@@ -1,15 +1,18 @@
+---
+name: Security Check
+description: Check code for common security vulnerabilities and OWASP top 10 issues.
+---
+
 # Security Check
 
 ## When to use this skill
 
-Use this skill when <!-- describe the trigger condition -->.
+Check code for common security vulnerabilities and OWASP top 10 issues.
 
-## Steps
+## Instructions
 
-1. <!-- First step -->
-2. <!-- Second step -->
-3. <!-- Third step -->
-
-## Output
-
-<!-- Describe the expected output or artifact produced by this skill -->
+Scan for injection vulnerabilities: SQL, command, XSS, LDAP.
+Check authentication and authorization logic for bypass opportunities.
+Verify sensitive data handling: encryption, logging, error messages.
+Review dependency versions for known CVEs.
+Assess input validation at system boundaries.

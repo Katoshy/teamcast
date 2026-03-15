@@ -1,12 +1,10 @@
 import {
   normalizeInstructionBlocks,
 } from '../core/instructions.js';
-import {
-  mergeRuntimeWithTraits,
-  resolveInstructionFragments,
-} from '../components/agent-fragments.js';
-import { composePoliciesFromFragments } from '../components/policy-fragments.js';
-import { isAgentSkill, type AgentSkill } from '../core/skills.js';
+import { mergeRuntimeWithTraits } from '../registry/traits.js';
+import { resolveInstructionFragments } from '../registry/instruction-fragments.js';
+import { composePoliciesFromFragments } from '../registry/policy-fragments.js';
+import { isCapability, type CapabilityId } from '../registry/capabilities.js';
 import type {
   AgentRuntime,
   CoreAgent,
@@ -14,7 +12,7 @@ import type {
   HookEntry,
   TeamPolicies,
 } from '../core/types.js';
-import { expandSkills } from '../core/skill-resolver.js';
+import { expandCapabilities } from '../core/capability-resolver.js';
 import type { TargetContext } from '../renderers/target-context.js';
 import { applyDefaults } from './defaults.js';
 import { getManifestTargetConfig, isManifestTargetName } from './targets.js';
@@ -24,11 +22,14 @@ import type {
   BaseAgentConfig,
   GenerationSettings,
   HooksConfig,
+  ManifestSkillBlock,
   PoliciesConfig,
   PresetMeta,
   ProjectConfig,
   TargetConfig,
 } from './types.js';
+import { defaultRegistry } from '../registry/index.js';
+import type { SkillDefinition } from '../registry/types.js';
 
 function cloneArray<T>(value: T[] | undefined): T[] | undefined {
   return value ? [...value] : undefined;
@@ -38,15 +39,15 @@ function definedArray<T>(value: T[] | undefined): T[] | undefined {
   return value && value.length > 0 ? [...value] : undefined;
 }
 
-function separateSkillsAndTools(items: Array<AgentSkill | string> | undefined): {
-  skills: AgentSkill[];
+function separateSkillsAndTools(items: Array<CapabilityId | string> | undefined): {
+  skills: CapabilityId[];
   rawTools: string[];
 } {
-  const skills: AgentSkill[] = [];
+  const skills: CapabilityId[] = [];
   const rawTools: string[] = [];
 
   for (const item of items ?? []) {
-    if (isAgentSkill(item)) {
+    if (isCapability(item)) {
       skills.push(item);
     } else {
       rawTools.push(item);
@@ -57,11 +58,11 @@ function separateSkillsAndTools(items: Array<AgentSkill | string> | undefined): 
 }
 
 function resolveToolsFromSkillsAndRaw(
-  skills: AgentSkill[],
+  skills: CapabilityId[],
   rawTools: string[],
   targetContext: TargetContext,
 ): { tools: string[] | undefined } {
-  const expandedTools = skills.length > 0 ? expandSkills(skills, targetContext.skillMap) : [];
+  const expandedTools = skills.length > 0 ? expandCapabilities(skills, targetContext.skillMap) : [];
   const allTools = [...new Set([...expandedTools, ...rawTools])];
 
   return {
@@ -133,6 +134,7 @@ function mapProject(project: ProjectConfig): CoreTeam['project'] {
     name: project.name,
     preset: project.preset,
     description: project.description,
+    environments: cloneArray(project.environments),
   };
 }
 
@@ -152,6 +154,32 @@ function mapSettings(settings: GenerationSettings | undefined): CoreTeam['settin
   };
 }
 
+function registerInlineSkillBlocks(blocks: ManifestSkillBlock[] | undefined): string[] {
+  if (!blocks?.length) return [];
+
+  const names: string[] = [];
+  for (const block of blocks) {
+    const id = block.name;
+    // Only register if not already known (builtin takes precedence)
+    if (!defaultRegistry.getSkill(id)) {
+      const skill: SkillDefinition = {
+        id,
+        name: block.name
+          .split('-')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' '),
+        description: block.description,
+        instructions: block.instructions,
+        source: 'user',
+        allowed_tools: block.allowed_tools,
+      };
+      defaultRegistry.registerSkills({ [id]: skill });
+    }
+    names.push(id);
+  }
+  return names;
+}
+
 function buildAgentRuntime(
   agent: BaseAgentConfig,
   resolvedTools: string[] | undefined,
@@ -163,6 +191,7 @@ function buildAgentRuntime(
     tools: resolvedTools ? [...resolvedTools] : undefined,
     disallowedTools: resolvedDisallowedTools ? [...resolvedDisallowedTools] : undefined,
     skillDocs: cloneArray(agent.skills),
+    instructionFragmentIds: cloneArray(agent.instruction_fragments),
     maxTurns: agent.max_turns,
     mcpServers: agent.mcp_servers?.map((server) => ({ ...server })),
     permissionMode: agent.permission_mode,
@@ -177,10 +206,10 @@ function normalizeAgent(agentId: string, agent: AgentConfig, targetContext: Targ
     'capability_traits' in agent;
 
   const { skills: toolsSkills, rawTools } = separateSkillsAndTools(
-    agent.tools as Array<AgentSkill | string> | undefined,
+    agent.tools as Array<CapabilityId | string> | undefined,
   );
   const { skills: disallowedSkills, rawTools: rawDisallowedTools } = separateSkillsAndTools(
-    agent.disallowed_tools as Array<AgentSkill | string> | undefined,
+    agent.disallowed_tools as Array<CapabilityId | string> | undefined,
   );
 
   const { tools: resolvedTools } = resolveToolsFromSkillsAndRaw(
@@ -194,7 +223,16 @@ function normalizeAgent(agentId: string, agent: AgentConfig, targetContext: Targ
     targetContext,
   );
 
+  const inlineSkillNames = registerInlineSkillBlocks(agent.skill_blocks);
+
   const baseRuntime = buildAgentRuntime(agent, resolvedTools, resolvedDisallowedTools);
+
+  // Merge inline skill_blocks names into skillDocs
+  if (inlineSkillNames.length > 0) {
+    const existing = baseRuntime.skillDocs ?? [];
+    baseRuntime.skillDocs = [...new Set([...existing, ...inlineSkillNames])];
+  }
+
   const runtime = usesStructuredComposition
     ? mergeRuntimeWithTraits(baseRuntime, agent.capability_traits, targetContext.skillMap)
     : baseRuntime;

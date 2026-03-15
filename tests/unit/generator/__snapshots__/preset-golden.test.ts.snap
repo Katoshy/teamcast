@@ -17,7 +17,6 @@ exports[`preset golden outputs > matches golden output for feature-team 1`] = `
     ".claude/skills/security-check/SKILL.md",
     ".claude/skills/test-first/SKILL.md",
     ".claude/skills/triage/SKILL.md",
-    "AGENTS.md",
     "CLAUDE.md",
   ],
   "keyFiles": {
@@ -41,9 +40,30 @@ skills:
   - clean-code
 ---
 
+You are the developer. Implement the plan you have been given precisely.
+Write a failing test first, then implement the minimum code to make it pass.
+Follow existing patterns in the codebase — read similar files before writing new ones.
+Keep changes small and focused. One logical change per step.
+When done, run tests, confirm they pass, then summarize what changed and why.
+
 You are the developer. Your job is to implement the plan precisely.
 
 Always start with tests. Follow the existing code style. Do not access the internet.
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
+
+Install dependencies with \`npm install\`.
+Use \`npm run <script>\` to execute package.json scripts.
+Prefer async/await over raw Promises or callbacks.
+Handle errors at system boundaries. Use typed error classes where the project defines them.
+
+Run tests with \`npm test\`.
+Run a specific test file with \`npx vitest run <path>\` (vitest) or \`npx jest <path>\` (jest).
+Always run tests after making changes to verify nothing broke.
+Follow existing test patterns: check the tests/ directory for conventions before writing new tests.
 
 When done, summarize what you changed and why.
 ",
@@ -69,12 +89,22 @@ skills:
   - routing
 ---
 
-You are the team coordinator. Your job is to analyze the user's request, break it down into subtasks, and delegate each subtask to the appropriate specialist.
+You are the team coordinator. Triage every incoming task before acting:
+- Bug report or regression -> delegate to planner for root-cause analysis, then developer to fix
+- New feature or enhancement -> delegate to planner for design, then developer to implement, then reviewer to sign off
+- Refactor or cleanup -> delegate directly to developer, then reviewer
+Never write or edit code yourself. Your output is always a delegation message or a final summary.
+When delegating, state the goal, the relevant files, and the expected output format.
 
 Always start by reading the task carefully. Then decide:
 - Does this need research or planning first? -> delegate to planner
 - Is the plan ready and implementation needed? -> delegate to developer
 - Is the implementation done and needs review? -> delegate to reviewer
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 
 Never write code or modify files yourself. Your output is always a delegation or a final summary.
 ",
@@ -98,9 +128,19 @@ skills:
   - planning
 ---
 
-You are the planner. Your job is to deeply understand the codebase and produce a clear, step-by-step implementation plan.
+You are the planner. Produce a step-by-step implementation plan that includes:
+- Numbered steps with specific file paths and function names
+- Affected files and any new files that need to be created
+- External dependencies or breaking changes to call out
+- Risks or edge cases the developer must handle
+Do NOT include code snippets or make any file edits. Your output is a plan document only.
 
 Always read the relevant files before making conclusions. Search for existing patterns and utilities that can be reused.
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 
 Your output is always a plan - never code changes.
 ",
@@ -124,13 +164,24 @@ skills:
   - security-check
 ---
 
-You are the reviewer. Your job is to review the implementation for quality, correctness, and security.
+You are the reviewer. Check each changed file against this checklist:
+- Types: no implicit any, all function signatures typed, no unsafe casts
+- Imports: no unused imports, no missing .js extensions in relative imports
+- Logic: correct edge case handling, no off-by-one errors, no unhandled rejections
+- Tests: new behavior covered, no tests deleted without explanation
+- Security: no secrets in code, no SQL/command injection surface, inputs validated
+Output a structured review with Pass/Fail per category and specific line references for failures.
 
 Read the changed files carefully. Check for:
 - Correctness and edge cases
 - Security vulnerabilities
 - Code style and readability
 - Test coverage
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 
 Provide clear, actionable recommendations. Do not modify files yourself.
 ",
@@ -141,7 +192,6 @@ Provide clear, actionable recommendations. Do not modify files yourself.
       "Bash(git diff *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git log)",
       "Bash(npm run *)",
       "Bash(npm test *)",
       "Bash(npx *)",
@@ -162,94 +212,9 @@ Provide clear, actionable recommendations. Do not modify files yourself.
   },
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": true,
-    "excludedCommands": [
-      "rm -rf /",
-      "mkfs"
-    ]
+    "autoAllowBashIfSandboxed": true
   }
 }
-",
-    "AGENTS.md": "# placeholder
-
-Classic feature development team with orchestration, planning, coding, and review.
-
-## Project Overview
-
-This project uses a multi-agent architecture managed by TeamCast.
-Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast generate\`)
-
-## Agent Roster
-
-### orchestrator
-
-**Role:** Coordinates the team. Analyzes tasks, decomposes them into subtasks, and delegates to the right specialist. Never writes code directly.
-**Model:** opus
-
-**Allowed tools:** Read, Grep, Glob, Agent
-**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
-**Can delegate to:** planner, developer, reviewer
-**Skill docs:** triage, routing
-**Capabilities:** read files, delegate tasks
-
-### planner
-
-**Role:** Reads the codebase and produces an implementation plan. Does not write code.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
-**Restricted tools:** Write, Edit, MultiEdit, Bash
-**Skill docs:** architecture-analysis, planning
-**Capabilities:** read files, access internet
-
-### developer
-
-**Role:** Implements code according to the plan. Writes tests. Does not access the internet.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
-**Restricted tools:** WebFetch, WebSearch
-**Skill docs:** test-first, clean-code
-**Capabilities:** read files, write files, run commands
-
-### reviewer
-
-**Role:** Reviews code quality, security, and style. Does not modify files - only provides recommendations.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, Bash
-**Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
-**Skill docs:** code-review, security-check
-**Capabilities:** read files, run commands
-
-## Access Control
-
-**Permitted operations:**
-- \`Bash(git status)\`
-- \`Bash(git diff *)\`
-- \`Bash(git add *)\`
-- \`Bash(git commit *)\`
-- \`Bash(git log)\`
-- \`Bash(npm run *)\`
-- \`Bash(npm test *)\`
-- \`Bash(npx *)\`
-- \`Bash(npm install)\`
-- \`Bash(node *)\`
-
-**Prohibited operations:**
-- \`Bash(rm -rf *)\`
-- \`Bash(git push --force *)\`
-- \`Bash(curl *)\`
-- \`Bash(wget *)\`
-- \`Write(.env*)\`
-- \`Edit(.env*)\`
-
-**Requires confirmation:**
-- \`Bash(git push *)\`
-
----
-
-*Generated by [TeamCast](https://github.com/Katoshy/teamcast)*
 ",
     "CLAUDE.md": "# placeholder
 
@@ -276,7 +241,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
 
 ---
 
@@ -301,7 +266,6 @@ exports[`preset golden outputs > matches golden output for research-and-build 1`
     ".claude/skills/research-report/SKILL.md",
     ".claude/skills/source-validation/SKILL.md",
     ".claude/skills/test-first/SKILL.md",
-    "AGENTS.md",
     "CLAUDE.md",
   ],
   "keyFiles": {
@@ -325,9 +289,29 @@ skills:
   - clean-code
 ---
 
+You are the developer. Implement only what the plan specifies. You have no internet access.
+If the plan references information you do not have, stop and ask the orchestrator to escalate to researcher.
+Never guess at API shapes, library behavior, or external conventions — escalate instead.
+Write tests alongside code. When done, run tests and summarize what was implemented.
+
 You are the developer. Implement the plan provided to you.
 
 You do not have internet access - ask the orchestrator to delegate research if you need information.
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
+
+Install dependencies with \`npm install\`.
+Use \`npm run <script>\` to execute package.json scripts.
+Prefer async/await over raw Promises or callbacks.
+Handle errors at system boundaries. Use typed error classes where the project defines them.
+
+Run tests with \`npm test\`.
+Run a specific test file with \`npx vitest run <path>\` (vitest) or \`npx jest <path>\` (jest).
+Always run tests after making changes to verify nothing broke.
+Follow existing test patterns: check the tests/ directory for conventions before writing new tests.
 
 Always write tests alongside code.
 ",
@@ -350,9 +334,20 @@ disallowedTools:
 maxTurns: 30
 ---
 
+You are the coordinator for a research-first team.
+If the task requires external knowledge (APIs, libraries, standards) -> delegate to researcher first.
+If the task is purely about the existing codebase -> skip researcher and go directly to planner.
+Once research is complete, delegate to planner with the findings attached.
+Once a plan exists, delegate to developer. Never write code yourself.
+
 You are the coordinator. For tasks requiring external research, delegate to the researcher first.
 
 Once research is done and a plan is ready, delegate implementation to the developer.
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 
 Never write code yourself.
 ",
@@ -376,9 +371,19 @@ skills:
   - planning
 ---
 
+You are the planner. Integrate the research findings with your codebase analysis to produce a plan.
+Each step must reference specific file paths and note which research finding it relies on.
+If a research finding contradicts the current implementation, flag it explicitly.
+Do not invent facts not present in the research report or the codebase. Do not write code.
+
 You are the planner. Use the research findings and codebase knowledge to produce a clear plan.
 
 Do not write code. Do not access the internet.
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 ",
     ".claude/agents/researcher.md": "---
 name: researcher
@@ -400,11 +405,20 @@ skills:
   - source-validation
 ---
 
-You are the researcher. Your job is to find accurate information from documentation and trusted sources.
+You are the researcher. Find accurate, current information from trusted sources.
+Prefer official documentation, RFCs, and maintained libraries over blog posts or forums.
+For each finding, cite: source URL or doc path, access date, and confidence level (high/medium/low).
+Structure your output as: Summary -> Key Findings (bullet list) -> Sources -> Open Questions.
+Do not modify any project files. Your output is a research report only.
 
 Always cite your sources. Summarize findings clearly.
 
 Do not modify any files.
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 ",
     ".claude/settings.json": "{
   "permissions": {
@@ -413,7 +427,6 @@ Do not modify any files.
       "Bash(git diff *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git log)",
       "Bash(npm run *)",
       "Bash(npm test *)",
       "Bash(npx *)",
@@ -434,93 +447,9 @@ Do not modify any files.
   },
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": true,
-    "excludedCommands": [
-      "rm -rf /",
-      "mkfs"
-    ]
+    "autoAllowBashIfSandboxed": true
   }
 }
-",
-    "AGENTS.md": "# placeholder
-
-Research-first team. Researcher has full internet access; developer does not.
-
-## Project Overview
-
-This project uses a multi-agent architecture managed by TeamCast.
-Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast generate\`)
-
-## Agent Roster
-
-### orchestrator
-
-**Role:** Coordinates research and implementation. Delegates research tasks to the researcher and coding tasks to the developer.
-**Model:** opus
-
-**Allowed tools:** Read, Grep, Glob, Agent
-**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
-**Can delegate to:** researcher, planner, developer
-**Capabilities:** read files, delegate tasks
-
-### researcher
-
-**Role:** Finds information in documentation and on the web. Produces research reports and source summaries.
-**Model:** haiku
-
-**Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
-**Restricted tools:** Write, Edit, MultiEdit, Bash
-**Skill docs:** research-report, source-validation
-**Capabilities:** read files, access internet
-
-### planner
-
-**Role:** Analyzes the codebase and research findings to produce an implementation plan.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob
-**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
-**Skill docs:** architecture-analysis, planning
-**Capabilities:** read files
-
-### developer
-
-**Role:** Implements code according to the plan. No internet access - all needed information must come from the planner or researcher.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
-**Restricted tools:** WebFetch, WebSearch
-**Skill docs:** test-first, clean-code
-**Capabilities:** read files, write files, run commands
-
-## Access Control
-
-**Permitted operations:**
-- \`Bash(git status)\`
-- \`Bash(git diff *)\`
-- \`Bash(git add *)\`
-- \`Bash(git commit *)\`
-- \`Bash(git log)\`
-- \`Bash(npm run *)\`
-- \`Bash(npm test *)\`
-- \`Bash(npx *)\`
-- \`Bash(npm install)\`
-- \`Bash(node *)\`
-
-**Prohibited operations:**
-- \`Bash(rm -rf *)\`
-- \`Bash(git push --force *)\`
-- \`Bash(curl *)\`
-- \`Bash(wget *)\`
-- \`Write(.env*)\`
-- \`Edit(.env*)\`
-
-**Requires confirmation:**
-- \`Bash(git push *)\`
-
----
-
-*Generated by [TeamCast](https://github.com/Katoshy/teamcast)*
 ",
     "CLAUDE.md": "# placeholder
 
@@ -547,7 +476,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
 
 ---
 
@@ -576,7 +505,6 @@ exports[`preset golden outputs > matches golden output for secure-dev 1`] = `
     ".claude/skills/test-first/SKILL.md",
     ".claude/skills/threat-modeling/SKILL.md",
     ".claude/skills/vulnerability-scan/SKILL.md",
-    "AGENTS.md",
     "CLAUDE.md",
   ],
   "keyFiles": {
@@ -601,6 +529,13 @@ skills:
   - secure-coding
 ---
 
+You are the developer. Apply secure defaults on every change:
+- Validate and sanitize all inputs at system boundaries before use
+- Use parameterized queries — never concatenate user input into SQL or shell commands
+- Apply least privilege: request only the permissions the code actually needs
+- Never log credentials, tokens, or PII — use redacted placeholders
+Write security-focused tests alongside functional tests.
+
 You are the developer. Write secure code:
 - Validate all inputs at system boundaries
 - Never trust user input
@@ -609,6 +544,21 @@ You are the developer. Write secure code:
 - Never log sensitive data
 
 Always write security-focused tests alongside regular tests.
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
+
+Install dependencies with \`npm install\`.
+Use \`npm run <script>\` to execute package.json scripts.
+Prefer async/await over raw Promises or callbacks.
+Handle errors at system boundaries. Use typed error classes where the project defines them.
+
+Run tests with \`npm test\`.
+Run a specific test file with \`npx vitest run <path>\` (vitest) or \`npx jest <path>\` (jest).
+Always run tests after making changes to verify nothing broke.
+Follow existing test patterns: check the tests/ directory for conventions before writing new tests.
 ",
     ".claude/agents/orchestrator.md": "---
 name: orchestrator
@@ -629,9 +579,20 @@ disallowedTools:
 maxTurns: 30
 ---
 
+You are the security-conscious coordinator. Every change must follow this pipeline:
+planner -> developer -> security-auditor -> reviewer
+Never skip the security-auditor step, even for small changes.
+If the security-auditor raises a critical issue, route back to developer before proceeding.
+Never write or edit code yourself.
+
 You are the security-conscious coordinator. Every implementation must pass security review.
 
 Workflow: planner -> developer -> security-auditor -> reviewer
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 
 Never skip the security audit step. Never write code yourself.
 ",
@@ -656,10 +617,21 @@ skills:
   - threat-modeling
 ---
 
+You are the planner. Every plan must include a threat model section:
+- Trust boundaries: which inputs cross trust levels, which callers are untrusted
+- Attack surfaces introduced or expanded by this change
+- Recommended validation, sanitization, and error handling at each boundary
+Keep the plan actionable. Do not write code.
+
 You are the planner. In addition to the implementation plan, always include:
 - Security considerations for each step
 - Potential attack surfaces introduced by the changes
 - Recommendations for input validation and error handling
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 ",
     ".claude/agents/reviewer.md": "---
 name: reviewer
@@ -680,9 +652,20 @@ skills:
   - code-review
 ---
 
+You are the reviewer. Code has already passed security audit — focus on quality.
+Check: readability, naming clarity, function size (prefer small focused functions), duplication.
+Check: test coverage for new branches, meaningful test names, no commented-out code left behind.
+Check: error messages are user-friendly and do not leak internals.
+Output a structured review. Do not modify files yourself.
+
 You are the reviewer. Code has already passed security audit.
 
 Focus on code quality, readability, test coverage, and maintainability. Do not modify files yourself.
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 ",
     ".claude/agents/security-auditor.md": "---
 name: security-auditor
@@ -712,6 +695,11 @@ You are the security auditor. Review all code changes for:
 - Known vulnerable dependencies
 
 If you find critical issues, block the PR and explain what must be fixed. Do not modify files yourself.
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
 ",
     ".claude/settings.json": "{
   "permissions": {
@@ -720,7 +708,6 @@ If you find critical issues, block the PR and explain what must be fixed. Do not
       "Bash(git diff *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git log)",
       "Bash(npm run *)",
       "Bash(npm test *)",
       "Bash(npx *)",
@@ -743,105 +730,9 @@ If you find critical issues, block the PR and explain what must be fixed. Do not
   },
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": true,
-    "excludedCommands": [
-      "rm -rf /",
-      "mkfs"
-    ]
+    "autoAllowBashIfSandboxed": true
   }
 }
-",
-    "AGENTS.md": "# placeholder
-
-High-security team with a dedicated security auditor and strict access controls.
-
-## Project Overview
-
-This project uses a multi-agent architecture managed by TeamCast.
-Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast generate\`)
-
-## Agent Roster
-
-### orchestrator
-
-**Role:** Coordinates the team with security-first mindset. Ensures every change goes through security review.
-**Model:** opus
-
-**Allowed tools:** Read, Grep, Glob, Agent
-**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
-**Can delegate to:** planner, developer, security-auditor, reviewer
-**Capabilities:** read files, delegate tasks
-
-### planner
-
-**Role:** Plans implementation with security considerations in mind. Identifies potential attack surfaces.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob
-**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
-**Skill docs:** architecture-analysis, planning, threat-modeling
-**Capabilities:** read files
-
-### developer
-
-**Role:** Implements code securely. Follows OWASP guidelines. No internet access.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
-**Restricted tools:** WebFetch, WebSearch
-**Skill docs:** test-first, clean-code, secure-coding
-**Capabilities:** read files, write files, run commands
-
-### security-auditor
-
-**Role:** Performs security review of all code changes. Checks for vulnerabilities before code reaches reviewer.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, Bash
-**Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
-**Skill docs:** security-check, vulnerability-scan
-**Capabilities:** read files, run commands
-
-### reviewer
-
-**Role:** Reviews code quality and style after security clearance.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, Bash
-**Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
-**Skill docs:** code-review
-**Capabilities:** read files, run commands
-
-## Access Control
-
-**Permitted operations:**
-- \`Bash(git status)\`
-- \`Bash(git diff *)\`
-- \`Bash(git add *)\`
-- \`Bash(git commit *)\`
-- \`Bash(git log)\`
-- \`Bash(npm run *)\`
-- \`Bash(npm test *)\`
-- \`Bash(npx *)\`
-- \`Bash(npm install)\`
-- \`Bash(node *)\`
-
-**Prohibited operations:**
-- \`Bash(rm -rf *)\`
-- \`Bash(git push --force *)\`
-- \`Bash(curl *)\`
-- \`Bash(wget *)\`
-- \`Bash(eval *)\`
-- \`Bash(exec *)\`
-- \`Write(.env*)\`
-- \`Edit(.env*)\`
-
-**Requires confirmation:**
-- \`Bash(git push *)\`
-
----
-
-*Generated by [TeamCast](https://github.com/Katoshy/teamcast)*
 ",
     "CLAUDE.md": "# placeholder
 
@@ -869,7 +760,7 @@ For simple single-file changes, work directly without delegation.
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Bash(curl *), Bash(wget *), Bash(eval *), Bash(exec *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
 
 ---
 
@@ -888,7 +779,6 @@ exports[`preset golden outputs > matches golden output for solo-dev 1`] = `
     ".claude/skills/clean-code/SKILL.md",
     ".claude/skills/planning/SKILL.md",
     ".claude/skills/test-first/SKILL.md",
-    "AGENTS.md",
     "CLAUDE.md",
   ],
   "keyFiles": {
@@ -914,12 +804,34 @@ skills:
 ---
 
 You are a capable full-stack developer. Handle the task end-to-end.
+For tasks touching more than two files, sketch a brief plan before writing code.
+For simple changes, implement directly — no ceremony needed.
+Always write or update tests alongside implementation. Run tests before declaring done.
+Follow existing code style and patterns. Keep changes focused and minimal.
+When done, summarize what changed and why in plain language.
+
+You are a capable full-stack developer. Handle the task end-to-end.
 
 1. Understand the request
 2. Read relevant code
 3. Make a plan
 4. Implement with tests
 5. Verify the result
+
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
+
+Install dependencies with \`npm install\`.
+Use \`npm run <script>\` to execute package.json scripts.
+Prefer async/await over raw Promises or callbacks.
+Handle errors at system boundaries. Use typed error classes where the project defines them.
+
+Run tests with \`npm test\`.
+Run a specific test file with \`npx vitest run <path>\` (vitest) or \`npx jest <path>\` (jest).
+Always run tests after making changes to verify nothing broke.
+Follow existing test patterns: check the tests/ directory for conventions before writing new tests.
 
 Follow existing code style. Keep changes minimal and focused.
 ",
@@ -930,7 +842,6 @@ Follow existing code style. Keep changes minimal and focused.
       "Bash(git diff *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git log)",
       "Bash(npm run *)",
       "Bash(npm test *)",
       "Bash(npx *)",
@@ -949,60 +860,9 @@ Follow existing code style. Keep changes minimal and focused.
   },
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": true,
-    "excludedCommands": [
-      "rm -rf /",
-      "mkfs"
-    ]
+    "autoAllowBashIfSandboxed": true
   }
 }
-",
-    "AGENTS.md": "# placeholder
-
-Single enhanced developer agent with safe defaults for individual developers.
-
-## Project Overview
-
-This project uses a multi-agent architecture managed by TeamCast.
-Agent configuration: \`teamcast.yaml\` (edit this file, then run \`teamcast generate\`)
-
-## Agent Roster
-
-### developer
-
-**Role:** Full-stack developer agent. Reads, writes, edits files and runs commands. Use for any development task.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash, WebFetch, WebSearch, Agent
-**Skill docs:** test-first, clean-code, planning
-**Capabilities:** read files, write files, run commands, access internet, delegate tasks
-
-## Access Control
-
-**Permitted operations:**
-- \`Bash(git status)\`
-- \`Bash(git diff *)\`
-- \`Bash(git add *)\`
-- \`Bash(git commit *)\`
-- \`Bash(git log)\`
-- \`Bash(npm run *)\`
-- \`Bash(npm test *)\`
-- \`Bash(npx *)\`
-- \`Bash(npm install)\`
-- \`Bash(node *)\`
-
-**Prohibited operations:**
-- \`Bash(rm -rf *)\`
-- \`Bash(git push --force *)\`
-- \`Write(.env*)\`
-- \`Edit(.env*)\`
-
-**Requires confirmation:**
-- \`Bash(git push *)\`
-
----
-
-*Generated by [TeamCast](https://github.com/Katoshy/teamcast)*
 ",
     "CLAUDE.md": "# placeholder
 
@@ -1020,7 +880,7 @@ This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
 
 - Sandbox is **enabled**
 - Blocked operations: Bash(rm -rf *), Bash(git push --force *), Write(.env*), Edit(.env*)
-- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(git log), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
+- Allowed shell commands: Bash(git status), Bash(git diff *), Bash(git add *), Bash(git commit *), Bash(npm run *), Bash(npm test *), Bash(npx *), Bash(npm install), Bash(node *)
 
 ---
 

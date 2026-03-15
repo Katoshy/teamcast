@@ -1,7 +1,6 @@
-import type { SkillToolMap } from '../../core/skill-resolver.js';
-import type { AgentSkill } from '../../core/skills.js';
+import type { CapabilityToolMap, CapabilityId } from '../../registry/types.js';
 
-export const CODEX_SKILL_MAP: SkillToolMap = {
+export const CODEX_SKILL_MAP: CapabilityToolMap = {
   read_files: ['read_file', 'search_codebase'],
   write_files: ['write_file'],
   execute: ['execute_command'],
@@ -12,14 +11,14 @@ export const CODEX_SKILL_MAP: SkillToolMap = {
   notebook: [],
 };
 
-// Simple reverse map: if an agent has all tools required by a skill, map to that skill.
-export function reverseMapToolsToSkills(tools: string[]): { skills: AgentSkill[]; remainingTools: string[] } {
-  const skills: AgentSkill[] = [];
+// Simple reverse map: if an agent has all tools required by a capability, map to that capability.
+export function reverseMapToolsToSkills(tools: string[]): { skills: CapabilityId[]; remainingTools: string[] } {
+  const skills: CapabilityId[] = [];
   const toolSet = new Set(tools);
   const usedTools = new Set<string>();
 
   for (const [skillStr, skillTools] of Object.entries(CODEX_SKILL_MAP)) {
-    const skill = skillStr as AgentSkill;
+    const skill = skillStr as CapabilityId;
     if (skillTools.length === 0) continue;
 
     const hasAll = skillTools.every((t) => toolSet.has(t));

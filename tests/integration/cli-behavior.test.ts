@@ -57,6 +57,8 @@ describe('CLI behavior', () => {
       expect(existsSync(join(cwd, 'CLAUDE.md'))).toBe(true);
       expect(existsSync(join(cwd, '.claude/agents/orchestrator.md'))).toBe(true);
       expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('preset: feature-team');
+      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('environments:');
+      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('- node');
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
@@ -93,6 +95,8 @@ describe('CLI behavior', () => {
       expect(existsSync(join(cwd, '.codex/agents/orchestrator.toml'))).toBe(true);
       expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('claude:');
       expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('codex:');
+      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('model: gpt-5.3-codex');
+      expect(readFileSync(join(cwd, 'teamcast.yaml'), 'utf-8')).toContain('reasoning_effort: high');
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

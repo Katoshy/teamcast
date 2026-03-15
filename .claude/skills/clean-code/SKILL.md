@@ -1,15 +1,17 @@
+---
+name: Clean Code
+description: Follow clean code principles: small functions, meaningful names, no duplication.
+---
+
 # Clean Code
 
 ## When to use this skill
 
-Use this skill when <!-- describe the trigger condition -->.
+Follow clean code principles: small functions, meaningful names, no duplication.
 
-## Steps
+## Instructions
 
-1. <!-- First step -->
-2. <!-- Second step -->
-3. <!-- Third step -->
-
-## Output
-
-<!-- Describe the expected output or artifact produced by this skill -->
+Keep functions small and focused on a single responsibility.
+Use descriptive, intention-revealing names for variables, functions, and types.
+Eliminate code duplication — extract shared logic into reusable helpers.
+Prefer composition over inheritance. Favor pure functions where possible.

@@ -3,11 +3,9 @@ import { existsSync, rmSync } from 'fs';
 import { join } from 'path';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { writeManifest } from '../manifest/writer.js';
-import { expandSkills } from '../core/skill-resolver.js';
+import { expandCapabilities } from '../core/capability-resolver.js';
 import { generate } from '../generator/index.js';
-import {
-  listModelDefinitions,
-} from '../plugins/catalog.js';
+import { defaultRegistry } from '../registry/index.js';
 import {
   printSuccess,
   printError,
@@ -33,7 +31,7 @@ import {
   promptList,
   promptCheckbox,
 } from '../utils/prompts.js';
-import type { AgentSkill } from '../core/skills.js';
+import type { CapabilityId } from '../registry/types.js';
 import { formatSkillLabel, getSupportedSkills } from '../utils/skill-prompt-options.js';
 import { abortCli } from './errors.js';
 import {
@@ -83,7 +81,7 @@ function parseReasoningEffort(value: string | undefined): ReasoningEffort | null
 }
 
 async function promptTargetModel(targetContext: TargetContext, currentModel?: string): Promise<string | null | undefined> {
-  const targetModels = listModelDefinitions(targetContext.name);
+  const targetModels = defaultRegistry.listModels(targetContext.name);
 
   if (targetModels.length > 0) {
     const choices = targetModels.map((m) => ({
@@ -556,7 +554,7 @@ async function promptAgentConfig(name: string, targetContext: TargetContext): Pr
   });
 
   const allow = selectedSkills.length > 0
-    ? expandSkills(selectedSkills as AgentSkill[], targetContext.skillMap)
+    ? expandCapabilities(selectedSkills as CapabilityId[], targetContext.skillMap)
     : [];
   const deny = await promptRestrictedTools(targetContext, allow, undefined);
 

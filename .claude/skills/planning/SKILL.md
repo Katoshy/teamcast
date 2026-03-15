@@ -1,15 +1,17 @@
+---
+name: Planning
+description: Analyze the codebase and produce a step-by-step implementation plan before coding.
+---
+
 # Planning
 
 ## When to use this skill
 
-Use this skill when <!-- describe the trigger condition -->.
+Analyze the codebase and produce a step-by-step implementation plan before coding.
 
-## Steps
+## Instructions
 
-1. <!-- First step -->
-2. <!-- Second step -->
-3. <!-- Third step -->
-
-## Output
-
-<!-- Describe the expected output or artifact produced by this skill -->
+Read relevant source files to understand the current architecture.
+Identify affected modules, types, and test files.
+Produce a numbered step-by-step plan with clear deliverables per step.
+Flag risks, open questions, and dependencies between steps.

@@ -11,7 +11,6 @@ import {
   teamHasBlockingIssues,
   printManifestValidation,
 } from '../application/validate-team.js';
-import { detectPluginNames } from '../plugins/catalog.js';
 import {
   buildManifestFromPreset,
   type InitTargetSelection,
@@ -26,6 +25,7 @@ import {
   printNextSteps,
 } from '../utils/chalk-helpers.js';
 import { runWizard } from '../wizard/index.js';
+import { resolveDetectedEnvironments } from '../wizard/steps/environment-selection.js';
 
 function parseInitTargetSelection(value: string | undefined): InitTargetSelection {
   if (!value) {
@@ -90,11 +90,7 @@ async function initWithPreset(
 
   const projectName = detectedName ?? 'my-project';
   const manifest = buildManifestFromPreset(presetName, projectName, targetSelection);
-  
-  const detectedPlugins = detectPluginNames(cwd);
-  if (detectedPlugins.length > 0) {
-    manifest.plugins = detectedPlugins;
-  }
+  manifest.project.environments = resolveDetectedEnvironments(cwd, manifest.project.environments);
   const validation = evaluateTeam(manifest, { cwd });
 
   if (teamHasBlockingIssues(validation)) {

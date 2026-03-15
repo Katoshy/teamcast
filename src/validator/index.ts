@@ -4,17 +4,37 @@ import { checkHandoffGraph } from './checks/handoff-graph.js';
 import { checkToolConflicts } from './checks/tool-conflicts.js';
 import { checkRoleWarnings } from './checks/role-warnings.js';
 import { checkSecurityBaseline } from './checks/security-baseline.js';
-import { checkInstructionBlocks } from './checks/instruction-blocks.js';
+import { checkInstructions } from './checks/instructions.js';
+import { checkRuntimeModelWarnings } from './checks/runtime-models.js';
 import { evaluatePolicyAssertions } from '../core/policy-evaluator.js';
+import { checkRegistryReferences } from './checks/registry.js';
+import { checkEnvironments } from './checks/environment.js';
+import { checkTraitCapabilities } from './checks/trait-capability.js';
+import { checkCapabilityTools } from './checks/capability-tools.js';
+import { checkPolicyCoherence } from './checks/policy-coherence.js';
+import { checkCapabilityPolicyCross } from './checks/capability-policy.js';
+import { checkSkillRequirements } from './checks/skill-requirements.js';
+import { checkMcpServers } from './checks/mcp.js';
+import { checkTeamGraphEnhanced } from './checks/team-graph-enhanced.js';
 import type { TargetContext } from '../renderers/target-context.js';
-import type { SkillToolMap } from '../core/skill-resolver.js';
+import type { CapabilityToolMap } from '../registry/types.js';
 
-const CHECKERS = (skillMap: SkillToolMap): Checker[] => [
+const CHECKERS = (skillMap: CapabilityToolMap, targetName: string): Checker[] => [
+  checkRegistryReferences,
+  checkEnvironments,
+  checkTraitCapabilities,                               // Phase 2
+  (team) => checkCapabilityTools(team, skillMap),       // Phase 3
   (team) => checkHandoffGraph(team, skillMap),
+  checkTeamGraphEnhanced,                               // Phase 8 new
   (team) => checkToolConflicts(team, skillMap),
   (team) => checkRoleWarnings(team, skillMap),
+  (team) => checkRuntimeModelWarnings(team, targetName),
   checkSecurityBaseline,
-  (team) => checkInstructionBlocks(team, skillMap),
+  checkPolicyCoherence,                                 // Phase 4
+  (team) => checkCapabilityPolicyCross(team, skillMap), // Phase 5
+  (team) => checkSkillRequirements(team, skillMap, targetName), // Phase 6
+  (team) => checkMcpServers(team, targetName),                 // Phase 10
+  (team) => checkInstructions(team, skillMap),            // Phase 7
   (team) => evaluatePolicyAssertions(team, skillMap),
 ];
 
@@ -25,7 +45,7 @@ export function runValidation(
 ): ValidationResult[] {
   const results: ValidationResult[] = [];
 
-  const baseCheckers = CHECKERS(targetContext.skillMap);
+  const baseCheckers = CHECKERS(targetContext.skillMap, targetContext.name);
   const checkers = extraCheckers ? [...baseCheckers, ...extraCheckers] : baseCheckers;
 
   for (const checker of checkers) {

@@ -1,6 +1,6 @@
 import type { TeamPolicies } from '../core/types.js';
-import type { PolicyFragmentName } from '../components/policy-fragments.js';
-import { composePoliciesFromFragments } from '../components/policy-fragments.js';
+import type { PolicyFragmentId } from '../registry/types.js';
+import { composePoliciesFromFragments } from '../registry/policy-fragments.js';
 
 export type PolicyBundleName =
   | 'custom-team'
@@ -10,7 +10,7 @@ export type PolicyBundleName =
   | 'research-and-build'
   | 'secure-dev';
 
-const POLICY_BUNDLES: Record<PolicyBundleName, PolicyFragmentName[]> = {
+const POLICY_BUNDLES: Record<PolicyBundleName, PolicyFragmentId[]> = {
   'custom-team': [
     'allow-git-read',
     'ask-git-push',

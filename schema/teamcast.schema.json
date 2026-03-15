@@ -26,13 +26,15 @@
         },
         "description": {
           "type": "string"
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["node", "python"]
+          },
+          "description": "Runtime environments to activate (e.g., node, python)"
         }
-      }
-    },
-    "plugins": {
-      "type": "array",
-      "items": {
-        "type": "string"
       }
     },
     "claude": {
@@ -89,9 +91,12 @@
         "command-execution",
         "web-research",
         "delegation",
+        "interaction",
+        "notebook-editing",
         "no-file-edits",
         "no-commands",
-        "no-web"
+        "no-web",
+        "full-access"
       ]
     },
     "InstructionFragmentName": {
@@ -146,12 +151,8 @@
     "PolicyFragmentName": {
       "type": "string",
       "enum": [
-        "allow-npm-run",
-        "allow-npm-test",
         "allow-git-read",
         "allow-git-write",
-        "allow-npx",
-        "allow-npm-audit",
         "ask-git-push",
         "deny-destructive-shell",
         "deny-network-downloads",
@@ -262,10 +263,28 @@
           "type": "array",
           "items": { "$ref": "#/definitions/InstructionBlock" }
         },
+        "skill_blocks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SkillBlock" }
+        },
         "background": {
           "type": "boolean"
         },
         "forge": { "$ref": "#/definitions/ForgeAgentMetadata" }
+      }
+    },
+    "SkillBlock": {
+      "type": "object",
+      "required": ["name", "description", "instructions"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "description": { "type": "string" },
+        "instructions": { "type": "string" },
+        "allowed_tools": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
       }
     },
     "ForgeAgentMetadata": {

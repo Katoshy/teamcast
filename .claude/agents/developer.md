@@ -31,4 +31,19 @@ When done: run tests, summarize changes.
 
 Always start with tests. Follow the existing code style. Do not access the internet.
 
+This is a Node.js project.
+Use ESM module syntax (import/export). All relative imports must use .js extensions.
+Prefer named exports over default exports.
+Use TypeScript strict mode when tsconfig.json is present.
+
+Install dependencies with `npm install`.
+Use `npm run <script>` to execute package.json scripts.
+Prefer async/await over raw Promises or callbacks.
+Handle errors at system boundaries. Use typed error classes where the project defines them.
+
+Run tests with `npm test`.
+Run a specific test file with `npx vitest run <path>` (vitest) or `npx jest <path>` (jest).
+Always run tests after making changes to verify nothing broke.
+Follow existing test patterns: check the tests/ directory for conventions before writing new tests.
+
 When done, summarize what you changed and why.

@@ -1,29 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { AGENT_SKILLS, isAgentSkill } from '../../../src/core/skills.js';
+import { CAPABILITY_IDS, isCapability } from '../../../src/registry/capabilities.js';
 import { CLAUDE_SKILL_MAP, expandSkillsToTools, reverseMapToolsToSkills } from '../../../src/renderers/claude/skill-map.js';
 
-describe('AGENT_SKILLS', () => {
+describe('CAPABILITY_IDS', () => {
   it('contains all expected skill names', () => {
-    expect(AGENT_SKILLS).toContain('read_files');
-    expect(AGENT_SKILLS).toContain('write_files');
-    expect(AGENT_SKILLS).toContain('execute');
-    expect(AGENT_SKILLS).toContain('search');
-    expect(AGENT_SKILLS).toContain('web');
-    expect(AGENT_SKILLS).toContain('delegate');
-    expect(AGENT_SKILLS).toContain('interact');
-    expect(AGENT_SKILLS).toContain('notebook');
+    expect(CAPABILITY_IDS).toContain('read_files');
+    expect(CAPABILITY_IDS).toContain('write_files');
+    expect(CAPABILITY_IDS).toContain('execute');
+    expect(CAPABILITY_IDS).toContain('search');
+    expect(CAPABILITY_IDS).toContain('web');
+    expect(CAPABILITY_IDS).toContain('delegate');
+    expect(CAPABILITY_IDS).toContain('interact');
+    expect(CAPABILITY_IDS).toContain('notebook');
   });
 });
 
 describe('CLAUDE_SKILL_MAP', () => {
-  it('has an entry for every AgentSkill in AGENT_SKILLS', () => {
-    for (const skill of AGENT_SKILLS) {
+  it('has an entry for every CapabilityId in CAPABILITY_IDS', () => {
+    for (const skill of CAPABILITY_IDS) {
       expect(CLAUDE_SKILL_MAP[skill]).toBeDefined();
     }
   });
 
-  it('each AgentSkill maps to a non-empty CanonicalTool array', () => {
-    for (const skill of AGENT_SKILLS) {
+  it('each CapabilityId maps to a non-empty CanonicalTool array', () => {
+    for (const skill of CAPABILITY_IDS) {
       expect(CLAUDE_SKILL_MAP[skill].length).toBeGreaterThan(0);
     }
   });
@@ -100,7 +100,7 @@ describe('reverseMapToolsToSkills', () => {
     expect(reverseMapToolsToSkills([])).toEqual({ skills: [], remainingTools: [] });
   });
 
-  it('maps a full skill set to its AgentSkill', () => {
+  it('maps a full skill set to its CapabilityId', () => {
     const result = reverseMapToolsToSkills(['Read', 'Grep', 'Glob']);
     expect(result).toEqual({ skills: ['read_files'], remainingTools: [] });
   });
@@ -158,7 +158,7 @@ describe('reverseMapToolsToSkills', () => {
   });
 
   it('round-trips through expandSkillsToTools', () => {
-    const skills: Array<import('../../../src/core/skills.js').AgentSkill> = ['read_files', 'write_files', 'execute', 'delegate'];
+    const skills: Array<import('../../../src/registry/types.js').CapabilityId> = ['read_files', 'write_files', 'execute', 'delegate'];
     const tools = expandSkillsToTools(skills);
     const { skills: recovered, remainingTools } = reverseMapToolsToSkills(tools);
     expect(remainingTools).toEqual([]);
@@ -167,28 +167,28 @@ describe('reverseMapToolsToSkills', () => {
   });
 });
 
-describe('isAgentSkill', () => {
-  it('returns true for a valid AgentSkill', () => {
-    expect(isAgentSkill('read_files')).toBe(true);
-    expect(isAgentSkill('write_files')).toBe(true);
-    expect(isAgentSkill('execute')).toBe(true);
-    expect(isAgentSkill('search')).toBe(true);
-    expect(isAgentSkill('web')).toBe(true);
-    expect(isAgentSkill('delegate')).toBe(true);
-    expect(isAgentSkill('interact')).toBe(true);
-    expect(isAgentSkill('notebook')).toBe(true);
+describe('isCapability', () => {
+  it('returns true for a valid CapabilityId', () => {
+    expect(isCapability('read_files')).toBe(true);
+    expect(isCapability('write_files')).toBe(true);
+    expect(isCapability('execute')).toBe(true);
+    expect(isCapability('search')).toBe(true);
+    expect(isCapability('web')).toBe(true);
+    expect(isCapability('delegate')).toBe(true);
+    expect(isCapability('interact')).toBe(true);
+    expect(isCapability('notebook')).toBe(true);
   });
 
-  it('returns false for a CanonicalTool name (not an AgentSkill)', () => {
-    expect(isAgentSkill('Read')).toBe(false);
-    expect(isAgentSkill('Write')).toBe(false);
-    expect(isAgentSkill('Bash')).toBe(false);
-    expect(isAgentSkill('Agent')).toBe(false);
+  it('returns false for a CanonicalTool name (not an CapabilityId)', () => {
+    expect(isCapability('Read')).toBe(false);
+    expect(isCapability('Write')).toBe(false);
+    expect(isCapability('Bash')).toBe(false);
+    expect(isCapability('Agent')).toBe(false);
   });
 
   it('returns false for unknown strings', () => {
-    expect(isAgentSkill('unknown')).toBe(false);
-    expect(isAgentSkill('')).toBe(false);
-    expect(isAgentSkill('READ_FILES')).toBe(false);
+    expect(isCapability('unknown')).toBe(false);
+    expect(isCapability('')).toBe(false);
+    expect(isCapability('READ_FILES')).toBe(false);
   });
 });

@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import type { CoreTeam, ReasoningEffort } from '../../core/types.js';
-import type { AgentSkill } from '../../core/skills.js';
+import type { CapabilityId } from '../../registry/types.js';
 import type { TargetContext } from '../../renderers/target-context.js';
-import { expandSkills } from '../../core/skill-resolver.js';
-import { listModelDefinitions } from '../../plugins/catalog.js';
+import { expandCapabilities } from '../../core/capability-resolver.js';
+import { defaultRegistry } from '../../registry/index.js';
 import { promptConfirm, promptList, promptCheckbox, promptInput } from '../../utils/prompts.js';
 import { formatSkillLabel, getSupportedSkills } from '../../utils/skill-prompt-options.js';
 
@@ -58,7 +58,7 @@ async function promptRestrictedTools(
 }
 
 async function promptTargetModel(targetContext: TargetContext, currentModel?: string): Promise<string | undefined> {
-  const targetModels = listModelDefinitions(targetContext.name);
+  const targetModels = defaultRegistry.listModels(targetContext.name);
 
   if (targetModels.length > 0) {
     const choices = targetModels.map((m) => ({
@@ -138,19 +138,19 @@ export async function stepAgentCustomization(
     // Reverse-map the agent's current tools to pre-select matching skills.
     const { skills: currentSkills } = targetContext.reverseMapTools
       ? targetContext.reverseMapTools(agent.runtime.tools ?? [])
-      : { skills: [] as AgentSkill[] };
+      : { skills: [] as CapabilityId[] };
 
     const selectedSkills = await promptCheckbox<string>({
       message: `  Skills for ${name}:`,
       choices: supportedSkills.map((skill) => ({
         name: formatSkillLabel(skill),
         value: skill,
-        checked: currentSkills.includes(skill as AgentSkill),
+        checked: currentSkills.includes(skill as CapabilityId),
       })),
     });
 
     const expandedTools = selectedSkills.length > 0
-      ? expandSkills(selectedSkills as AgentSkill[], targetContext.skillMap)
+      ? expandCapabilities(selectedSkills as CapabilityId[], targetContext.skillMap)
       : undefined;
     const disallowedTools = await promptRestrictedTools(
       targetContext,

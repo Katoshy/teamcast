@@ -1,11 +1,11 @@
 import type { CoreTeam, CoreAgent } from './types.js';
 import type { ValidationResult } from '../validator/types.js';
 import type { PolicyAssertion } from './assertions.js';
-import type { AgentSkill } from './skills.js';
+import type { CapabilityId, CapabilityToolMap } from '../registry/types.js';
 import type { InstructionBlockKind } from './instructions.js';
-import { agentHasSkill, expandSkills, type SkillToolMap } from './skill-resolver.js';
+import { agentHasCapability, expandCapabilities } from './capability-resolver.js';
 
-export function evaluatePolicyAssertions(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
+export function evaluatePolicyAssertions(team: CoreTeam, skillMap: CapabilityToolMap): ValidationResult[] {
   const assertions = team.policies?.assertions ?? [];
   const results: ValidationResult[] = [];
 
@@ -16,7 +16,7 @@ export function evaluatePolicyAssertions(team: CoreTeam, skillMap: SkillToolMap)
   return results;
 }
 
-function evaluateOne(assertion: PolicyAssertion, team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
+function evaluateOne(assertion: PolicyAssertion, team: CoreTeam, skillMap: CapabilityToolMap): ValidationResult[] {
   switch (assertion.rule) {
     case 'require_sandbox_with_execute':
       return checkRequireSandboxWithExecute(team, skillMap);
@@ -37,10 +37,10 @@ function evaluateOne(assertion: PolicyAssertion, team: CoreTeam, skillMap: Skill
   }
 }
 
-function checkRequireSandboxWithExecute(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
+function checkRequireSandboxWithExecute(team: CoreTeam, skillMap: CapabilityToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
   for (const agent of Object.values(team.agents)) {
-    if (agentHasSkill(agent.runtime.tools ?? [], 'execute', skillMap)) {
+    if (agentHasCapability(agent.runtime.tools ?? [], 'execute', skillMap)) {
       if (team.policies?.sandbox?.enabled !== true) {
         results.push({
           severity: 'error',
@@ -54,9 +54,9 @@ function checkRequireSandboxWithExecute(team: CoreTeam, skillMap: SkillToolMap):
   return results;
 }
 
-function checkForbidSkillCombination(skills: AgentSkill[], team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
+function checkForbidSkillCombination(skills: CapabilityId[], team: CoreTeam, skillMap: CapabilityToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
-  const expandedPerSkill = skills.map((skill) => expandSkills([skill], skillMap));
+  const expandedPerSkill = skills.map((skill) => expandCapabilities([skill], skillMap));
 
   for (const agent of Object.values(team.agents)) {
     const agentTools = agent.runtime.tools ?? [];
@@ -75,9 +75,9 @@ function checkForbidSkillCombination(skills: AgentSkill[], team: CoreTeam, skill
   return results;
 }
 
-function checkRequireSkill(skill: AgentSkill, team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
+function checkRequireSkill(skill: CapabilityId, team: CoreTeam, skillMap: CapabilityToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
-  const requiredTools = expandSkills([skill], skillMap);
+  const requiredTools = expandCapabilities([skill], skillMap);
 
   for (const agent of Object.values(team.agents)) {
     const agentTools = agent.runtime.tools ?? [];
@@ -94,12 +94,12 @@ function checkRequireSkill(skill: AgentSkill, team: CoreTeam, skillMap: SkillToo
   return results;
 }
 
-function checkDenySkillForRole(agentName: string, skill: AgentSkill, team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
+function checkDenySkillForRole(agentName: string, skill: CapabilityId, team: CoreTeam, skillMap: CapabilityToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
   const agent: CoreAgent | undefined = team.agents[agentName];
   if (!agent) return results;
 
-  const deniedTools = expandSkills([skill], skillMap);
+  const deniedTools = expandCapabilities([skill], skillMap);
   const agentTools = agent.runtime.tools ?? [];
   const hasForbidden = deniedTools.some((tool) => agentTools.includes(tool));
   if (hasForbidden) {
@@ -143,10 +143,10 @@ function checkRequireInstructionBlock(kind: InstructionBlockKind, team: CoreTeam
   return results;
 }
 
-function checkRequireDelegationChain(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
+function checkRequireDelegationChain(team: CoreTeam, skillMap: CapabilityToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
   for (const agent of Object.values(team.agents)) {
-    if (agentHasSkill(agent.runtime.tools ?? [], 'delegate', skillMap)) {
+    if (agentHasCapability(agent.runtime.tools ?? [], 'delegate', skillMap)) {
       const hasHandoffs = (agent.metadata?.handoffs?.length ?? 0) > 0;
       if (!hasHandoffs) {
         results.push({
@@ -161,12 +161,12 @@ function checkRequireDelegationChain(team: CoreTeam, skillMap: SkillToolMap): Va
   return results;
 }
 
-function checkNoUnrestrictedExecute(team: CoreTeam, skillMap: SkillToolMap): ValidationResult[] {
+function checkNoUnrestrictedExecute(team: CoreTeam, skillMap: CapabilityToolMap): ValidationResult[] {
   const results: ValidationResult[] = [];
   const sandboxEnabled = team.policies?.sandbox?.enabled === true;
 
   for (const agent of Object.values(team.agents)) {
-    if (agentHasSkill(agent.runtime.tools ?? [], 'execute', skillMap)) {
+    if (agentHasCapability(agent.runtime.tools ?? [], 'execute', skillMap)) {
       const hasDisallowedTools = (agent.runtime.disallowedTools?.length ?? 0) > 0;
       if (!sandboxEnabled && !hasDisallowedTools) {
         results.push({

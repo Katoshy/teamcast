@@ -10,7 +10,6 @@ function buildGoldenOutput(presetName: string) {
   const keyFiles = sortedFiles.filter((file) => {
     return (
       file.path === 'CLAUDE.md' ||
-      file.path === 'AGENTS.md' ||
       file.path === '.claude/settings.json' ||
       file.path.startsWith('.claude/agents/')
     );

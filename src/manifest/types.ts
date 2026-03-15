@@ -5,12 +5,7 @@ import type {
   McpServerConfig,
   HookEntry,
 } from '../core/types.js';
-import type { AgentSkill } from '../core/skills.js';
-import type {
-  CapabilityTraitName,
-  InstructionFragmentName,
-} from '../components/agent-fragments.js';
-import type { PolicyFragmentName } from '../components/policy-fragments.js';
+import type { CapabilityId, CapabilityTraitId, InstructionFragmentId, PolicyFragmentId } from '../registry/types.js';
 import type { PolicyAssertion } from '../core/assertions.js';
 
 export interface ManifestInstructionBlock {
@@ -19,23 +14,31 @@ export interface ManifestInstructionBlock {
   content: string;
 }
 
+export interface ManifestSkillBlock {
+  name: string;
+  description: string;
+  instructions: string;
+  allowed_tools?: string[];
+}
+
 export interface BaseAgentConfig {
   description: string;
   /** Target-native model identifier (e.g. Claude alias or Codex model name). */
   model?: string;
   /** Target-native reasoning level for renderers that support it. */
   reasoning_effort?: ReasoningEffort;
-  capability_traits?: CapabilityTraitName[];
-  /** Accepts AgentSkill values (e.g. 'read_files') or specific tool names for the target renderer. */
-  tools?: Array<AgentSkill | string>;
-  disallowed_tools?: Array<AgentSkill | string>;
+  capability_traits?: CapabilityTraitId[];
+  /** Accepts CapabilityId values (e.g. 'read_files') or specific tool names for the target renderer. */
+  tools?: Array<CapabilityId | string>;
+  disallowed_tools?: Array<CapabilityId | string>;
   /** Free-form skill documentation references (e.g. 'test-first', 'clean-code'). */
   skills?: string[];
   max_turns?: number;
   mcp_servers?: McpServerConfig[];
   permission_mode?: PermissionMode;
-  instruction_fragments?: InstructionFragmentName[];
+  instruction_fragments?: InstructionFragmentId[];
   instruction_blocks?: ManifestInstructionBlock[];
+  skill_blocks?: ManifestSkillBlock[];
   background?: boolean;
 }
 
@@ -88,7 +91,7 @@ export interface NetworkConfig {
 }
 
 export interface PoliciesConfig {
-  fragments?: PolicyFragmentName[];
+  fragments?: PolicyFragmentId[];
   permissions?: PermissionsConfig;
   sandbox?: SandboxConfig;
   hooks?: HooksConfig;
@@ -105,6 +108,7 @@ export interface ProjectConfig {
   name: string;
   preset?: string;
   description?: string;
+  environments?: string[];
 }
 
 export interface PresetMeta {
@@ -116,9 +120,8 @@ export interface PresetMeta {
 export interface TeamCastManifest {
   version: '2';
   project: ProjectConfig;
-  plugins?: string[];
   preset_meta?: PresetMeta;
-  
+
   // Platform Targets
   claude?: TargetConfig;
   codex?: TargetConfig;
