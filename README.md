@@ -432,6 +432,9 @@ It targets:
 - `.claude/settings.json`
 - `.claude/settings.local.json`
 - `CLAUDE.md`
+- `.codex/agents`
+- `.codex/config.toml`
+- `AGENTS.md`
 
 Flow:
 
@@ -642,6 +645,7 @@ claude:
 | `claude.max_turns`        | number                                                           | Maximum agentic turns                                                                          |
 | `claude.mcp_servers`      | object[]                                                         | MCP server definitions                                                                         |
 | `claude.permission_mode`  | `default \| acceptEdits \| bypassPermissions \| plan \| dontAsk` | Claude Code permission mode                                                                    |
+| `capability_traits`       | string[]                                                         | High-level capability profiles that expand to `tools` + `disallowed_tools`                     |
 | `instruction_blocks`      | object[]                                                         | Structured instruction blocks rendered into Claude markdown and Codex `developer_instructions` |
 | `instruction_fragments`   | string[]                                                         | Named instruction fragments composed with `instruction_blocks`                                 |
 | `forge.handoffs`          | string[]                                                         | Other agents this agent can delegate to. Requires `Agent` in `claude.tools`                    |
@@ -674,6 +678,39 @@ developer:
 ```
 
 Raw tool names and skills can be mixed in the same `tools` array.
+
+### Capability Traits
+
+Capability traits are high-level profiles that compose `tools` and `disallowed_tools` from named capability sets. They are the recommended way to define agent permissions in presets and custom manifests — more readable than raw tool lists and safer than manual assembly.
+
+| Trait                | Grants                          | Denies          |
+| -------------------- | ------------------------------- | --------------- |
+| `base-read`          | `read_files`, `search`          | —               |
+| `file-authoring`     | `write_files`                   | —               |
+| `command-execution`  | `execute`                       | —               |
+| `web-research`       | `web`                           | —               |
+| `delegation`         | `delegate`                      | —               |
+| `interaction`        | `interact`                      | —               |
+| `notebook-editing`   | `notebook`                      | —               |
+| `no-file-edits`      | —                               | `write_files`   |
+| `no-commands`        | —                               | `execute`       |
+| `no-web`             | —                               | `web`           |
+| `full-access`        | all capabilities                | —               |
+
+Grant traits expand to the corresponding abstract skills (see table above). Deny traits add the expanded tools to `disallowed_tools`.
+
+Traits are combined in order. If you need a read-only planner that can browse the web but cannot edit files or run commands:
+
+```yaml
+planner:
+  capability_traits:
+    - base-read
+    - web-research
+    - no-file-edits
+    - no-commands
+```
+
+Traits merge with explicit `tools` and `disallowed_tools` — you can use both in the same agent definition. Explicit tool lists take precedence for additions; deny traits always add to the disallow list.
 
 ### Policy Fields
 
