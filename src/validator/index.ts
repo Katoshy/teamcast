@@ -4,7 +4,7 @@ import { checkHandoffGraph } from './checks/handoff-graph.js';
 import { checkToolConflicts } from './checks/tool-conflicts.js';
 import { checkRoleWarnings } from './checks/role-warnings.js';
 import { checkSecurityBaseline } from './checks/security-baseline.js';
-import { checkInstructionBlocks } from './checks/instruction-blocks.js';
+import { checkInstructions } from './checks/instructions.js';
 import { checkRuntimeModelWarnings } from './checks/runtime-models.js';
 import { evaluatePolicyAssertions } from '../core/policy-evaluator.js';
 import { checkRegistryReferences } from './checks/registry.js';
@@ -34,7 +34,7 @@ const CHECKERS = (skillMap: CapabilityToolMap, targetName: string): Checker[] =>
   (team) => checkCapabilityPolicyCross(team, skillMap), // Phase 5
   (team) => checkSkillRequirements(team, skillMap, targetName), // Phase 6
   (team) => checkMcpServers(team, targetName),                 // Phase 10
-  (team) => checkInstructionBlocks(team, skillMap),
+  (team) => checkInstructions(team, skillMap),            // Phase 7
   (team) => evaluatePolicyAssertions(team, skillMap),
 ];
 

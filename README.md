@@ -40,10 +40,10 @@ After `generate`, your project will have files for the selected target(s):
   - `.claude/settings.json` - permissions and sandbox config
   - `.claude/settings.local.json` - local Claude settings when enabled
   - `CLAUDE.md` - team documentation for Claude Code
-  - `AGENTS.md` - shared agent documentation generated alongside the Claude docs target
 - Codex target:
   - `.codex/config.toml` - workspace-level Codex config
   - `.codex/agents/<name>.toml` - one TOML config per agent
+  - `AGENTS.md` - team-level instructions for Codex agents
 
 Use `teamcast init --target claude|codex|both` to choose which outputs are generated up front.
 
@@ -54,9 +54,9 @@ TeamCast now uses a canonical manifest shape with target-specific blocks:
 - `claude.agents.<name>` - native Claude Code runtime fields and doc outputs
 - `codex.agents.<name>` - native Codex runtime fields and TOML outputs
 - `<target>.agents.<name>.forge` - TeamCast-only metadata such as delegation graph
-- `plugins` - active project plugins such as `node-env`, `python-env`, workflow packs, and policy profiles
+- `project.environments` - active project environments such as `node`, `python` — auto-detected or explicit
 
-Internal `core-*` plugins power TeamCast catalogs such as models, tools, presets, and skills. They are not serialized into `teamcast.yaml`.
+TeamCast includes a built-in registry of capabilities, traits, instruction fragments, policy fragments, models, and skills. These are not serialized into `teamcast.yaml`.
 
 Legacy flat manifests are still accepted and normalized automatically, but new writes use the canonical shape.
 
@@ -96,12 +96,12 @@ teamcast clean --yes            # skip clean confirmation
 
 ## Presets
 
-| Preset               | Description                                                          |
-| -------------------- | -------------------------------------------------------------------- |
-| `feature-team`       | orchestrator -> planner -> developer -> reviewer                     |
-| `solo-dev`           | single developer agent with broad tool access                        |
-| `research-and-build` | orchestrator -> researcher -> planner -> developer                   |
-| `secure-dev`         | orchestrator -> planner -> developer -> security-auditor -> reviewer |
+| Preset               | Agents | Workflow |
+| -------------------- | ------ | -------- |
+| `feature-team`       | orchestrator, planner, developer, reviewer | orchestrator triages and delegates; planner reads code and produces step-by-step plans; developer implements with tests; reviewer checks quality |
+| `solo-dev`           | developer | single full-stack agent handles end-to-end: plan, implement, test, verify |
+| `research-and-build` | orchestrator, researcher, planner, developer | research-first: orchestrator routes to researcher for external info, planner integrates findings, developer implements |
+| `secure-dev`         | orchestrator, planner, developer, security-auditor, reviewer | mandatory security pipeline: planner includes threat model, developer follows OWASP, security-auditor gates every change, reviewer checks quality |
 
 The built-in preset files live in `templates/presets/` and are valid TeamCast YAML. Use them as a reference when creating custom presets, or copy one as a starting point:
 
@@ -139,9 +139,9 @@ Interactive wizard flow:
    - if yes, each agent gets:
    - `Model for <agent>:`
    - `Reasoning effort [codex]:` for Codex agents
-7. `Select project plugins to activate:`
-   - suggested project plugins are pre-selected when they are detected
-   - internal `core-*` plugins are not shown here
+7. `Select project environments:`
+   - detected environments (e.g. Node.js, Python) are pre-selected
+   - environments inject policies and workflow instructions into capable agents
 8. Preview:
    - shows the files that will be created
    - asks `Generate these files?`
@@ -150,7 +150,7 @@ Important limitations of the wizard:
 
 - It does not let you rename individual agents.
 - It does not ask for custom `instruction_blocks` or `instruction_fragments`.
-- It does not ask for plugin-specific configuration prompts.
+- It does not ask for environment-specific configuration prompts.
 - It does not ask for custom `claude.skills`, `forge.handoffs`, `claude.max_turns`, or exact tool lists.
 - Those values come from built-in presets or role templates.
 - If you want deeper customization, edit `teamcast.yaml` after init and run `teamcast generate`.
@@ -432,7 +432,6 @@ It targets:
 - `.claude/settings.json`
 - `.claude/settings.local.json`
 - `CLAUDE.md`
-- `AGENTS.md`
 
 Flow:
 
@@ -463,7 +462,7 @@ Use `--yes` to skip confirmation.
 
 Everything is defined in `teamcast.yaml` at the root of your project.
 
-For Claude targets, TeamCast renders `.claude/agents/<name>.md`, `CLAUDE.md`, and `AGENTS.md` from `claude.agents.<name>`.
+For Claude targets, TeamCast renders `.claude/agents/<name>.md` and `CLAUDE.md` from `claude.agents.<name>`.
 
 For Codex targets, TeamCast renders `.codex/agents/<name>.toml` plus `.codex/config.toml` from `codex.agents.<name>`.
 
@@ -494,13 +493,36 @@ Codex agent TOML uses these native fields:
 
 `tools`, `disallowed_tools`, `skills`, and `forge.handoffs` are encoded as structured sections inside `developer_instructions`.
 
-Project plugins may inject policies and instruction guidance at validation/generation time, but they do not become the source of truth for agent runtime models.
+### Environment Instructions
 
-This is important for custom agents:
+Project environments inject capability-gated instructions into agent prompts at generation time. Each environment fragment specifies which capabilities an agent must have to receive it:
 
-- role templates and presets come with built-in `instruction_blocks` / `instruction_fragments`
-- `add agent <name>` without `--template` does not ask for `instruction_blocks`
-- a custom agent created from `add agent` therefore starts with a very minimal prompt until you edit `teamcast.yaml`
+| Fragment | Requires | Example content |
+|----------|----------|----------------|
+| `node_code_patterns` | `read_files` | ESM imports, TypeScript strict mode, named exports |
+| `node_development` | `write_files` | `npm install`, async/await, error handling patterns |
+| `node_testing` | `execute` + `write_files` | `npm test`, vitest/jest commands, test conventions |
+
+This means a **reviewer** (read + execute, no write) gets code patterns but NOT testing instructions. A **developer** (read + write + execute) gets everything. An **orchestrator** (read + delegate only) gets only code patterns.
+
+Custom agents work the same way — a `react-dev` with `write_files` + `execute` automatically gets the right fragments without any role-name matching.
+
+### Instruction Layers
+
+Agent prompts are composed from three layers:
+
+| Layer | Source | Scope |
+|-------|--------|-------|
+| **instruction_blocks** | `teamcast.yaml` or preset | Project-specific behavior, workflow rules |
+| **instruction_fragments** | Built-in registry | Reusable role patterns (e.g. `feature-developer-workflow`) |
+| **environment instructions** | Built-in environments | Toolchain best practices, injected by capability |
+
+Presets provide sensible defaults for `instruction_blocks` and `instruction_fragments`. For deeper customization, edit `teamcast.yaml` and run `teamcast generate`.
+
+Note for `add agent`:
+
+- `add agent <name> --template <role>` inherits the role template's blocks and fragments
+- `add agent <name>` without `--template` starts with a minimal prompt until you edit `teamcast.yaml`
 
 ## Configuration
 
@@ -690,10 +712,16 @@ preset_meta:
 
 ## Validation
 
-`teamcast validate` checks:
+`teamcast validate` runs 10 validation phases:
 
-- handoff graph correctness
-- tool allow or deny conflicts
-- role-based warnings
-- security baseline configuration
-- policy assertions (when defined in `policies.assertions`)
+- Registry references — all fragments, traits, skills, and environments resolve
+- Trait and capability composition — no grant/deny conflicts
+- Capability-to-tool mapping — abstract capabilities map to target tools
+- Policy coherence — no allow/deny contradictions
+- Capability-policy cross-check — capabilities align with policies
+- Skill requirements — capabilities, MCP servers, and target compatibility
+- Instruction validation — fragment conflicts, heuristic contradiction detection
+- Team graph — handoff targets exist, no orphans, reachability verified
+- Environment checks — detected and declared environments valid
+- MCP server configuration — required servers present, no duplicates
+- Policy assertions (when defined in `policies.assertions`)

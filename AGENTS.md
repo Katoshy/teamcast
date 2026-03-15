@@ -2,78 +2,25 @@
 
 TeamCast development team. TypeScript/Node.js CLI project.
 
-## Project Overview
+## Team Overview
 
 This project uses a multi-agent architecture managed by TeamCast.
-Agent configuration: `teamcast.yaml` (edit this file, then run `teamcast generate`)
+Agent configuration: `teamcast.yaml` (run `teamcast generate` to regenerate).
 
-## Agent Roster
+## Agents
 
-### orchestrator
+| Agent | Role | Sandbox | Delegates to |
+|-------|------|---------|--------------|
+| **orchestrator** | Use for any feature request, bug fix, or refactoring in the TeamCast project that involves planning + implementation + review. Entry point for the team pipeline. | read-only | planner, developer, reviewer |
+| **planner** | Use when a task requires deep codebase analysis before implementation. Reads src/ files, identifies patterns, and produces a step-by-step plan. Never modifies files. | read-only | — |
+| **developer** | Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access. | workspace-write | — |
+| **reviewer** | Use after implementation is complete. Reviews TypeScript types, ESM imports, test coverage, pure function integrity, and CLI output style. Read-only, provides recommendations only. | workspace-write | — |
 
-**Role:** Use for any feature request, bug fix, or refactoring in the TeamCast project that involves planning + implementation + review. Entry point for the team pipeline.
-**Model:** opus
+## Policies
 
-**Allowed tools:** Read, Grep, Glob, Agent
-**Restricted tools:** Write, Edit, MultiEdit, Bash, WebFetch, WebSearch
-**Can delegate to:** planner, developer, reviewer
-**Skill docs:** triage, routing
-**Capabilities:** read files, delegate tasks
-
-### planner
-
-**Role:** Use when a task requires deep codebase analysis before implementation. Reads src/ files, identifies patterns, and produces a step-by-step plan. Never modifies files.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, WebFetch, WebSearch
-**Restricted tools:** Write, Edit, MultiEdit, Bash
-**Skill docs:** architecture-analysis, planning
-**Capabilities:** read files, access internet
-
-### developer
-
-**Role:** Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, Write, Edit, MultiEdit, Bash
-**Restricted tools:** WebFetch, WebSearch
-**Skill docs:** test-first, clean-code
-**Capabilities:** read files, write files, run commands
-
-### reviewer
-
-**Role:** Use after implementation is complete. Reviews TypeScript types, ESM imports, test coverage, pure function integrity, and CLI output style. Read-only, provides recommendations only.
-**Model:** sonnet
-
-**Allowed tools:** Read, Grep, Glob, Bash
-**Restricted tools:** Write, Edit, MultiEdit, WebFetch, WebSearch
-**Skill docs:** code-review, security-check
-**Capabilities:** read files, run commands
-
-## Access Control
-
-**Permitted operations:**
-- `Bash(git status)`
-- `Bash(git diff *)`
-- `Bash(git add *)`
-- `Bash(git commit *)`
-- `Bash(git log)`
-- `Bash(npm run *)`
-- `Bash(npm test *)`
-- `Bash(npx *)`
-- `Bash(npm install)`
-- `Bash(node *)`
-
-**Prohibited operations:**
-- `Bash(rm -rf *)`
-- `Bash(git push --force *)`
-- `Bash(curl *)`
-- `Bash(wget *)`
-- `Write(.env*)`
-- `Edit(.env*)`
-
-**Requires confirmation:**
-- `Bash(git push *)`
+- Sandbox: **enabled**
+- Denied: `Bash(rm -rf *)`, `Bash(git push --force *)`, `Bash(curl *)`, `Bash(wget *)`, `Write(.env*)`, `Edit(.env*)`
+- Allowed: `Bash(git status)`, `Bash(git diff *)`, `Bash(git add *)`, `Bash(git commit *)`, `Bash(npm run *)`, `Bash(npm test *)`, `Bash(npx *)`, `Bash(npm install)`, `Bash(node *)`
 
 ---
 

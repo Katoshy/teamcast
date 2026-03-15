@@ -1,15 +1,17 @@
+---
+name: Triage
+description: Assess incoming requests: classify priority, estimate scope, identify blockers.
+---
+
 # Triage
 
 ## When to use this skill
 
-Use this skill when <!-- describe the trigger condition -->.
+Assess incoming requests: classify priority, estimate scope, identify blockers.
 
-## Steps
+## Instructions
 
-1. <!-- First step -->
-2. <!-- Second step -->
-3. <!-- Third step -->
-
-## Output
-
-<!-- Describe the expected output or artifact produced by this skill -->
+Read the request carefully and classify it: bug fix, feature, refactor, docs, or chore.
+Estimate scope: small (single file), medium (2-5 files), or large (cross-cutting).
+Identify blockers: missing context, unclear requirements, external dependencies.
+Summarize findings and recommend which agent or workflow should handle the task.

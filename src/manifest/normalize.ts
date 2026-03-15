@@ -191,6 +191,7 @@ function buildAgentRuntime(
     tools: resolvedTools ? [...resolvedTools] : undefined,
     disallowedTools: resolvedDisallowedTools ? [...resolvedDisallowedTools] : undefined,
     skillDocs: cloneArray(agent.skills),
+    instructionFragmentIds: cloneArray(agent.instruction_fragments),
     maxTurns: agent.max_turns,
     mcpServers: agent.mcp_servers?.map((server) => ({ ...server })),
     permissionMode: agent.permission_mode,

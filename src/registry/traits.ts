@@ -1,4 +1,4 @@
-// Capability traits catalog — moved from src/components/agent-fragments.ts.
+// Capability traits catalog — builtin capability trait definitions.
 
 import type { AgentRuntime } from '../core/types.js';
 import type { CapabilityId, CapabilityTraitId, CapabilityToolMap } from './types.js';

@@ -52,6 +52,8 @@ export interface AgentRuntime {
    * Named skillDocs to disambiguate from CapabilityId abstract capabilities.
    */
   skillDocs?: string[];
+  /** Instruction fragment IDs used by this agent, preserved for validation. */
+  instructionFragmentIds?: string[];
   maxTurns?: number;
   mcpServers?: McpServerConfig[];
   permissionMode?: PermissionMode;

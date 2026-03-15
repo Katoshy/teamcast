@@ -3,8 +3,8 @@ project:
   name: teamcast
   preset: feature-team
   description: TeamCast development team. TypeScript/Node.js CLI project.
-plugins:
-  - node-env
+  environments:
+    - node
 preset_meta:
   tags:
     - team

@@ -1,15 +1,17 @@
+---
+name: Test First
+description: Write tests before implementation. Verify each change with a failing test first.
+---
+
 # Test First
 
 ## When to use this skill
 
-Use this skill when <!-- describe the trigger condition -->.
+Write tests before implementation. Verify each change with a failing test first.
 
-## Steps
+## Instructions
 
-1. <!-- First step -->
-2. <!-- Second step -->
-3. <!-- Third step -->
-
-## Output
-
-<!-- Describe the expected output or artifact produced by this skill -->
+Before writing any implementation code, write a failing test that describes the expected behavior.
+Run the test to confirm it fails for the right reason.
+Implement the minimum code to make the test pass.
+Refactor if needed while keeping tests green.

@@ -1,7 +1,7 @@
-// Instruction fragments catalog — moved from src/components/agent-fragments.ts.
+// Instruction fragments catalog — builtin instruction fragment definitions.
 
 import type { InstructionBlock } from '../core/instructions.js';
-import type { InstructionFragmentId } from './types.js';
+import type { CapabilityId, InstructionFragmentId } from './types.js';
 
 function block(kind: InstructionBlock['kind'], content: string, title?: string): InstructionBlock {
   return { kind, content, title };
@@ -214,6 +214,29 @@ const INSTRUCTION_FRAGMENTS: Record<InstructionFragmentId, InstructionBlock> = {
     'You are the reviewer. Code has already passed security audit.',
   ),
 };
+
+export interface FragmentMetadata {
+  requires_capabilities?: CapabilityId[];
+  conflicts_with?: InstructionFragmentId[];
+}
+
+const INSTRUCTION_FRAGMENT_METADATA: Partial<Record<InstructionFragmentId, FragmentMetadata>> = {
+  'development-core': { requires_capabilities: ['read_files', 'write_files'] },
+  'development-workflow': { requires_capabilities: ['read_files', 'write_files'] },
+  'tester-core': { requires_capabilities: ['execute'] },
+  'research-core': { requires_capabilities: ['web'] },
+  'coordination-core': { requires_capabilities: ['delegate'], conflicts_with: ['solo-dev-core'] },
+  'delegate-first': { requires_capabilities: ['delegate'] },
+  'planning-read-only': { conflicts_with: ['development-core', 'feature-developer-core'] },
+  'research-no-file-edits': { conflicts_with: ['development-core', 'feature-developer-core'] },
+  'solo-dev-core': { conflicts_with: ['coordination-core'] },
+  'secure-development': { requires_capabilities: ['write_files', 'execute'] },
+  'feature-developer-workflow': { requires_capabilities: ['write_files', 'execute'] },
+};
+
+export function getFragmentMetadata(id: InstructionFragmentId): FragmentMetadata | undefined {
+  return INSTRUCTION_FRAGMENT_METADATA[id];
+}
 
 export function listInstructionFragments(): InstructionFragmentId[] {
   return Object.keys(INSTRUCTION_FRAGMENTS) as InstructionFragmentId[];

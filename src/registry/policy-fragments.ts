@@ -1,4 +1,4 @@
-// Policy fragments catalog — moved from src/components/policy-fragments.ts.
+// Policy fragments catalog — builtin policy fragment definitions.
 
 import type { TeamPolicies } from '../core/types.js';
 import { composePolicies } from '../core/compose-policies.js';

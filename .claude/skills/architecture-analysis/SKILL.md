@@ -1,15 +1,17 @@
+---
+name: Architecture Analysis
+description: Deep codebase analysis: module boundaries, dependency graph, design patterns.
+---
+
 # Architecture Analysis
 
 ## When to use this skill
 
-Use this skill when <!-- describe the trigger condition -->.
+Deep codebase analysis: module boundaries, dependency graph, design patterns.
 
-## Steps
+## Instructions
 
-1. <!-- First step -->
-2. <!-- Second step -->
-3. <!-- Third step -->
-
-## Output
-
-<!-- Describe the expected output or artifact produced by this skill -->
+Map the module structure and identify public API boundaries.
+Trace key data flows through the system.
+Identify design patterns in use (e.g., registry, strategy, observer).
+Note coupling hotspots, circular dependencies, and layering violations.

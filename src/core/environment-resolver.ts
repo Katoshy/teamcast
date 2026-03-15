@@ -4,7 +4,7 @@ import type { PoliciesConfig, TeamCastManifest, TargetConfig } from '../manifest
 import { TARGET_NAMES, getManifestTargetConfig, setManifestTargetConfig } from '../manifest/targets.js';
 import { getEnvironment, detectEnvironments } from '../registry/environments.js';
 import { isEnvironmentId } from '../registry/types.js';
-import type { EnvironmentId } from '../registry/types.js';
+import type { CapabilityToolMap, EnvironmentId, EnvironmentInstruction } from '../registry/types.js';
 import { agentHasCapability } from './capability-resolver.js';
 import type { TargetContext } from '../renderers/target-context.js';
 
@@ -160,16 +160,35 @@ export function resolveEnvironmentPolicies(manifest: TeamCastManifest, cwd: stri
   return result;
 }
 
+/** Normalizes a raw environment fragment to the structured form. */
+function normalizeFragment(raw: string | EnvironmentInstruction): EnvironmentInstruction {
+  if (typeof raw === 'string') {
+    return { content: raw, requires_capabilities: ['execute'] };
+  }
+  return raw;
+}
+
 /**
- * Collects instruction fragment contents from active environments.
+ * Collects instruction fragment contents from active environments,
+ * filtered by the agent's capabilities.
  */
-function collectEnvironmentInstructions(envIds: EnvironmentId[]): string[] {
-  return [...new Set(
-    envIds
-      .flatMap((envId) => Object.values(getEnvironment(envId).instructionFragments))
-      .map((content) => content.trim())
-      .filter((content) => content.length > 0),
-  )];
+function collectEnvironmentInstructions(
+  envIds: EnvironmentId[],
+  agentTools: string[],
+  skillMap: CapabilityToolMap,
+): string[] {
+  const fragments = envIds.flatMap((envId) =>
+    Object.values(getEnvironment(envId).instructionFragments).map(normalizeFragment),
+  );
+
+  const matched = fragments
+    .filter((frag) =>
+      frag.requires_capabilities.every((cap) => agentHasCapability(agentTools, cap, skillMap)),
+    )
+    .map((frag) => frag.content.trim())
+    .filter((content) => content.length > 0);
+
+  return [...new Set(matched)];
 }
 
 function appendWorkflowInstructions(blocks: InstructionBlock[], fragmentContents: string[]): InstructionBlock[] {
@@ -201,22 +220,22 @@ function appendWorkflowInstructions(blocks: InstructionBlock[], fragmentContents
 }
 
 /**
- * Appends environment instruction fragments to agents with execute capability.
+ * Appends environment instruction fragments to agents based on capability match.
+ * Each fragment is only injected if the agent has all of its required capabilities.
  */
 export function applyEnvironmentInstructions(
   team: CoreTeam,
   targetContext: TargetContext,
   envIds: EnvironmentId[],
 ): CoreTeam {
-  const fragmentContents = collectEnvironmentInstructions(envIds);
-  if (fragmentContents.length === 0) return team;
+  if (envIds.length === 0) return team;
 
   let changed = false;
   const agents = Object.fromEntries(
     Object.entries(team.agents).map(([agentId, agent]) => {
-      if (!agentHasCapability(agent.runtime.tools ?? [], 'execute', targetContext.skillMap)) {
-        return [agentId, agent];
-      }
+      const agentTools = agent.runtime.tools ?? [];
+      const fragmentContents = collectEnvironmentInstructions(envIds, agentTools, targetContext.skillMap);
+      if (fragmentContents.length === 0) return [agentId, agent];
 
       const nextInstructions = appendWorkflowInstructions(agent.instructions, fragmentContents);
       if (nextInstructions === agent.instructions) return [agentId, agent];

@@ -168,6 +168,11 @@ export function isEnvironmentId(value: string): value is EnvironmentId {
   return (ENVIRONMENT_IDS as readonly string[]).includes(value);
 }
 
+export interface EnvironmentInstruction {
+  content: string;
+  requires_capabilities: CapabilityId[];
+}
+
 export interface EnvironmentDef {
   id: EnvironmentId;
   description: string;
@@ -176,7 +181,7 @@ export interface EnvironmentDef {
     sandbox?: { enabled?: boolean };
     allow?: string[];
   };
-  instructionFragments: Record<string, string>;
+  instructionFragments: Record<string, string | EnvironmentInstruction>;
 }
 
 // --- Capability-to-tool mapping ---

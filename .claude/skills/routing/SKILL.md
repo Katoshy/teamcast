@@ -1,15 +1,17 @@
+---
+name: Routing
+description: Route tasks to the appropriate specialist agent based on the request type.
+---
+
 # Routing
 
 ## When to use this skill
 
-Use this skill when <!-- describe the trigger condition -->.
+Route tasks to the appropriate specialist agent based on the request type.
 
-## Steps
+## Instructions
 
-1. <!-- First step -->
-2. <!-- Second step -->
-3. <!-- Third step -->
-
-## Output
-
-<!-- Describe the expected output or artifact produced by this skill -->
+Analyze the task to determine which specialist is best suited.
+Consider agent capabilities, current workload hints, and task requirements.
+Delegate with a clear, self-contained description of what the specialist should do.
+Include relevant file paths, context, and acceptance criteria in the handoff.
