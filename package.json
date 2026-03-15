@@ -14,7 +14,7 @@
     "prepublishOnly": "npm run build"
   },
   "files": [
-    "dist/",
+    "dist/**/*.js",
     "templates/",
     "schema/",
     "README.md",
@@ -49,10 +49,7 @@
     "node": ">=24"
   },
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+    ".": "./dist/index.js"
   },
   "dependencies": {
     "ajv": "^8.17.1",
