@@ -1,10 +1,16 @@
 # TeamCast
 
+[![CI](https://github.com/Katoshy/teamcast/actions/workflows/ci.yml/badge.svg)](https://github.com/Katoshy/teamcast/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/teamcast)](https://www.npmjs.com/package/teamcast)
+[![License](https://img.shields.io/github/license/Katoshy/teamcast)](https://github.com/Katoshy/teamcast/blob/main/LICENSE)
+
 CLI to design, generate, and validate multi-target agent teams for Claude Code and Codex from a single manifest.
 
 Define your agent team in one `teamcast.yaml` file. TeamCast validates the manifest, generates `.claude/` and/or `.codex/` config files, and keeps generated output in sync with the source config.
 
 ## Install
+
+Requires Node.js 24 or newer.
 
 ```bash
 npm install -g teamcast
@@ -15,6 +21,14 @@ Or run without installing:
 ```bash
 npx teamcast <command>
 ```
+
+## Community
+
+- Contribution guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Code of conduct: [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- Security policy: [SECURITY.md](./SECURITY.md)
+- Bug reports and feature requests: use the GitHub issue templates
+- Pull requests: use the repository PR template and run `npm test` plus `npm run build` before opening one
 
 ## Quick Start
 
