@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { existsSync, rmSync, readdirSync, statSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { readManifest, ManifestError } from '../manifest/reader.js';
 import { generate } from '../generator/index.js';
 import {
@@ -56,6 +56,26 @@ function deleteEmptyDirIfPossible(cwd: string, rel: string): void {
   }
 }
 
+function pruneEmptyAncestorDirs(cwd: string, rel: string): void {
+  let current = dirname(rel);
+
+  while (current !== '.' && current !== '') {
+    const abs = join(cwd, current);
+    if (!existsSync(abs)) {
+      current = dirname(current);
+      continue;
+    }
+
+    if (readdirSync(abs).length > 0) {
+      break;
+    }
+
+    rmSync(abs, { recursive: true });
+    printSuccess(`Deleted ${current}/`);
+    current = dirname(current);
+  }
+}
+
 function deleteFiles(cwd: string, paths: string[]): void {
   for (const rel of paths) {
     const abs = join(cwd, rel);
@@ -67,6 +87,7 @@ function deleteFiles(cwd: string, paths: string[]): void {
       rmSync(abs);
     }
     printSuccess(`Deleted ${rel}`);
+    pruneEmptyAncestorDirs(cwd, rel);
   }
 
   deleteEmptyDirIfPossible(cwd, '.claude/agents');

@@ -43,6 +43,7 @@ After `generate`, your project will have files for the selected target(s):
 - Codex target:
   - `.codex/config.toml` - workspace-level Codex config
   - `.codex/agents/<name>.toml` - one TOML config per agent
+  - `.agents/skills/<skill>/SKILL.md` - one stub file per unique skill
   - `AGENTS.md` - team-level instructions for Codex agents
 
 Use `teamcast init --target claude|codex|both` to choose which outputs are generated up front.
@@ -273,7 +274,7 @@ Use `--yes` to skip confirmation.
 
 ### `create skill <name>`
 
-`teamcast create skill <name>` registers a new skill name on one agent, writes `teamcast.yaml`, and generates `.claude/skills/<name>/SKILL.md`.
+`teamcast create skill <name>` registers a new skill name on one agent, writes `teamcast.yaml`, and generates a target-specific stub: `.claude/skills/<name>/SKILL.md` for Claude or `.agents/skills/<name>/SKILL.md` for Codex.
 
 Rules and prompts:
 
@@ -310,7 +311,7 @@ teamcast generate --dry-run
 Behavior:
 
 - `generate` overwrites generated agent/docs/settings files
-- skill stub files under `.claude/skills/` are created only if missing
+- skill stub files under `.claude/skills/` and `.agents/skills/` are created only if missing
 - `--dry-run` shows what would be generated without writing anything
 
 ### `diff`
@@ -429,6 +430,7 @@ It targets:
 
 - `.claude/agents`
 - `.claude/skills`
+- generated Codex skill files under `.agents/skills/`
 - `.claude/settings.json`
 - `.claude/settings.local.json`
 - `CLAUDE.md`
@@ -467,9 +469,9 @@ Everything is defined in `teamcast.yaml` at the root of your project.
 
 For Claude targets, TeamCast renders `.claude/agents/<name>.md` and `CLAUDE.md` from `claude.agents.<name>`.
 
-For Codex targets, TeamCast renders `.codex/agents/<name>.toml` plus `.codex/config.toml` from `codex.agents.<name>`.
+For Codex targets, TeamCast renders `.codex/agents/<name>.toml` plus `.codex/config.toml` from `codex.agents.<name>`, and writes Codex skill docs to `.agents/skills/<skill>/`.
 
-`.codex/config.toml` is the workspace-level agent index. Concrete agent runtime config lives in `.codex/agents/<name>.toml`.
+`.codex/config.toml` is the workspace-level agent index. Concrete agent runtime config lives in `.codex/agents/<name>.toml`. Codex skill discovery uses `.agents/skills/`, not `.codex/`.
 
 Native Claude Code fields are rendered into frontmatter:
 
@@ -642,6 +644,7 @@ claude:
 | `claude.tools`            | string[]                                                         | Native Claude Code tool allow-list                                                             |
 | `claude.disallowed_tools` | string[]                                                         | Native Claude Code tool deny-list                                                              |
 | `claude.skills`           | string[]                                                         | Skill names. Each unique skill generates `.claude/skills/<skill>/SKILL.md`                     |
+| `codex.skills`            | string[]                                                         | Skill names. Each unique skill generates `.agents/skills/<skill>/SKILL.md`                     |
 | `claude.max_turns`        | number                                                           | Maximum agentic turns                                                                          |
 | `claude.mcp_servers`      | object[]                                                         | MCP server definitions                                                                         |
 | `claude.permission_mode`  | `default \| acceptEdits \| bypassPermissions \| plan \| dontAsk` | Claude Code permission mode                                                                    |

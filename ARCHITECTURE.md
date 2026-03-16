@@ -216,17 +216,17 @@ Claude target:
   .claude/skills/{id}/scripts/     <- scripts
 
 Codex target:
-  {id}/SKILL.md                    <- frontmatter (name, description) + instructions
-  {id}/references/                 <- reference_files
-  {id}/scripts/                    <- scripts
-  {id}/agents/openai.yaml          <- UI metadata, invocation policy, MCP tool dependencies
+  .agents/skills/{id}/SKILL.md     <- frontmatter (name, description) + instructions
+  .agents/skills/{id}/references/  <- reference_files
+  .agents/skills/{id}/scripts/     <- scripts
+  .agents/skills/{id}/agents/openai.yaml <- UI metadata, invocation policy, MCP tool dependencies
 ```
 
 **Key differences between targets:**
 
 | Aspect | Claude | Codex |
 |--------|--------|-------|
-| Skill location | `.claude/skills/{id}/` | `{id}/` (project root or scanned dirs) |
+| Skill location | `.claude/skills/{id}/` | `.agents/skills/{id}/` |
 | Frontmatter fields | `name`, `description`, `allowed-tools` | `name`, `description` |
 | Tool dependencies | `allowed-tools` in SKILL.md frontmatter | `agents/openai.yaml` → `dependencies.tools[]` |
 | MCP in skill | Configured globally in settings.json | Declared per-skill in `agents/openai.yaml` |
@@ -735,7 +735,7 @@ src/
 |   +-- codex/
 |       +-- index.ts             # CodexRenderer
 |       +-- skill-map.ts         # CapabilityId -> Codex tool names
-|       +-- skill-renderer.ts    # SkillDefinition -> {id}/SKILL.md + agents/openai.yaml
+|       +-- skill-renderer.ts    # SkillDefinition -> .agents/skills/{id}/SKILL.md + agents/openai.yaml
 |       +-- config-toml.ts       # generates .codex/config.toml (agents, MCP, sandbox)
 |       +-- agents-md.ts         # generates AGENTS.md (instructions)
 |
@@ -751,7 +751,7 @@ src/
 4. Validator expanded — checks from Phases 1-10 as separate checker modules
 5. `resolve-agent.ts` — all traits -> capabilities -> tools logic in one place
 6. `resolve-skills.ts` — new module for skill requirement validation
-7. `skill-renderer.ts` — per-target: Claude renders to `.claude/skills/`, Codex renders to `{id}/` + `agents/openai.yaml`
+7. `skill-renderer.ts` — per-target: Claude renders to `.claude/skills/`, Codex renders to `.agents/skills/{id}/` + `agents/openai.yaml`
 8. `codex/config-toml.ts` — new: generates `.codex/config.toml` with agents, MCP, sandbox
 9. `codex/agents-md.ts` — new: generates `AGENTS.md` with team instructions
 
@@ -880,14 +880,16 @@ project/
 ├── AGENTS.md                          <- team instructions (free-form markdown)
 ├── .codex/
 │   └── config.toml                    <- agents, MCP servers, sandbox, models
-├── test-first/
-│   └── SKILL.md                       <- skill instructions
-└── deploy-check/
-    ├── SKILL.md
-    ├── references/
-    ├── scripts/
-    └── agents/
-        └── openai.yaml                <- UI metadata, invocation policy, tool deps
+└── .agents/
+    └── skills/
+        ├── test-first/
+        │   └── SKILL.md               <- skill instructions
+        └── deploy-check/
+            ├── SKILL.md
+            ├── references/
+            ├── scripts/
+            └── agents/
+                └── openai.yaml        <- UI metadata, invocation policy, tool deps
 ```
 
 ### Mapping table
@@ -899,7 +901,7 @@ project/
 | **Agent instructions** | Per-agent section in CLAUDE.md | `developer_instructions` in config.toml + AGENTS.md |
 | **Capabilities → Tools** | `allowed-tools` list | tool whitelist + `sandbox_mode` |
 | **Policies (allow/deny)** | Security section in CLAUDE.md + settings.json | `sandbox_mode` per agent + AGENTS.md rules |
-| **Skills** | `.claude/skills/{id}/SKILL.md` | `{id}/SKILL.md` + `agents/openai.yaml` |
+| **Skills** | `.claude/skills/{id}/SKILL.md` | `.agents/skills/{id}/SKILL.md` + `agents/openai.yaml` |
 | **MCP servers** | `mcpServers` in settings.json | `[mcp_servers.<name>]` in config.toml |
 | **Delegation / handoffs** | Agent tool + `subagent_type` param | `max_threads` + `max_depth` + agent roles |
 | **Environment rules** | Inline in CLAUDE.md permissions | Inline in AGENTS.md + config.toml |

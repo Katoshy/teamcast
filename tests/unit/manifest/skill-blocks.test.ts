@@ -159,7 +159,7 @@ describe('skill_blocks', () => {
     };
     const team = normalizeManifest(applyDefaults(codexManifest), codexTarget);
     const files = renderCodexSkillMd(team);
-    const skillFile = files.find((f) => f.path === 'my-codex-skill/SKILL.md');
+    const skillFile = files.find((f) => f.path === '.agents/skills/my-codex-skill/SKILL.md');
     expect(skillFile).toBeDefined();
     expect(skillFile!.content).toContain('Codex custom skill');
   });
