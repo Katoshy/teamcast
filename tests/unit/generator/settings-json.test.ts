@@ -24,7 +24,7 @@ describe('renderSettingsJson', () => {
     const manifest: TeamCastManifest = {
       ...baseManifest,
       claude: {
-        ...baseManifest.claude,
+        ...baseManifest.claude!,
         policies: {
           permissions: {
             rules: {
@@ -50,7 +50,7 @@ describe('renderSettingsJson', () => {
     const manifest: TeamCastManifest = {
       ...baseManifest,
       claude: {
-        ...baseManifest.claude,
+        ...baseManifest.claude!,
         policies: {
           network: {
             allowed_domains: ['github.com', 'docs.python.org', '*.npmjs.org'],
@@ -71,7 +71,7 @@ describe('renderSettingsJson', () => {
     const manifest: TeamCastManifest = {
       ...baseManifest,
       claude: {
-        ...baseManifest.claude,
+        ...baseManifest.claude!,
         policies: {
           sandbox: {
             enabled: true,
@@ -93,7 +93,7 @@ describe('renderSettingsJson', () => {
     const manifest: TeamCastManifest = {
       ...baseManifest,
       claude: {
-        ...baseManifest.claude,
+        ...baseManifest.claude!,
         policies: {
           hooks: {
             pre_tool_use: [{ matcher: 'Bash', command: 'echo pre' }],

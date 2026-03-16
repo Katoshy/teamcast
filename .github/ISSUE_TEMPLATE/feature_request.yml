@@ -1,0 +1,56 @@
+name: Feature request
+description: Suggest an improvement or new capability for TeamCast
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for product ideas, CLI improvements, or manifest/design changes.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+      placeholder: I want to ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior or API you want.
+      placeholder: TeamCast should ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What are you doing today instead?
+      placeholder: Current workaround, related tools, or rejected approaches.
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example usage
+      description: Add sample CLI commands, YAML, or output if relevant.
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Would this be a breaking change?
+      options:
+        - No
+        - Not sure
+        - Yes
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links, screenshots, prior art, or related issues.

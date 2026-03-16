@@ -329,20 +329,26 @@ describe('CLI behavior', () => {
     try {
       writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'clean-app' }, null, 2));
       expect(runCli(['init', '--preset', 'feature-team', '--target', 'both'], cwd).status).toBe(0);
+      expect(existsSync(join(cwd, '.agents/skills/test-first/SKILL.md'))).toBe(true);
 
       const resetResult = runCli(['reset', '--yes'], cwd);
       expect(resetResult.status).toBe(0);
       expect(existsSync(join(cwd, 'teamcast.yaml'))).toBe(true);
       expect(existsSync(join(cwd, 'CLAUDE.md'))).toBe(false);
       expect(existsSync(join(cwd, '.codex/config.toml'))).toBe(false);
+      expect(existsSync(join(cwd, '.agents/skills/test-first/SKILL.md'))).toBe(false);
+      expect(existsSync(join(cwd, '.agents'))).toBe(false);
 
       expect(runCli(['generate'], cwd).status).toBe(0);
+      expect(existsSync(join(cwd, '.agents/skills/test-first/SKILL.md'))).toBe(true);
 
       const cleanResult = runCli(['clean', '--yes'], cwd);
       expect(cleanResult.status).toBe(0);
       expect(existsSync(join(cwd, 'teamcast.yaml'))).toBe(false);
       expect(existsSync(join(cwd, 'CLAUDE.md'))).toBe(false);
       expect(existsSync(join(cwd, '.codex/config.toml'))).toBe(false);
+      expect(existsSync(join(cwd, '.agents/skills/test-first/SKILL.md'))).toBe(false);
+      expect(existsSync(join(cwd, '.agents'))).toBe(false);
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

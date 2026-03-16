@@ -22,7 +22,7 @@ describe('checkSecurityBaseline', () => {
     const manifest: TeamCastManifest = {
       ...base,
       claude: {
-        ...base.claude,
+        ...base.claude!,
         policies: {
           permissions: { rules: { deny: ['Write(.env*)', 'Edit(.env*)'] } },
           sandbox: { enabled: true },
@@ -37,7 +37,7 @@ describe('checkSecurityBaseline', () => {
     const manifest: TeamCastManifest = {
       ...base,
       claude: {
-        ...base.claude,
+        ...base.claude!,
         policies: { sandbox: { enabled: false } },
       },
     };
@@ -60,7 +60,7 @@ describe('checkSecurityBaseline', () => {
     const manifest: TeamCastManifest = {
       ...base,
       claude: {
-        ...base.claude,
+        ...base.claude!,
         policies: {
           permissions: { rules: { allow: ['Bash(--dangerously-skip-permissions)'] } },
         },

@@ -16,8 +16,11 @@ export function buildGeneratedOutputs(team: CoreTeam, targetName: string, option
   const files = renderer.render(spec);
 
   if (!options.dryRun) {
-    const editable = files.filter((file) => isUserEditableGeneratedFile(file.path));
-    const generated = files.filter((file) => !isUserEditableGeneratedFile(file.path));
+    const editable: RenderedFile[] = [];
+    const generated: RenderedFile[] = [];
+    for (const file of files) {
+      (isUserEditableGeneratedFile(file.path) ? editable : generated).push(file);
+    }
     writeFiles(generated, options.cwd);
     writeFiles(editable, options.cwd, { skipExisting: true });
   }

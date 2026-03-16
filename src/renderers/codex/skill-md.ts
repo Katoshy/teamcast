@@ -1,9 +1,13 @@
-// Codex skill renderer — generates {id}/SKILL.md + agents/openai.yaml per skill.
+// Codex skill renderer — generates .agents/skills/{id}/SKILL.md + agents/openai.yaml per skill.
 
 import type { CoreTeam } from '../../core/types.js';
 import type { RenderedFile } from '../types.js';
 import type { SkillDefinition } from '../../registry/types.js';
 import { defaultRegistry } from '../../registry/index.js';
+
+function getSkillBasePath(skillId: string): string {
+  return `.agents/skills/${skillId}`;
+}
 
 // --- Frontmatter (Codex: name + description only) ---
 
@@ -73,8 +77,11 @@ function renderOpenaiYaml(skill: SkillDefinition): string | null {
     if (skill.metadata!.version) lines.push(`version: "${skill.metadata!.version}"`);
   }
 
-  if (hasTools) {
+  if (hasTools || hasMcp) {
     lines.push('dependencies:');
+  }
+
+  if (hasTools) {
     lines.push('  tools:');
     for (const tool of skill.allowed_tools!) {
       lines.push(`    - ${tool}`);
@@ -82,7 +89,6 @@ function renderOpenaiYaml(skill: SkillDefinition): string | null {
   }
 
   if (hasMcp) {
-    lines.push('dependencies:');
     lines.push('  mcp_servers:');
     for (const server of skill.required_mcp_servers!) {
       lines.push(`    - ${server}`);
@@ -96,7 +102,7 @@ function renderOpenaiYaml(skill: SkillDefinition): string | null {
 
 function renderCompanionFiles(skillId: string, skill: SkillDefinition): RenderedFile[] {
   const files: RenderedFile[] = [];
-  const base = skillId;
+  const base = getSkillBasePath(skillId);
 
   if (skill.reference_files) {
     for (const [name, content] of Object.entries(skill.reference_files)) {
@@ -135,13 +141,13 @@ export function renderCodexSkillMd(team: CoreTeam): RenderedFile[] {
 
     if (definition) {
       files.push({
-        path: `${skillName}/SKILL.md`,
+        path: `${getSkillBasePath(skillName)}/SKILL.md`,
         content: renderSkillContent(definition),
       });
       files.push(...renderCompanionFiles(skillName, definition));
     } else {
       files.push({
-        path: `${skillName}/SKILL.md`,
+        path: `${getSkillBasePath(skillName)}/SKILL.md`,
         content: generateSkillStub(skillName),
       });
     }

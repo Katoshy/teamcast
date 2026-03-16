@@ -15,7 +15,7 @@ export function registerManageCommands(program: Command): void {
   const createCmd = program.command('create').description('Create a new resource');
   createCmd
     .command('skill <name>')
-    .description('Create a new skill (generates stub file in .claude/skills/)')
+    .description('Create a new skill (Claude: .claude/skills/, Codex: .agents/skills/)')
     .option('--target <name>', 'Target block to modify')
     .action(async (name: string, options: { target?: string }) => {
       const { runCreateSkillCommand } = await import('../manage.js');
