@@ -69,7 +69,7 @@ TeamCast now uses a canonical manifest shape with target-specific blocks:
 - `claude.agents.<name>` - native Claude Code runtime fields and doc outputs
 - `codex.agents.<name>` - native Codex runtime fields and TOML outputs
 - `<target>.agents.<name>.forge` - TeamCast-only metadata such as delegation graph
-- `project.environments` - active project environments such as `node`, `python` — auto-detected or explicit
+- `project.environments` - active project environments (`node`, `python`, `go`, `rust`, `java`, `ruby`, `docker`, `terraform`) — auto-detected or explicit
 
 TeamCast includes a built-in registry of capabilities, traits, instruction fragments, policy fragments, models, and skills. These are not serialized into `teamcast.yaml`.
 
@@ -526,6 +526,50 @@ This means a **reviewer** (read + execute, no write) gets code patterns but NOT 
 
 Custom agents work the same way — a `react-dev` with `write_files` + `execute` automatically gets the right fragments without any role-name matching.
 
+#### Built-in environments
+
+| Environment | Auto-detected by | Policy allows |
+|---|---|---|
+| `node` | `package.json` | `npm`, `npx`, `node` |
+| `python` | `pyproject.toml`, `requirements.txt`, `setup.py` | `pytest`, `python`, `uv`, `poetry` |
+| `go` | `go.mod` | `go build/test/run/vet/mod` |
+| `rust` | `Cargo.toml` | `cargo`, `rustfmt`, `clippy` |
+| `java` | `pom.xml`, `build.gradle` | `mvn`, `gradle`, `./gradlew` |
+| `ruby` | `Gemfile` | `bundle`, `rake`, `rspec` |
+| `docker` | `Dockerfile`, `docker-compose.yml` | `docker`, `docker compose` |
+| `terraform` | `main.tf`, `terraform.tf` | `terraform init/plan/validate/fmt` |
+
+#### Custom environments
+
+Drop a YAML file into `.agentforge/environments/` to add a new environment or override a builtin:
+
+```yaml
+# .agentforge/environments/bun.yaml
+id: bun
+description: "Bun runtime environment"
+detect_files:
+  - bun.lockb
+policy_rules:
+  sandbox:
+    enabled: true
+  allow:
+    - "Bash(bun *)"
+instruction_fragments:
+  bun_patterns:
+    content: |
+      This project uses Bun.
+      Use `bun install`, `bun run`, and `bun test`.
+    requires_capabilities:
+      - read_files
+```
+
+Reference it in `teamcast.yaml` by id:
+
+```yaml
+project:
+  environments: [node, bun]
+```
+
 ### Instruction Layers
 
 Agent prompts are composed from three layers:
@@ -534,7 +578,7 @@ Agent prompts are composed from three layers:
 |-------|--------|-------|
 | **instruction_blocks** | `teamcast.yaml` or preset | Project-specific behavior, workflow rules |
 | **instruction_fragments** | Built-in registry | Reusable role patterns (e.g. `feature-developer-workflow`) |
-| **environment instructions** | Built-in environments | Toolchain best practices, injected by capability |
+| **environment instructions** | Built-in + custom environments | Toolchain best practices, injected by capability |
 
 Presets provide sensible defaults for `instruction_blocks` and `instruction_fragments`. For deeper customization, edit `teamcast.yaml` and run `teamcast generate`.
 
