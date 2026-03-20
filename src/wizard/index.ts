@@ -102,7 +102,8 @@ export async function runWizard(options: WizardOptions): Promise<void> {
   printCommandSuccess(`Agent team initialized for project "${rawManifest.project.name}"`);
   printManifestValidation(validation);
   printNextSteps([
+    `Open ${chalk.bold('teamcast.yaml')} and fill in agent instructions based on ${chalk.yellow('// TODO')} comments`,
     `${chalk.bold('teamcast explain')} - view the team structure`,
-    `Edit ${chalk.bold('teamcast.yaml')} and run ${chalk.bold('teamcast generate')} to apply changes`,
+    `Run ${chalk.bold('teamcast generate')} to apply your changes`,
   ]);
 }
