@@ -3,7 +3,7 @@ import type { ValidationResult } from '../types.js';
 import { isCapabilityTraitName } from '../../registry/traits.js';
 import { isPolicyFragmentId } from '../../registry/policy-fragments.js';
 import { isInstructionFragmentId } from '../../registry/instruction-fragments.js';
-import { isEnvironmentId } from '../../registry/types.js';
+import { isEnvironmentId } from '../../registry/environments.js';
 import { getManifestTargetEntries } from '../../manifest/targets.js';
 
 /**

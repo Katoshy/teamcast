@@ -1,0 +1,36 @@
+id: docker
+description: "Docker environment, auto-detected via Dockerfile"
+detect_files:
+  - Dockerfile
+  - docker-compose.yml
+  - docker-compose.yaml
+  - compose.yml
+  - compose.yaml
+policy_rules:
+  sandbox:
+    enabled: true
+  allow:
+    - "Bash(docker build *)"
+    - "Bash(docker run *)"
+    - "Bash(docker compose *)"
+    - "Bash(docker-compose *)"
+    - "Bash(docker ps *)"
+    - "Bash(docker logs *)"
+    - "Bash(docker images *)"
+instruction_fragments:
+  docker_patterns:
+    content: |
+      This project uses Docker.
+      Use multi-stage builds to minimize image size.
+      Prefer alpine or slim base images where practical.
+      Use .dockerignore to exclude unnecessary files from build context.
+    requires_capabilities:
+      - read_files
+  docker_development:
+    content: |
+      Build images with `docker build -t <tag> .`.
+      Use `docker compose up` for multi-container setups.
+      Pin base image versions for reproducible builds.
+      Order Dockerfile instructions to maximize layer caching (dependencies before source code).
+    requires_capabilities:
+      - write_files

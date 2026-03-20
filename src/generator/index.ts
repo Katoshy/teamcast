@@ -10,11 +10,13 @@ import {
   resolveEnvironmentIds,
   resolveEnvironmentPolicies,
 } from '../core/environment-resolver.js';
+import { builtinResourceLoader } from '../registry/resource-loader.js';
 
 export function generate(
   manifest: TeamCastManifest,
   options: BuildGeneratedOutputsOptions,
 ) {
+  builtinResourceLoader.loadUserResources(options.cwd);
   const rawManifest = resolveEnvironmentPolicies(applyDefaults(manifest), options.cwd);
   const envIds = resolveEnvironmentIds(rawManifest, options.cwd);
 

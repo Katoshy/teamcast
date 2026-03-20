@@ -29,18 +29,22 @@ export interface CapabilityDefinition {
 
 // --- Capability Trait (named bundle of capabilities) ---
 
-export type CapabilityTraitId =
-  | 'base-read'
-  | 'file-authoring'
-  | 'command-execution'
-  | 'web-research'
-  | 'delegation'
-  | 'interaction'
-  | 'notebook-editing'
-  | 'no-file-edits'
-  | 'no-commands'
-  | 'no-web'
-  | 'full-access';
+export const BUILTIN_CAPABILITY_TRAIT_IDS = [
+  'base-read',
+  'file-authoring',
+  'command-execution',
+  'web-research',
+  'delegation',
+  'interaction',
+  'notebook-editing',
+  'no-file-edits',
+  'no-commands',
+  'no-web',
+  'full-access',
+] as const;
+
+export type BuiltinCapabilityTraitId = typeof BUILTIN_CAPABILITY_TRAIT_IDS[number];
+export type CapabilityTraitId = string;
 
 export interface CapabilityTraitDef {
   id: CapabilityTraitId;
@@ -50,15 +54,19 @@ export interface CapabilityTraitDef {
 
 // --- Policy Fragment ---
 
-export type PolicyFragmentId =
-  | 'allow-git-read'
-  | 'allow-git-write'
-  | 'ask-git-push'
-  | 'deny-destructive-shell'
-  | 'deny-network-downloads'
-  | 'deny-dynamic-exec'
-  | 'deny-env-files'
-  | 'sandbox-default';
+export const BUILTIN_POLICY_FRAGMENT_IDS = [
+  'allow-git-read',
+  'allow-git-write',
+  'ask-git-push',
+  'deny-destructive-shell',
+  'deny-network-downloads',
+  'deny-dynamic-exec',
+  'deny-env-files',
+  'sandbox-default',
+] as const;
+
+export type BuiltinPolicyFragmentId = typeof BUILTIN_POLICY_FRAGMENT_IDS[number];
+export type PolicyFragmentId = string;
 
 export interface PolicyFragmentDef {
   id: PolicyFragmentId;
@@ -69,51 +77,55 @@ export interface PolicyFragmentDef {
 
 export type InstructionKind = 'behavior' | 'workflow' | 'safety' | 'style' | 'delegation';
 
-export type InstructionFragmentId =
-  | 'coordination-core'
-  | 'delegate-first'
-  | 'planning-core'
-  | 'planning-read-only'
-  | 'research-core'
-  | 'research-citation'
-  | 'research-no-file-edits'
-  | 'development-core'
-  | 'development-workflow'
-  | 'tester-core'
-  | 'tester-read-only'
-  | 'review-core'
-  | 'review-feedback'
-  | 'security-audit-core'
-  | 'security-audit-severity'
-  | 'research-handoff'
-  | 'secure-planning'
-  | 'secure-development'
-  | 'secure-development-tests'
-  | 'security-review-gate'
-  | 'post-audit-review'
-  | 'solo-dev-core'
-  | 'solo-dev-workflow'
-  | 'solo-dev-style'
-  | 'feature-orchestrator-workflow'
-  | 'feature-orchestrator-output'
-  | 'feature-planner-workflow'
-  | 'feature-planner-read-only'
-  | 'feature-developer-core'
-  | 'feature-developer-workflow'
-  | 'feature-developer-summary'
-  | 'feature-reviewer-checklist'
-  | 'feature-reviewer-style'
-  | 'research-orchestrator-core'
-  | 'research-orchestrator-workflow'
-  | 'research-orchestrator-output'
-  | 'research-planner-core'
-  | 'research-planner-constraints'
-  | 'research-developer-core'
-  | 'research-developer-tests'
-  | 'secure-orchestrator-core'
-  | 'secure-orchestrator-workflow'
-  | 'secure-orchestrator-gate'
-  | 'post-audit-review-core';
+export const BUILTIN_INSTRUCTION_FRAGMENT_IDS = [
+  'coordination-core',
+  'delegate-first',
+  'planning-core',
+  'planning-read-only',
+  'research-core',
+  'research-citation',
+  'research-no-file-edits',
+  'development-core',
+  'development-workflow',
+  'tester-core',
+  'tester-read-only',
+  'review-core',
+  'review-feedback',
+  'security-audit-core',
+  'security-audit-severity',
+  'research-handoff',
+  'secure-planning',
+  'secure-development',
+  'secure-development-tests',
+  'security-review-gate',
+  'post-audit-review',
+  'solo-dev-core',
+  'solo-dev-workflow',
+  'solo-dev-style',
+  'feature-orchestrator-workflow',
+  'feature-orchestrator-output',
+  'feature-planner-workflow',
+  'feature-planner-read-only',
+  'feature-developer-core',
+  'feature-developer-workflow',
+  'feature-developer-summary',
+  'feature-reviewer-checklist',
+  'feature-reviewer-style',
+  'research-orchestrator-core',
+  'research-orchestrator-workflow',
+  'research-orchestrator-output',
+  'research-planner-core',
+  'research-planner-constraints',
+  'research-developer-core',
+  'research-developer-tests',
+  'secure-orchestrator-core',
+  'secure-orchestrator-workflow',
+  'secure-orchestrator-gate',
+  'post-audit-review-core',
+] as const;
+
+export type BuiltinInstructionFragmentId = typeof BUILTIN_INSTRUCTION_FRAGMENT_IDS[number];
+export type InstructionFragmentId = string;
 
 export interface InstructionFragmentDef {
   id: InstructionFragmentId;
@@ -160,13 +172,7 @@ export interface SkillDefinition {
 
 // --- Environment ---
 
-export type EnvironmentId = 'node' | 'python';
-
-export const ENVIRONMENT_IDS: readonly EnvironmentId[] = ['node', 'python'];
-
-export function isEnvironmentId(value: string): value is EnvironmentId {
-  return (ENVIRONMENT_IDS as readonly string[]).includes(value);
-}
+export type EnvironmentId = string;
 
 export interface EnvironmentInstruction {
   content: string;
@@ -174,9 +180,9 @@ export interface EnvironmentInstruction {
 }
 
 export interface EnvironmentDef {
-  id: EnvironmentId;
+  id: string;
   description: string;
-  detect: (cwd: string) => boolean;
+  detect?: (cwd: string) => boolean;
   policyRules: {
     sandbox?: { enabled?: boolean };
     allow?: string[];

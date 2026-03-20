@@ -1,0 +1,41 @@
+id: rust
+description: "Rust environment, auto-detected via Cargo.toml"
+detect_files:
+  - Cargo.toml
+policy_rules:
+  sandbox:
+    enabled: true
+  allow:
+    - "Bash(cargo build *)"
+    - "Bash(cargo test *)"
+    - "Bash(cargo run *)"
+    - "Bash(cargo clippy *)"
+    - "Bash(cargo fmt *)"
+    - "Bash(cargo check *)"
+    - "Bash(rustfmt *)"
+instruction_fragments:
+  rust_code_patterns:
+    content: |
+      This is a Rust project.
+      Follow Rust idioms: prefer ownership over borrowing when practical.
+      Use clippy lints to catch common mistakes.
+      Prefer Result/Option over panicking.
+    requires_capabilities:
+      - read_files
+  rust_development:
+    content: |
+      Use `cargo build` to compile the project.
+      Use `cargo check` for fast feedback without full compilation.
+      Run `cargo clippy` before committing to catch lint issues.
+      Use `cargo fmt` to format code consistently.
+    requires_capabilities:
+      - write_files
+  rust_testing:
+    content: |
+      Run tests with `cargo test`.
+      Run a specific test: `cargo test test_name`.
+      Use `#[cfg(test)]` modules for unit tests within source files.
+      Always run tests after changes to verify nothing broke.
+    requires_capabilities:
+      - execute
+      - write_files

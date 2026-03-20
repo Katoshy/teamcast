@@ -167,7 +167,7 @@ describe('checkManifestRegistry', () => {
       const manifest = makeManifest({
         project: {
           name: 'test',
-          environments: ['node', 'ruby'],
+          environments: ['node', 'not-a-real-env-xyz'],
         },
       });
 
@@ -176,7 +176,7 @@ describe('checkManifestRegistry', () => {
       expect(errors).toHaveLength(1);
       expect(errors[0].severity).toBe('error');
       expect(errors[0].phase).toBe('registry');
-      expect(errors[0].message).toContain('"ruby"');
+      expect(errors[0].message).toContain('"not-a-real-env-xyz"');
     });
 
     it('produces no error for valid environments', () => {

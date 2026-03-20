@@ -11,6 +11,7 @@ import {
   printError,
   printHeader,
   printCommandSuccess,
+  printNextSteps,
 } from '../utils/chalk-helpers.js';
 import type {
   CoreAgent,
@@ -364,6 +365,10 @@ export async function runAddAgentCommand(name: string, options: AddAgentOptions)
 
   applyManifestChanges(cwd, manifest, targetName, nextTeam);
   printCommandSuccess(`Agent "${name}" added and configuration regenerated`);
+  printNextSteps([
+    `Open ${chalk.bold('teamcast.yaml')} and fill in agent instructions based on ${chalk.yellow('// TODO')} comments`,
+    `Run ${chalk.bold('teamcast generate')} to apply your changes`,
+  ]);
 }
 
 export async function runCreateSkillCommand(name: string, options: TargetedOption): Promise<void> {
@@ -570,7 +575,11 @@ async function promptAgentConfig(name: string, targetContext: TargetContext): Pr
     instructions: [
       {
         kind: 'behavior',
-        content: `You are ${name}. Focus on the responsibilities described in your role and use your allowed tools appropriately.`,
+        content: `You are ${name}.\n// TODO: Describe the agent's core personality, rules, and constraints here.\n// Example: "You are a strict security auditor. Never trust user input."`,
+      },
+      {
+        kind: 'workflow',
+        content: `// TODO: Define the step-by-step process the agent should follow.\n// 1. Read the provided context.\n// 2. Perform analysis.\n// 3. Output the result.`,
       },
     ],
   };
