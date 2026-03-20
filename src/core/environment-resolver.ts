@@ -98,31 +98,30 @@ function mergePoliciesSimple(base: PoliciesConfig, extra: PoliciesConfig): Polic
           }
         : undefined,
     hooks: base.hooks || extra.hooks
-      ? {
-          pre_tool_use: [...(base.hooks?.pre_tool_use ?? []), ...(extra.hooks?.pre_tool_use ?? [])].length > 0
-            ? [...(base.hooks?.pre_tool_use ?? []), ...(extra.hooks?.pre_tool_use ?? [])]
-            : undefined,
-          post_tool_use: [...(base.hooks?.post_tool_use ?? []), ...(extra.hooks?.post_tool_use ?? [])].length > 0
-            ? [...(base.hooks?.post_tool_use ?? []), ...(extra.hooks?.post_tool_use ?? [])]
-            : undefined,
-          notification: [...(base.hooks?.notification ?? []), ...(extra.hooks?.notification ?? [])].length > 0
-            ? [...(base.hooks?.notification ?? []), ...(extra.hooks?.notification ?? [])]
-            : undefined,
-        }
+      ? (() => {
+          const pre = [...(base.hooks?.pre_tool_use ?? []), ...(extra.hooks?.pre_tool_use ?? [])];
+          const post = [...(base.hooks?.post_tool_use ?? []), ...(extra.hooks?.post_tool_use ?? [])];
+          const notif = [...(base.hooks?.notification ?? []), ...(extra.hooks?.notification ?? [])];
+          return {
+            pre_tool_use: pre.length > 0 ? pre : undefined,
+            post_tool_use: post.length > 0 ? post : undefined,
+            notification: notif.length > 0 ? notif : undefined,
+          };
+        })()
       : undefined,
     network: base.network || extra.network
-      ? {
-          allowed_domains: [...new Set([
+      ? (() => {
+          const domains = [...new Set([
             ...(base.network?.allowed_domains ?? []),
             ...(extra.network?.allowed_domains ?? []),
-          ])].length > 0
-            ? [...new Set([...(base.network?.allowed_domains ?? []), ...(extra.network?.allowed_domains ?? [])])]
-            : undefined,
-        }
+          ])];
+          return { allowed_domains: domains.length > 0 ? domains : undefined };
+        })()
       : undefined,
-    assertions: [...(base.assertions ?? []), ...(extra.assertions ?? [])].length > 0
-      ? [...(base.assertions ?? []), ...(extra.assertions ?? [])]
-      : undefined,
+    assertions: (() => {
+      const merged = [...(base.assertions ?? []), ...(extra.assertions ?? [])];
+      return merged.length > 0 ? merged : undefined;
+    })(),
   };
 }
 

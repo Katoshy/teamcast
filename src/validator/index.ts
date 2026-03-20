@@ -20,8 +20,8 @@ import type { TargetContext } from '../renderers/target-context.js';
 import type { CapabilityToolMap } from '../registry/types.js';
 
 const CHECKERS = (skillMap: CapabilityToolMap, targetName: string): Checker[] => [
-  checkRegistryReferences,
-  checkEnvironments,
+  checkRegistryReferences,                              // Phase 1
+  checkEnvironments,                                    // Phase 9
   checkTraitCapabilities,                               // Phase 2
   (team) => checkCapabilityTools(team, skillMap),       // Phase 3
   (team) => checkHandoffGraph(team, skillMap),
