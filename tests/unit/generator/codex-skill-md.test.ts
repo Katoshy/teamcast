@@ -49,10 +49,37 @@ describe('renderCodexSkillMd', () => {
     const files = renderCodexSkillMd(normalizeManifest(applyDefaults(manifest), codexTarget));
     const content = files.find((f) => f.path.endsWith('SKILL.md'))!.content;
     expect(content).toMatch(/^---\n/);
-    expect(content).toContain('name: Test First');
-    expect(content).toContain('description: ');
+    expect(content).toContain('name: "Test First"');
+    expect(content).toContain('description: "Write tests before implementation. Verify each change with a failing test first."');
     // Codex frontmatter does NOT include allowed-tools
     expect(content).not.toContain('allowed-tools');
+  });
+
+  it('always quotes frontmatter values', () => {
+    const skillId = 'codex-colon-description-test';
+    if (!defaultRegistry.getSkill(skillId)) {
+      defaultRegistry.registerSkills({
+        [skillId]: {
+          id: skillId,
+          name: 'Codex Colon Description Test',
+          description: 'Checks YAML safety: colons should not break parsing.',
+          instructions: 'Render safe frontmatter.',
+          source: 'user',
+        },
+      });
+    }
+
+    const manifest: TeamCastManifest = {
+      ...base,
+      codex: { agents: {
+        dev: { description: 'Dev', skills: [skillId] },
+      } },
+    };
+
+    const files = renderCodexSkillMd(normalizeManifest(applyDefaults(manifest), codexTarget));
+    const content = files.find((f) => f.path === `.agents/skills/${skillId}/SKILL.md`)!.content;
+    expect(content).toContain('name: "Codex Colon Description Test"');
+    expect(content).toContain('description: "Checks YAML safety: colons should not break parsing."');
   });
 
   it('renders instructions from builtin skill definition', () => {
@@ -78,7 +105,7 @@ describe('renderCodexSkillMd', () => {
     const files = renderCodexSkillMd(normalizeManifest(applyDefaults(manifest), codexTarget));
     const content = files[0].content;
     expect(content).toMatch(/^---\n/);
-    expect(content).toContain('name: My Custom Skill');
+    expect(content).toContain('name: "My Custom Skill"');
     expect(content).toContain('## When to use this skill');
     expect(content).toContain('## Steps');
   });

@@ -1,6 +1,6 @@
 ---
 name: Clean Code
-description: Follow clean code principles: small functions, meaningful names, no duplication.
+description: "Follow clean code principles: small functions, meaningful names, no duplication."
 ---
 
 # Clean Code

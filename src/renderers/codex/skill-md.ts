@@ -12,7 +12,7 @@ function getSkillBasePath(skillId: string): string {
 // --- Frontmatter (Codex: name + description only) ---
 
 function buildFrontmatter(name: string, description: string): string {
-  return ['---', `name: ${name}`, `description: ${description}`, '---'].join('\n');
+  return ['---', `name: ${JSON.stringify(name)}`, `description: ${JSON.stringify(description)}`, '---'].join('\n');
 }
 
 // --- Stub for unknown skills ---

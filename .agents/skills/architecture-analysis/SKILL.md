@@ -1,6 +1,6 @@
 ---
 name: Architecture Analysis
-description: Deep codebase analysis: module boundaries, dependency graph, design patterns.
+description: "Deep codebase analysis: module boundaries, dependency graph, design patterns."
 ---
 
 # Architecture Analysis

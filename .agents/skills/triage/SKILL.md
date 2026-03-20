@@ -1,6 +1,6 @@
 ---
 name: Triage
-description: Assess incoming requests: classify priority, estimate scope, identify blockers.
+description: "Assess incoming requests: classify priority, estimate scope, identify blockers."
 ---
 
 # Triage
