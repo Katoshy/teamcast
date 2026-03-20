@@ -80,5 +80,25 @@ export function checkTeamGraphEnhanced(team: CoreTeam): ValidationResult[] {
     });
   }
 
+  // HANDOFF_CAPABILITY_MISMATCH — delegating to an agent with no tools
+  for (const [agentId, agent] of agentEntries) {
+    for (const target of agent.metadata?.handoffs ?? []) {
+      const targetAgent = team.agents[target];
+      if (!targetAgent) continue; // already caught by checkHandoffGraph
+
+      const targetTools = targetAgent.runtime.tools ?? [];
+      if (targetTools.length === 0) {
+        results.push({
+          severity: 'warning',
+          category: 'Team graph',
+          code: 'HANDOFF_CAPABILITY_MISMATCH',
+          phase: 'team-graph',
+          message: `Agent "${agentId}" hands off to "${target}" but "${target}" has no capabilities — delegation may be ineffective`,
+          agent: agentId,
+        });
+      }
+    }
+  }
+
   return results;
 }
