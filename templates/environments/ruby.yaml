@@ -1,0 +1,39 @@
+id: ruby
+description: "Ruby environment, auto-detected via Gemfile"
+detect_files:
+  - Gemfile
+policy_rules:
+  sandbox:
+    enabled: true
+  allow:
+    - "Bash(bundle *)"
+    - "Bash(rake *)"
+    - "Bash(rspec *)"
+    - "Bash(ruby *)"
+    - "Bash(rails *)"
+instruction_fragments:
+  ruby_code_patterns:
+    content: |
+      This is a Ruby project.
+      Follow Ruby style conventions (snake_case for methods/variables, PascalCase for classes).
+      Use frozen string literal comments where the project follows that convention.
+      Prefer blocks and enumerators over manual loops.
+    requires_capabilities:
+      - read_files
+  ruby_development:
+    content: |
+      Install dependencies with `bundle install`.
+      Use `bundle exec` to run commands in the context of the bundle.
+      Prefer keyword arguments for methods with multiple optional parameters.
+      Handle errors with specific exception classes.
+    requires_capabilities:
+      - write_files
+  ruby_testing:
+    content: |
+      Run tests with `bundle exec rspec` (RSpec) or `bundle exec rake test` (Minitest).
+      Run a specific test: `bundle exec rspec path/to/spec.rb:LINE`.
+      Follow existing test patterns. Use shared examples for reusable test behaviors.
+      Always run tests after changes to verify nothing broke.
+    requires_capabilities:
+      - execute
+      - write_files

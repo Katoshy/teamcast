@@ -3,7 +3,7 @@ import type { CoreTeam } from './types.js';
 import type { PoliciesConfig, TeamCastManifest, TargetConfig } from '../manifest/types.js';
 import { TARGET_NAMES, getManifestTargetConfig, setManifestTargetConfig } from '../manifest/targets.js';
 import { getEnvironment, detectEnvironments } from '../registry/environments.js';
-import { isEnvironmentId } from '../registry/types.js';
+import { isEnvironmentId } from '../registry/environments.js';
 import type { CapabilityToolMap, EnvironmentId, EnvironmentInstruction } from '../registry/types.js';
 import { agentHasCapability } from './capability-resolver.js';
 import type { TargetContext } from '../renderers/target-context.js';

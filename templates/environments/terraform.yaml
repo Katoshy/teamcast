@@ -1,0 +1,31 @@
+id: terraform
+description: "Terraform environment, auto-detected via main.tf"
+detect_files:
+  - main.tf
+  - terraform.tf
+policy_rules:
+  sandbox:
+    enabled: true
+  allow:
+    - "Bash(terraform init *)"
+    - "Bash(terraform plan *)"
+    - "Bash(terraform validate *)"
+    - "Bash(terraform fmt *)"
+    - "Bash(terraform state *)"
+instruction_fragments:
+  terraform_patterns:
+    content: |
+      This project uses Terraform for infrastructure as code.
+      Follow HCL conventions: use snake_case for resource names and variables.
+      Organize configuration into logical files (main.tf, variables.tf, outputs.tf).
+      Use modules for reusable infrastructure components.
+    requires_capabilities:
+      - read_files
+  terraform_development:
+    content: |
+      Run `terraform init` to initialize providers and modules.
+      Run `terraform plan` to preview changes before applying.
+      Run `terraform validate` and `terraform fmt` before committing.
+      Never apply changes without reviewing the plan first.
+    requires_capabilities:
+      - write_files

@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { detectEnvironments, listEnvironments } from '../../registry/environments.js';
-import { isEnvironmentId } from '../../registry/types.js';
+import { isEnvironmentId } from '../../registry/environments.js';
 import type { EnvironmentId } from '../../registry/types.js';
 import { promptCheckbox } from '../../utils/prompts.js';
 

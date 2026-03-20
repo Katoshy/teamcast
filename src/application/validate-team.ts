@@ -16,6 +16,7 @@ import {
   resolveEnvironmentPolicies,
 } from '../core/environment-resolver.js';
 import { checkManifestRegistry } from '../validator/checks/manifest-registry.js';
+import { builtinResourceLoader } from '../registry/resource-loader.js';
 
 export interface TeamValidationSummary {
   schemaErrors: Array<{ path: string; message: string }>;
@@ -36,6 +37,7 @@ export function evaluateTeam(
     };
   }
 
+  if (options?.cwd) builtinResourceLoader.loadUserResources(options.cwd);
   const rawManifest = applyDefaults(schemaResult.data);
   const resolvedManifest = options?.cwd ? resolveEnvironmentPolicies(rawManifest, options.cwd) : rawManifest;
 

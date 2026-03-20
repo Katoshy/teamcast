@@ -1,0 +1,40 @@
+id: go
+description: "Go environment, auto-detected via go.mod"
+detect_files:
+  - go.mod
+policy_rules:
+  sandbox:
+    enabled: true
+  allow:
+    - "Bash(go build *)"
+    - "Bash(go test *)"
+    - "Bash(go run *)"
+    - "Bash(go vet *)"
+    - "Bash(go mod *)"
+    - "Bash(go generate *)"
+instruction_fragments:
+  go_code_patterns:
+    content: |
+      This is a Go project.
+      Follow standard Go conventions and idiomatic patterns.
+      Use gofmt/goimports for formatting.
+      Prefer short variable names in small scopes, descriptive names in larger scopes.
+    requires_capabilities:
+      - read_files
+  go_development:
+    content: |
+      Use `go build ./...` to compile all packages.
+      Use `go mod tidy` to clean up dependencies.
+      Handle errors explicitly — do not ignore returned errors.
+      Prefer returning errors over panicking.
+    requires_capabilities:
+      - write_files
+  go_testing:
+    content: |
+      Run tests with `go test ./...`.
+      Run a specific test: `go test -run TestName ./path/to/package`.
+      Use table-driven tests for multiple cases.
+      Always run tests after changes to verify nothing broke.
+    requires_capabilities:
+      - execute
+      - write_files

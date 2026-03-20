@@ -1,0 +1,41 @@
+id: java
+description: "Java environment, auto-detected via pom.xml or build.gradle"
+detect_files:
+  - pom.xml
+  - build.gradle
+  - build.gradle.kts
+policy_rules:
+  sandbox:
+    enabled: true
+  allow:
+    - "Bash(mvn *)"
+    - "Bash(gradle *)"
+    - "Bash(./gradlew *)"
+    - "Bash(java *)"
+    - "Bash(javac *)"
+instruction_fragments:
+  java_code_patterns:
+    content: |
+      This is a Java project.
+      Follow standard Java naming conventions (camelCase for methods, PascalCase for classes).
+      Use appropriate access modifiers.
+      Prefer composition over inheritance where practical.
+    requires_capabilities:
+      - read_files
+  java_development:
+    content: |
+      If using Maven: `mvn compile` to build, `mvn package` to create artifacts.
+      If using Gradle: `./gradlew build` or `gradle build`.
+      Handle exceptions with specific types, not bare catch blocks.
+      Use try-with-resources for AutoCloseable resources.
+    requires_capabilities:
+      - write_files
+  java_testing:
+    content: |
+      Run tests with `mvn test` (Maven) or `./gradlew test` (Gradle).
+      Run a specific test: `mvn -Dtest=TestClassName test` or `./gradlew test --tests TestClassName`.
+      Use JUnit 5 annotations. Follow existing test patterns in the project.
+      Always run tests after changes to verify nothing broke.
+    requires_capabilities:
+      - execute
+      - write_files

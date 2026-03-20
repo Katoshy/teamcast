@@ -1,0 +1,41 @@
+id: python
+description: "Python environment, auto-detected via pyproject.toml or requirements.txt"
+detect_files:
+  - pyproject.toml
+  - requirements.txt
+  - setup.py
+policy_rules:
+  sandbox:
+    enabled: true
+  allow:
+    - "Bash(pytest *)"
+    - "Bash(python -m pytest *)"
+    - "Bash(uv run *)"
+    - "Bash(poetry run *)"
+    - "Bash(python *)"
+instruction_fragments:
+  python_code_patterns:
+    content: |
+      This is a Python project.
+      Follow PEP 8 style conventions.
+      Use type hints for function signatures and class attributes.
+      Prefer pathlib.Path over os.path for file operations.
+    requires_capabilities:
+      - read_files
+  python_development:
+    content: |
+      If using poetry: `poetry install` and `poetry run <cmd>`. If using uv: `uv sync` and `uv run <cmd>`.
+      Otherwise use pip and virtualenv.
+      Use structured logging (logging module) instead of print statements.
+      Handle exceptions with specific types, not bare except clauses.
+    requires_capabilities:
+      - write_files
+  python_testing:
+    content: |
+      Run tests with `pytest`. If using poetry or uv, prefix with `poetry run` or `uv run`.
+      Run a specific test: `pytest <path>::<test_name>`.
+      Always run tests after changes. Follow existing test patterns in the tests/ directory.
+      Use fixtures for shared setup. Prefer parametrize for similar test cases.
+    requires_capabilities:
+      - execute
+      - write_files
