@@ -1,5 +1,5 @@
 ---
-name: Code Review
+name: code-review
 description: Review code for correctness, style, performance, and security issues.
 ---
 

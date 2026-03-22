@@ -51,7 +51,7 @@ describe('renderSkillMd', () => {
     const files = renderSkillMd(normalizeManifest(applyDefaults(manifest), claudeTarget));
     const content = files.find((f) => f.path.endsWith('SKILL.md'))!.content;
     expect(content).toMatch(/^---\n/);
-    expect(content).toContain('name: Test First');
+    expect(content).toContain('name: test-first');
     expect(content).toContain('description: ');
     expect(content).toMatch(/---\n\n# Test First/);
   });
@@ -79,7 +79,7 @@ describe('renderSkillMd', () => {
     const files = renderSkillMd(normalizeManifest(applyDefaults(manifest), claudeTarget));
     const content = files[0].content;
     expect(content).toMatch(/^---\n/);
-    expect(content).toContain('name: My Custom Skill');
+    expect(content).toContain('name: my-custom-skill');
     expect(content).toContain('## When to use this skill');
     expect(content).toContain('## Steps');
     expect(content).toContain('## Output');

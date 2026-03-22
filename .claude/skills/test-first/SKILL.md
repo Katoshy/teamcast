@@ -1,5 +1,5 @@
 ---
-name: Test First
+name: test-first
 description: Write tests before implementation. Verify each change with a failing test first.
 ---
 

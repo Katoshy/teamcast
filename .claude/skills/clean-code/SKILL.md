@@ -1,5 +1,5 @@
 ---
-name: Clean Code
+name: clean-code
 description: Follow clean code principles: small functions, meaningful names, no duplication.
 ---
 

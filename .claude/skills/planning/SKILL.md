@@ -1,5 +1,5 @@
 ---
-name: Planning
+name: planning
 description: Analyze the codebase and produce a step-by-step implementation plan before coding.
 ---
 
