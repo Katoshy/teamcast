@@ -1,5 +1,5 @@
 ---
-name: Security Check
+name: security-check
 description: Check code for common security vulnerabilities and OWASP top 10 issues.
 ---
 

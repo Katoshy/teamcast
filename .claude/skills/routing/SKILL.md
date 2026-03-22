@@ -1,5 +1,5 @@
 ---
-name: Routing
+name: routing
 description: Route tasks to the appropriate specialist agent based on the request type.
 ---
 

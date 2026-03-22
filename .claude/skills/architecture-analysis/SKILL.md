@@ -1,5 +1,5 @@
 ---
-name: Architecture Analysis
+name: architecture-analysis
 description: Deep codebase analysis: module boundaries, dependency graph, design patterns.
 ---
 

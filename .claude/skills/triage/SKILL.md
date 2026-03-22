@@ -1,5 +1,5 @@
 ---
-name: Triage
+name: triage
 description: Assess incoming requests: classify priority, estimate scope, identify blockers.
 ---
 

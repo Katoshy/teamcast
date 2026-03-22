@@ -7,7 +7,7 @@ import { defaultRegistry } from '../../registry/index.js';
 
 function buildFrontmatter(skill: SkillDefinition): string {
   const lines: string[] = ['---'];
-  lines.push(`name: ${skill.name}`);
+  lines.push(`name: ${skill.id}`);
   lines.push(`description: ${skill.description}`);
   if (skill.allowed_tools?.length) {
     lines.push(`allowed-tools:`);
@@ -28,7 +28,7 @@ function generateSkillStub(skillName: string): string {
     .join(' ');
 
   return `---
-name: ${title}
+name: ${skillName}
 description: <!-- describe when this skill triggers -->
 ---
 
