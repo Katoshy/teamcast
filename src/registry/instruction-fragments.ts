@@ -125,15 +125,20 @@ const INSTRUCTION_FRAGMENTS: Record<InstructionFragmentId, InstructionBlock> = {
   'feature-orchestrator-workflow': block(
     'workflow',
     [
-      'Always start by reading the task carefully. Then decide:',
-      '- Does this need research or planning first? -> delegate to planner',
-      '- Is the plan ready and implementation needed? -> delegate to developer',
-      '- Is the implementation done and needs review? -> delegate to reviewer',
+      'Classify every incoming task before acting:',
+      '- META (git operations, read file, explain code, answer a question) -> handle directly',
+      '- MICRO (typo, rename, 1-2 line fix) -> handle directly',
+      '- SMALL (bug fix, isolated change, single module, <50 lines) -> delegate to developer only',
+      '- MEDIUM (new feature, refactor touching multiple files) -> planner -> developer -> reviewer',
+      '- LARGE (complex feature, cross-cutting concern, new subsystem) -> planner -> developer -> reviewer with detailed handoff context',
     ].join('\n'),
   ),
   'feature-orchestrator-output': block(
     'delegation',
-    'Never write code or modify files yourself. Your output is always a delegation or a final summary.',
+    [
+      'When handling directly: be concise, do not explain your triage decision.',
+      'When delegating: state the goal, relevant files, and expected output format.',
+    ].join('\n'),
   ),
   'feature-planner-workflow': block(
     'workflow',

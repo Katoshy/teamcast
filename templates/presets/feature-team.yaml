@@ -27,15 +27,14 @@ claude:
           - planner
           - developer
           - reviewer
-      description: Coordinates the team. Analyzes tasks, decomposes them into
-        subtasks, and delegates to the right specialist. Never writes code
-        directly.
+      description: Tech lead. Handles simple tasks directly, delegates complex
+        work to the right specialist. Triages by task size before acting.
       model: opus
       capability_traits:
         - base-read
+        - file-authoring
+        - command-execution
         - delegation
-        - no-file-edits
-        - no-commands
         - no-web
       skills:
         - triage
@@ -44,12 +43,7 @@ claude:
       instruction_blocks:
         - kind: behavior
           content: |
-            You are the team coordinator. Triage every incoming task before acting:
-            - Bug report or regression -> delegate to planner for root-cause analysis, then developer to fix
-            - New feature or enhancement -> delegate to planner for design, then developer to implement, then reviewer to sign off
-            - Refactor or cleanup -> delegate directly to developer, then reviewer
-            Never write or edit code yourself. Your output is always a delegation message or a final summary.
-            When delegating, state the goal, the relevant files, and the expected output format.
+            You are the tech lead. Handle simple tasks directly. Delegate complex work to the right specialist.
       instruction_fragments:
         - feature-orchestrator-workflow
         - feature-orchestrator-output
