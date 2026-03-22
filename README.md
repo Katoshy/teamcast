@@ -117,6 +117,7 @@ teamcast clean --yes            # skip clean confirmation
 | `solo-dev`           | developer | single full-stack agent handles end-to-end: plan, implement, test, verify |
 | `research-and-build` | orchestrator, researcher, planner, developer | research-first: orchestrator routes to researcher for external info, planner integrates findings, developer implements |
 | `secure-dev`         | orchestrator, planner, developer, security-auditor, reviewer | mandatory security pipeline: planner includes threat model, developer follows OWASP, security-auditor gates every change, reviewer checks quality |
+| `red-blue`           | orchestrator, red-agent, blue-agent, judge | adversarial hardening: red attacks with failing tests, blue fixes without weakening them, judge decides SHIP or next round |
 
 The built-in preset files live in `templates/presets/` and are valid TeamCast YAML. Use them as a reference when creating custom presets, or copy one as a starting point:
 
