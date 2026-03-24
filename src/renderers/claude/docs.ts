@@ -1,6 +1,66 @@
-import type { CoreTeam } from '../../core/types.js';
+import type { CoreAgent, CoreTeam } from '../../core/types.js';
 import type { RenderedFile } from '../types.js';
 import { mapPoliciesToClaudePermissions } from './policy-mapper.js';
+
+function findDirectSpecialist(
+  handoffs: string[],
+  agents: Record<string, CoreAgent>,
+): string {
+  const writer = handoffs.find((id) => {
+    const agent = agents[id];
+    return agent?.runtime.tools?.some((t) => ['Write', 'Edit', 'MultiEdit'].includes(t));
+  });
+  return writer ?? handoffs[handoffs.length - 1];
+}
+
+function renderWorkflowSection(
+  team: CoreTeam,
+  entryPoints: Array<[string, CoreAgent]>,
+): string[] {
+  const lines: string[] = [];
+  // Use first entry point (typically the only orchestrator)
+  const [orchestratorId, orchestrator] = entryPoints[0];
+  const handoffs = orchestrator.metadata?.handoffs ?? [];
+  const specialist = findDirectSpecialist(handoffs, team.agents);
+  lines.push('## Workflow');
+  lines.push('');
+  lines.push('Classify every task by complexity before choosing a mode:');
+  lines.push('');
+  lines.push('| Level | Examples | Mode |');
+  lines.push('|-------|----------|------|');
+  lines.push('| META | explain code, git operations, answer question | Handle directly |');
+  lines.push('| MICRO | typo, rename, 1-2 line fix | Handle directly |');
+  lines.push(`| SMALL | bug fix, single module, <50 lines | Delegate to **${specialist}** |`);
+  lines.push(`| MEDIUM | new feature, refactor, 2-5 files | Delegate to **${orchestratorId}** |`);
+  lines.push('| LARGE | new subsystem, cross-cutting concern, 5+ files | Supervised coordination |');
+  lines.push('| CRITICAL | security change, breaking API, data migration | Supervised + user confirmation at each step |');
+  lines.push('');
+
+  // If there are additional entry points, show their chains too
+  if (entryPoints.length > 1) {
+    for (const [agentId, agent] of entryPoints) {
+      const agentChain = agent.metadata?.handoffs ? [agentId, ...agent.metadata.handoffs].join(' -> ') : agentId;
+      lines.push(`Pipeline **${agentId}**: \`${agentChain}\``);
+    }
+    lines.push('');
+  }
+
+  lines.push('### Supervised mode (LARGE / CRITICAL)');
+  lines.push('');
+  lines.push(`Do NOT delegate to **${orchestratorId}**. Personally coordinate the chain:`);
+
+  handoffs.forEach((agentId, index) => {
+    if (index < handoffs.length - 1) {
+      lines.push(`${index + 1}. Delegate to **${agentId}** — present result to user`);
+    } else {
+      lines.push(`${index + 1}. Delegate to **${agentId}** — present result, decide next step`);
+    }
+  });
+
+  lines.push('');
+
+  return lines;
+}
 
 export function renderClaudeMd(team: CoreTeam): RenderedFile {
   const lines: string[] = [];
@@ -31,15 +91,7 @@ export function renderClaudeMd(team: CoreTeam): RenderedFile {
   });
 
   if (entryPoints.length > 0) {
-    lines.push('### Preferred workflow');
-    lines.push('');
-    for (const [agentId, agent] of entryPoints) {
-      const chain = agent.metadata?.handoffs ? [agentId, ...agent.metadata.handoffs].join(' -> ') : agentId;
-      lines.push(`For complex tasks, start with **${agentId}**: \`${chain}\``);
-    }
-    lines.push('');
-    lines.push('For simple single-file changes, work directly without delegation.');
-    lines.push('');
+    lines.push(...renderWorkflowSection(team, entryPoints));
   }
 
   if (team.policies) {
@@ -74,4 +126,3 @@ export function renderClaudeMd(team: CoreTeam): RenderedFile {
     content: lines.join('\n'),
   };
 }
-

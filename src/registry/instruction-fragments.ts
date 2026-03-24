@@ -131,6 +131,7 @@ const INSTRUCTION_FRAGMENTS: Record<InstructionFragmentId, InstructionBlock> = {
       '- SMALL (bug fix, isolated change, single module, <50 lines) -> delegate to developer only',
       '- MEDIUM (new feature, refactor touching multiple files) -> planner -> developer -> reviewer',
       '- LARGE (complex feature, cross-cutting concern, new subsystem) -> planner -> developer -> reviewer with detailed handoff context',
+      '- CRITICAL (security-sensitive change, breaking API, data migration, auth/permissions) -> Do NOT handle autonomously. Summarize scope and risks, then return control to the user for supervised coordination.',
     ].join('\n'),
   ),
   'feature-orchestrator-output': block(
