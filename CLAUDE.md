@@ -13,11 +13,25 @@ This project uses a multi-agent setup. Delegate tasks to the appropriate agent:
 | **developer** | Use when a clear implementation plan is ready. Writes TypeScript code, runs vitest tests, and verifies CLI commands work. No internet access. |
 | **reviewer** | Use after implementation is complete. Reviews TypeScript types, ESM imports, test coverage, pure function integrity, and CLI output style. Read-only, provides recommendations only. |
 
-### Preferred workflow
+## Workflow
 
-For complex tasks, start with **orchestrator**: `orchestrator -> planner -> developer -> reviewer`
+Classify every task by complexity before choosing a mode:
 
-For simple single-file changes, work directly without delegation.
+| Level | Examples | Mode |
+|-------|----------|------|
+| META | explain code, git operations, answer question | Handle directly |
+| MICRO | typo, rename, 1-2 line fix | Handle directly |
+| SMALL | bug fix, single module, <50 lines | Delegate to **developer** |
+| MEDIUM | new feature, refactor, 2-5 files | Delegate to **orchestrator** |
+| LARGE | new subsystem, cross-cutting concern, 5+ files | Supervised coordination |
+| CRITICAL | security change, breaking API, data migration | Supervised + user confirmation at each step |
+
+### Supervised mode (LARGE / CRITICAL)
+
+Do NOT delegate to **orchestrator**. Personally coordinate the chain:
+1. Delegate to **planner** — present result to user
+2. Delegate to **developer** — present result to user
+3. Delegate to **reviewer** — present result, decide next step
 
 ## Security Boundaries
 
