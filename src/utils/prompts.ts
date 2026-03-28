@@ -49,7 +49,7 @@ export async function promptList<T extends string>(options: {
 }): Promise<T> {
   const answers = await inquirer.prompt<{ value: T }>([
     {
-      type: 'list',
+      type: 'select',
       name: 'value',
       message: options.message,
       choices: options.choices,
